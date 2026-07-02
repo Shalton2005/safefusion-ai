@@ -60,7 +60,17 @@ safefusion-ai/
 - [presentation/](presentation/README.md) stores hackathon presentation materials and assets.
 - [.github/](.github/README.md) stores workflow automation and GitHub project templates.
 
+<<<<<<< HEAD
 ## Status
+=======
+## Project Management
+
+The GitHub Project board structure, labels, milestones, and team ownership are documented in [GITHUB_PROJECT_SETUP.md](GITHUB_PROJECT_SETUP.md).
+
+---
+
+## Team
+>>>>>>> 893551956f67887664dbfe1672f0d375d3eccc90
 
 Initial repository scaffold created. Application code, infrastructure definitions, and AI pipelines will be added in subsequent iterations.
 
