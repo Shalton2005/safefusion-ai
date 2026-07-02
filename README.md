@@ -4,64 +4,66 @@ AI-Powered Industrial Safety Intelligence Platform for Zero-Harm Operations
 
 ## Overview
 
-SafeFusion AI is an intelligent industrial safety platform that unifies IoT sensors, SCADA systems, CCTV analytics, permit-to-work logs, maintenance records, worker tracking, and regulatory knowledge into a single AI-powered decision-making layer.
+SafeFusion AI is an enterprise-grade industrial safety intelligence platform designed to fuse operational telemetry, computer vision, and knowledge-driven AI into a single decision-support layer for zero-harm operations.
 
-The platform proactively detects compound risks before accidents occur, enabling industries to move from reactive safety monitoring to predictive risk prevention.
+This repository is initialized as a professional multi-workstream monorepo for frontend, backend, AI, data, documentation, diagrams, and presentation assets.
 
----
-
-## Problem Statement
-
-Current industrial facilities generate large volumes of safety data, but these systems operate independently. SafeFusion AI bridges this gap by correlating data across multiple sources to identify risks that isolated systems cannot detect.
-
----
-
-## Key Features
-
-- Compound Risk Detection
-- AI Safety Copilot
-- Geospatial Safety Heatmap
-- PPE Detection using Computer Vision
-- Knowledge Graph-based Risk Analysis
-- RAG-powered Incident Intelligence
-- Emergency Response Orchestrator
-
----
-
-## Tech Stack
+## Planned Stack
 
 ### Frontend
 - React
 - TypeScript
 - Tailwind CSS
+- Vite
 
 ### Backend
 - FastAPI
 - PostgreSQL
+- SQLAlchemy
+- WebSockets
 
-### AI
+### AI and Data
 - LangGraph
 - Ollama
-- Llama
+- Llama 3
 - Neo4j
 - YOLO
 - RAG
+- OpenCV
 
----
+## Repository Layout
 
-## Project Status
+```text
+safefusion-ai/
+├── frontend/
+├── backend/
+├── datasets/
+├── docs/
+├── diagrams/
+├── presentation/
+├── .github/
+├── README.md
+├── LICENSE
+├── .gitignore
+├── CHANGELOG.md
+├── CONTRIBUTING.md
+└── docker-compose.yml
+```
 
-🚧 Under Development
+## Directory Guide
 
----
+- [frontend/](frontend/README.md) contains the React, TypeScript, Tailwind CSS, and Vite application workspace.
+- [backend/](backend/README.md) contains the FastAPI, SQLAlchemy, PostgreSQL, and WebSocket service workspace.
+- [datasets/](datasets/README.md) stores raw, processed, annotated, and external data assets.
+- [docs/](docs/README.md) stores architecture, API, AI, and operational documentation.
+- [diagrams/](diagrams/README.md) stores system, data flow, and deployment diagrams.
+- [presentation/](presentation/README.md) stores hackathon presentation materials and assets.
+- [.github/](.github/README.md) stores workflow automation and GitHub project templates.
 
-## Team
+## Status
 
-- Shalton Menezes
-- Luke Roman Noronha
-
----
+Initial repository scaffold created. Application code, infrastructure definitions, and AI pipelines will be added in subsequent iterations.
 
 ## License
 
-MIT
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.

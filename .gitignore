@@ -1,0 +1,134 @@
+# Operating system files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editors and IDEs
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+pip-log.txt
+
+# Environment files
+.env
+.env.*
+!.env.example
+!.env.template
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+.Python
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.pyre/
+.hypothesis/
+.tox/
+.nox/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+dist/
+build/
+site/
+.eggs/
+*.egg
+*.egg-info/
+pip-wheel-metadata/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# FastAPI and local runtime
+*.db
+*.sqlite3
+.uvicorn/
+
+# Node.js and frontend tooling
+node_modules/
+.npm/
+.pnpm-store/
+.yarn/
+.yarn/cache/
+.yarn/unplugged/
+.yarn/build-state.yml
+.yarn/install-state.gz
+.parcel-cache/
+.turbo/
+.vite/
+vite.svg
+*.tsbuildinfo
+
+# React and build outputs
+coverage/
+storybook-static/
+frontend/dist/
+frontend/build/
+
+# Backend build and cache outputs
+backend/.pytest_cache/
+backend/.mypy_cache/
+backend/.ruff_cache/
+
+# AI and ML artifacts
+artifacts/
+checkpoints/
+models/
+weights/
+wandb/
+mlruns/
+
+# Data outputs
+datasets/raw/
+datasets/processed/
+datasets/external/
+datasets/annotations/
+!datasets/raw/.gitkeep
+!datasets/processed/.gitkeep
+!datasets/external/.gitkeep
+!datasets/annotations/.gitkeep
+
+# Docker
+.docker/
+docker-data/
+*.pid
+
+# Database and service volumes
+postgres-data/
+neo4j-data/
+neo4j-logs/
+neo4j-import/
+neo4j-plugins/
+
+# Cache and temp files
+.cache/
+tmp/
+temp/
+*.tmp
+
+# Test artifacts
+.nyc_output/
+playwright-report/
+test-results/
