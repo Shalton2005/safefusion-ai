@@ -55,6 +55,12 @@ Current industrial facilities generate large volumes of safety data, but these s
 
 ---
 
+## Project Management
+
+The GitHub Project board structure, labels, milestones, and team ownership are documented in [GITHUB_PROJECT_SETUP.md](GITHUB_PROJECT_SETUP.md).
+
+---
+
 ## Team
 
 - Shalton Menezes
