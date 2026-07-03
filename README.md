@@ -66,7 +66,7 @@ The GitHub Project board structure, labels, milestones, and team ownership are d
 
 ---
 
-## Team
+## Project Status
 
 Initial repository scaffold created. Application code, infrastructure definitions, and AI pipelines will be added in subsequent iterations.
 
