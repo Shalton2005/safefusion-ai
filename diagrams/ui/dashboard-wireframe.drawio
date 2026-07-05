@@ -1,0 +1,74 @@
+<mxfile host="app.diagrams.net"><diagram name="SafeFusion"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>
+<mxCell id="bg" value="SAFEFUSION AI - Enterprise Dashboard Wireframe (1920x1080)" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1"><mxGeometry x="20" y="20" width="1880" height="1040" as="geometry"/></mxCell><mxCell id="nav" value="TOP NAVIGATION (70px)
+[Logo]   [Global Search____________________]   Refinery A ▼   Current Time   🟢 Operational   🔔   ◐   User" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1"><mxGeometry x="44" y="44" width="1832" height="70" as="geometry"/></mxCell><mxCell id="side" value="LEFT SIDEBAR
+🏠 Dashboard (ACTIVE)
+🗺 Heatmap
+🚨 Alerts
+📄 Reports
+🤖 AI Copilot
+👷 Workers
+🏭 Equipment
+📋 Permits
+⚙ Settings" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1"><mxGeometry x="44" y="130" width="220" height="860" as="geometry"/></mxCell><mxCell id="k0" value="Overall Plant Risk
+72 / 100
+🟡 Moderate Risk
+▲ +5% vs Last Hour" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1"><mxGeometry x="284" y="130" width="250" height="110" as="geometry"/></mxCell><mxCell id="k1" value="Active Alerts
+14
+▲ +2 Critical
+[Icon]" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1"><mxGeometry x="550" y="130" width="250" height="110" as="geometry"/></mxCell><mxCell id="k2" value="Workers On Site
+186
+Normal
+[Icon]" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1"><mxGeometry x="816" y="130" width="250" height="110" as="geometry"/></mxCell><mxCell id="k3" value="Active Permits
+29
+▼ -3
+[Icon]" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1"><mxGeometry x="1082" y="130" width="250" height="110" as="geometry"/></mxCell><mxCell id="heat" value="PLANT SAFETY OVERVIEW
+Live Safety Heatmap
+
+[Tank Farm] [Control Room]
+[Loading Area] [Boiler]
+[Chemical Storage] [Assembly Area]
+[Pipeline Zone] [Warehouse]
+
+Placeholder Only" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1"><mxGeometry x="284" y="256" width="1048" height="360" as="geometry"/></mxCell><mxCell id="cop" value="AI SAFETY COPILOT
+
+Risk Summary
+High methane concentration near Tank Farm.
+
+Recent Recommendation
+Suggested Actions
+[Investigate Alert]
+[Notify Team]
+[Generate Report]
+[Emergency SOP]
+
+Chat Preview
+Recent Conversation" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1"><mxGeometry x="1350" y="130" width="526" height="610" as="geometry"/></mxCell><mxCell id="alerts" value="RECENT ALERTS
+Time | Severity | Location | Alert Type | Status
+08:15 | Critical | Zone A | Gas Leak | Open
+08:23 | Medium | Tank Farm | Temperature | Ack
+08:41 | Critical | Loading Area | Smoke | Open
+09:02 | Low | Zone C | PPE Violation | Closed" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1"><mxGeometry x="284" y="632" width="600" height="300" as="geometry"/></mxCell><mxCell id="time" value="INCIDENT TIMELINE
+09:20
+↓
+Gas Alert
+↓
+Worker Evacuated
+↓
+Maintenance Started
+↓
+Area Cleared
+↓
+Resolved" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1"><mxGeometry x="900" y="632" width="432" height="300" as="geometry"/></mxCell><mxCell id="health" value="SYSTEM HEALTH
+
+🟢 Sensor Network
+Operational
+
+🟢 Camera Network
+Operational
+
+🟢 SCADA Connectivity
+Operational
+
+🟢 Database Health
+Operational" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1"><mxGeometry x="1350" y="756" width="526" height="176" as="geometry"/></mxCell><mxCell id="foot" value="Footer: Version | Last Updated | Backend Status | AI Status | Database Status" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1"><mxGeometry x="44" y="1004" width="1832" height="36" as="geometry"/></mxCell>
+</root></mxGraphModel></diagram></mxfile>

@@ -1,0 +1,40 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="AI Safety Copilot">
+    <mxGraphModel dx="1920" dy="1080" grid="1" gridSize="10">
+      <root>
+        <mxCell id="0"/><mxCell id="1" parent="0"/>
+
+        <mxCell id="top" value="TOP NAVIGATION&#10;[Logo]  [Global Search________________]  Notifications | Plant Selector | Current Shift | Current Time | Theme | User | System Status"
+          style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="24" y="24" width="1872" height="70" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="sidebar" value="LEFT SIDEBAR&#10;🏠 Dashboard&#10;🗺 Heatmap&#10;🚨 Alerts&#10;📊 Reports&#10;🤖 AI Copilot (ACTIVE)&#10;👷 Workers&#10;⚙ Equipment&#10;📄 Permits&#10;⚙ Settings"
+          style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="24" y="110" width="220" height="860" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="recent" value="LEFT PANEL (20%)&#10;Recent Conversations&#10;[Search]&#10;[+ New Chat]&#10;• Gas Leak Investigation&#10;• Tank Farm Alert&#10;• Worker PPE Violation&#10;• Permit Review&#10;• Boiler Temperature Analysis&#10;• Chemical Storage Inspection"
+          style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="260" y="110" width="320" height="860" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="chat" value="CENTER PANEL (55%)&#10;AI Safety Copilot&#10;Context: IoT | SCADA | CCTV | Workers | Permits | Maintenance | Historical Incidents&#10;&#10;User 09:42&#10;Why is the Tank Farm showing High Risk?&#10;&#10;AI 09:42&#10;Risk increased due to elevated methane concentration, active hot work permit and increased worker density. Immediate inspection recommended.&#10;&#10;User 09:44&#10;Generate an emergency response plan.&#10;&#10;AI 09:44&#10;Emergency SOP generated. Notify maintenance, isolate zone, verify gas readings and suspend hot work.&#10;&#10;Prompt: Ask SafeFusion AI anything about plant safety...&#10;[Send] [Voice] [Attach Report] [Upload Image] [Upload Document] [Emergency Query]"
+          style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="600" y="110" width="760" height="860" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="right" value="RIGHT PANEL (25%)&#10;&#10;Card 1: Current Plant Context&#10;- Plant&#10;- Zone&#10;- Active Alerts&#10;- Risk Score&#10;- Workers Nearby&#10;- Open Permits&#10;- Last Incident&#10;&#10;Card 2: AI Suggested Actions&#10;[Investigate] [Notify] [Generate Report] [Generate SOP] [Assign Inspection] [Maintenance Ticket]&#10;&#10;Card 3: Quick Prompts&#10;Summarize Incidents&#10;Explain Risk&#10;Permit Conflicts&#10;Predict Accident Risk&#10;Overdue Maintenance&#10;Worker Exposure&#10;&#10;Card 4: Supporting Evidence&#10;IoT | Camera | Permit Logs | Maintenance | Worker Tracking | Historical Reports&#10;&#10;Card 5: Confidence&#10;AI Confidence 94%&#10;Freshness 2 min"
+          style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="1380" y="110" width="516" height="860" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="status" value="BOTTOM STATUS BAR&#10;Backend | AI Engine | Database | Sensor Connectivity | SCADA | Last Sync | Current Model"
+          style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="24" y="986" width="1872" height="70" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
