@@ -1,15 +1,19 @@
-import apiClient from '@/api/client';
-import type { ApiResponse, AnalyticsSummary, TimeSeriesPoint } from '@/types';
+import { createService } from './base.service';
+import type { AnalyticsSummary, TimeSeriesPoint } from '@/types';
+import type { ApiResponse } from '@/types';
 
-const BASE = '/analytics';
+const base = createService<AnalyticsSummary>('/analytics');
 
 export const analyticsService = {
+  /** Top-level KPI summary for the analytics dashboard. */
   getSummary: () =>
-    apiClient.get<ApiResponse<AnalyticsSummary>>(`${BASE}/summary`),
+    base.get<ApiResponse<AnalyticsSummary>>('summary'),
 
+  /** Alert count grouped by day for the given date range. */
   getAlertTrend: (params?: { from?: string; to?: string }) =>
-    apiClient.get<ApiResponse<TimeSeriesPoint[]>>(`${BASE}/alert-trend`, { params }),
+    base.get<ApiResponse<TimeSeriesPoint[]>>('alert-trend', params),
 
+  /** Incident rate per sensor zone over time. */
   getIncidentRate: (params?: { from?: string; to?: string }) =>
-    apiClient.get<ApiResponse<TimeSeriesPoint[]>>(`${BASE}/incident-rate`, { params }),
+    base.get<ApiResponse<TimeSeriesPoint[]>>('incident-rate', params),
 };

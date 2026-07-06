@@ -1,9 +1,11 @@
-import apiClient from '@/api/client';
-import type { ApiResponse, AnalyticsSummary } from '@/types';
+import { createService } from './base.service';
+import type { AnalyticsSummary } from '@/types';
+import type { ApiResponse } from '@/types';
 
-const BASE = '/dashboard';
+const base = createService<AnalyticsSummary>('/dashboard');
 
 export const dashboardService = {
+  /** Aggregated KPI summary for the dashboard header cards. */
   getSummary: () =>
-    apiClient.get<ApiResponse<AnalyticsSummary>>(`${BASE}/summary`),
+    base.get<ApiResponse<AnalyticsSummary>>('summary'),
 };

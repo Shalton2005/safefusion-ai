@@ -1,18 +1,24 @@
-import apiClient from '@/api/client';
-import type { ApiResponse, Report, PaginatedResponse } from '@/types';
+import { createService } from './base.service';
+import type { Report } from '@/types';
+import type { ApiResponse } from '@/types';
+import type { ListParams } from '@/api/types';
 
-const BASE = '/reports';
+const base = createService<Report>('/reports');
 
 export const reportsService = {
-  getReports: (params?: { page?: number; pageSize?: number }) =>
-    apiClient.get<PaginatedResponse<Report>>(BASE, { params }),
+  ...base,
 
-  getReport: (id: string) =>
-    apiClient.get<ApiResponse<Report>>(`${BASE}/${id}`),
+  /** Paginated report history. */
+  getReports: (params?: ListParams) => base.getMany(params),
 
+  /**
+   * Request generation of a new report.
+   * The backend responds immediately with a "pending" Report —
+   * poll `getOne(id)` or subscribe via WebSocket for completion.
+   */
   generateReport: (payload: { title: string; type: string }) =>
-    apiClient.post<ApiResponse<Report>>(BASE, payload),
+    base.create<Report>(payload),
 
-  deleteReport: (id: string) =>
-    apiClient.delete<ApiResponse<void>>(`${BASE}/${id}`),
+  /** Hard-delete a report. */
+  deleteReport: (id: string) => base.remove(id),
 };

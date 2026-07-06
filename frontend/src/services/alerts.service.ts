@@ -1,19 +1,23 @@
+import { createService } from './base.service';
 import apiClient from '@/api/client';
-import type { ApiResponse, Alert, PaginatedResponse } from '@/types';
+import type { ApiResponse, Alert } from '@/types';
 import type { AlertStatus } from '@/constants';
+import type { ListParams } from '@/api/types';
 
-const BASE = '/alerts';
+const base = createService<Alert>('/alerts');
 
 export const alertsService = {
-  getAlerts: (params?: { page?: number; pageSize?: number; status?: AlertStatus }) =>
-    apiClient.get<PaginatedResponse<Alert>>(BASE, { params }),
+  ...base,
 
-  getAlert: (id: string) =>
-    apiClient.get<ApiResponse<Alert>>(`${BASE}/${id}`),
+  /** Fetch alerts filtered by status. */
+  getAlerts: (params?: ListParams & { status?: AlertStatus }) =>
+    base.getMany(params),
 
+  /** Acknowledge an active alert. */
   acknowledgeAlert: (id: string) =>
-    apiClient.patch<ApiResponse<Alert>>(`${BASE}/${id}/acknowledge`),
+    apiClient.patch<ApiResponse<Alert>>(`/alerts/${id}/acknowledge`),
 
+  /** Resolve an acknowledged alert. */
   resolveAlert: (id: string) =>
-    apiClient.patch<ApiResponse<Alert>>(`${BASE}/${id}/resolve`),
+    apiClient.patch<ApiResponse<Alert>>(`/alerts/${id}/resolve`),
 };

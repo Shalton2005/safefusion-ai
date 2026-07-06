@@ -1,15 +1,23 @@
-import apiClient from '@/api/client';
-import type { ApiResponse, Device, PaginatedResponse } from '@/types';
+import { createService } from './base.service';
+import type { Device } from '@/types';
+import type { ApiResponse } from '@/types';
+import type { ListParams } from '@/api/types';
 
-const BASE = '/monitoring';
+const base = createService<Device>('/monitoring');
 
 export const monitoringService = {
-  getDevices: (params?: { page?: number; pageSize?: number }) =>
-    apiClient.get<PaginatedResponse<Device>>(BASE, { params }),
+  ...base,
 
-  getDevice: (id: string) =>
-    apiClient.get<ApiResponse<Device>>(`${BASE}/${id}`),
+  /** Paginated list of all connected devices. */
+  getDevices: (params?: ListParams) => base.getMany(params),
 
-  getDeviceMetrics: (id: string, params?: { from?: string; to?: string }) =>
-    apiClient.get<ApiResponse<Record<string, number[]>>>(`${BASE}/${id}/metrics`, { params }),
+  /** Live metric readings for a specific device. */
+  getDeviceMetrics: (
+    id:      string,
+    params?: { from?: string; to?: string },
+  ) =>
+    base.get<ApiResponse<Record<string, number[]>>>(
+      `${id}/metrics`,
+      params,
+    ),
 };

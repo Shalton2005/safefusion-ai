@@ -1,3 +1,13 @@
+/**
+ * useNotificationStore
+ *
+ * In-memory queue of toast notifications.
+ *
+ * Call `toast.*` from anywhere in the app (inside or outside React):
+ *   toast.success('Saved', 'Report generated successfully.');
+ *   toast.error('Failed', err.toUserMessage());
+ */
+
 import { create } from 'zustand';
 
 export type NotificationType = 'info' | 'success' | 'warning' | 'error';
@@ -39,3 +49,25 @@ export const useNotificationStore = create<NotificationState>((set) => ({
 
   dismissAll: () => set({ notifications: [] }),
 }));
+
+// ─── Convenience helpers (usable outside React) ───────────────────
+// These call getState() directly so they work in services, stores,
+// and interceptors without needing a hook call.
+
+const enqueue = (type: NotificationType) =>
+  (title: string, message?: string, duration?: number) =>
+    useNotificationStore.getState().add({ type, title, message, duration });
+
+/**
+ * Fire-and-forget toast helpers.
+ *
+ * @example
+ * import { toast } from '@/store';
+ * toast.error('Upload failed', 'File size exceeds 10 MB.');
+ */
+export const toast = {
+  info:    enqueue('info'),
+  success: enqueue('success'),
+  warning: enqueue('warning'),
+  error:   enqueue('error'),
+} as const;
