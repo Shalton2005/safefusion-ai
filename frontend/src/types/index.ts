@@ -1,0 +1,110 @@
+// ─── Global TypeScript types ───────────────────────────────────────
+
+export type Theme = 'light' | 'dark' | 'system';
+
+// ─── API primitives ────────────────────────────────────────────────
+export interface ApiResponse<T = unknown> {
+  data: T;
+  message: string;
+  success: boolean;
+}
+
+export interface PaginatedResponse<T = unknown> {
+  data: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
+export interface ApiError {
+  message: string;
+  code?: string;
+  statusCode?: number;
+  details?: Record<string, string[]>;
+}
+
+// ─── User / Auth ───────────────────────────────────────────────────
+export interface User {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: UserRole;
+  avatarUrl?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type UserRole = 'admin' | 'supervisor' | 'operator' | 'viewer';
+
+// ─── Sensor / Device ───────────────────────────────────────────────
+export type DeviceStatus = 'online' | 'offline' | 'warning' | 'critical';
+
+export interface Device {
+  id: string;
+  name: string;
+  location: string;
+  status: DeviceStatus;
+  type: string;
+  lastSeen: string;
+  metrics?: Record<string, number>;
+}
+
+// ─── Alert ─────────────────────────────────────────────────────────
+import type { SeverityLevel, AlertStatus } from '@/constants';
+
+export interface Alert {
+  id: string;
+  title: string;
+  description: string;
+  severity: SeverityLevel;
+  status: AlertStatus;
+  deviceId: string;
+  deviceName: string;
+  location: string;
+  triggeredAt: string;
+  acknowledgedAt?: string;
+  resolvedAt?: string;
+  acknowledgedBy?: string;
+}
+
+// ─── Report ────────────────────────────────────────────────────────
+export interface Report {
+  id: string;
+  title: string;
+  type: string;
+  generatedAt: string;
+  generatedBy: string;
+  status: 'pending' | 'ready' | 'failed';
+  downloadUrl?: string;
+}
+
+// ─── Analytics ────────────────────────────────────────────────────
+export interface TimeSeriesPoint {
+  timestamp: string;
+  value: number;
+}
+
+export interface AnalyticsSummary {
+  totalAlerts: number;
+  activeAlerts: number;
+  devicesOnline: number;
+  devicesTotal: number;
+  incidentRate: number;
+  safetyScore: number;
+  trend: 'up' | 'down' | 'stable';
+}
+
+// ─── Navigation ────────────────────────────────────────────────────
+export interface NavItem {
+  label: string;
+  path: string;
+  icon?: React.ElementType;
+  badge?: string | number;
+  children?: NavItem[];
+}
+
+// ─── UI Helpers ────────────────────────────────────────────────────
+export type Size    = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+export type Variant = 'primary' | 'secondary' | 'success' | 'warning' | 'danger' | 'ghost' | 'outline';

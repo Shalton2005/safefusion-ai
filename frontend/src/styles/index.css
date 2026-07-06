@@ -1,0 +1,147 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Base Layer ─────────────────────────────────────────────────── */
+@layer base {
+  :root {
+    /* Light mode CSS variables */
+    --color-bg-primary:   #f8fafc;
+    --color-bg-secondary: #f1f5f9;
+    --color-bg-card:      #ffffff;
+    --color-bg-sidebar:   #1e293b;
+    --color-text-primary: #0f172a;
+    --color-text-secondary: #475569;
+    --color-text-muted:   #94a3b8;
+    --color-border:       #e2e8f0;
+    --color-scrollbar-track: #e2e8f0;
+    --color-scrollbar-thumb: #94a3b8;
+  }
+
+  .dark {
+    /* Dark mode CSS variables */
+    --color-bg-primary:   #0f1117;
+    --color-bg-secondary: #1a1d23;
+    --color-bg-card:      #21252e;
+    --color-bg-sidebar:   #111318;
+    --color-text-primary: #f1f5f9;
+    --color-text-secondary: #94a3b8;
+    --color-text-muted:   #4b5563;
+    --color-border:       #2a2f3a;
+    --color-scrollbar-track: #1a1d23;
+    --color-scrollbar-thumb: #374151;
+  }
+
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    font-size: 16px;
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-[var(--color-bg-primary)] text-[var(--color-text-primary)];
+    font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    min-height: 100vh;
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--color-scrollbar-track);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-scrollbar-thumb);
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #6b7280;
+  }
+
+  /* Focus ring */
+  :focus-visible {
+    @apply outline-none ring-2 ring-primary-500 ring-offset-2 ring-offset-[var(--color-bg-primary)];
+  }
+
+  /* Typography scale */
+  h1 { @apply text-3xl font-bold tracking-tight; }
+  h2 { @apply text-2xl font-semibold tracking-tight; }
+  h3 { @apply text-xl font-semibold; }
+  h4 { @apply text-lg font-medium; }
+  h5 { @apply text-base font-medium; }
+  h6 { @apply text-sm font-medium; }
+}
+
+/* ─── Component Layer ────────────────────────────────────────────── */
+@layer components {
+  /* Page wrapper */
+  .page-container {
+    @apply flex flex-col gap-6 p-6 w-full min-h-full animate-fade-in;
+  }
+
+  /* Card surface */
+  .card {
+    @apply bg-[var(--color-bg-card)] border border-[var(--color-border)] rounded-card shadow-card;
+  }
+
+  .card-hover {
+    @apply card transition-shadow duration-200 hover:shadow-card-hover cursor-pointer;
+  }
+
+  /* Status indicator dot */
+  .status-dot {
+    @apply inline-block w-2 h-2 rounded-full;
+  }
+
+  .status-dot-safe    { @apply status-dot bg-safe-500 animate-pulse-slow; }
+  .status-dot-caution { @apply status-dot bg-caution-500 animate-pulse-slow; }
+  .status-dot-danger  { @apply status-dot bg-danger-500 animate-pulse; }
+  .status-dot-offline { @apply status-dot bg-gray-500; }
+
+  /* Sidebar nav item */
+  .nav-item {
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium
+           text-[var(--color-text-secondary)] hover:bg-white/10 hover:text-white
+           transition-all duration-150 cursor-pointer select-none;
+  }
+
+  .nav-item-active {
+    @apply nav-item bg-primary-600/20 text-primary-400 hover:bg-primary-600/30 hover:text-primary-300;
+  }
+
+  /* Divider */
+  .divider {
+    @apply border-t border-[var(--color-border)] my-4;
+  }
+}
+
+/* ─── Utilities ──────────────────────────────────────────────────── */
+@layer utilities {
+  .text-balance { text-wrap: balance; }
+  .clip-hidden  { clip-path: inset(0); }
+
+  /* Glass effect used in modals / notifications */
+  .glass {
+    backdrop-filter: blur(12px) saturate(1.5);
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .dark .glass {
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+}
