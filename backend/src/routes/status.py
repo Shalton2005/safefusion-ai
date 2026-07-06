@@ -2,39 +2,61 @@
 API status router for SafeFusion AI.
 
 Exposes ``GET /api/v1/status`` — confirms that the versioned API tier
-is reachable and returns project metadata useful for client-side
-version negotiation and monitoring dashboards.
+is reachable and provides a high-level operational readout of the
+backend components.
 """
 
 from fastapi import APIRouter
-from fastapi.responses import JSONResponse
-
-from src.config.settings import settings
-from src.utils.response import success_response
+from pydantic import BaseModel
 
 router: APIRouter = APIRouter(tags=["Status"])
+
+
+# ── Response model ────────────────────────────────────────────────────────────
+
+
+class StatusResponse(BaseModel):
+    """Response schema for ``GET /api/v1/status``.
+
+    Attributes:
+        backend:  Operational state of the FastAPI process.
+            Value is ``"running"`` when the process can handle requests.
+        database: Configuration state of the database layer.
+            Value is ``"configured"`` when the engine and session factory
+            have been initialised from the environment. Does **not** imply
+            a successful live connection — use a readiness probe for that.
+    """
+
+    backend: str
+    database: str
+
+
+# ── Endpoint ──────────────────────────────────────────────────────────────────
 
 
 @router.get(
     "/status",
     summary="API operational status",
     description=(
-        "Returns the project name, current API version, and operational status "
-        "of the versioned API tier."
+        "Returns the operational state of the backend process and the database "
+        "configuration layer. Useful for smoke-testing a deployment without "
+        "requiring a live database connection."
     ),
-    response_class=JSONResponse,
+    response_model=StatusResponse,
+    response_model_exclude_none=True,
 )
-async def api_status() -> JSONResponse:
-    """Return project metadata and the current API operational status.
+async def api_status() -> StatusResponse:
+    """Return the operational status of the backend and database layer.
+
+    The ``database`` field reflects whether the database engine and session
+    factory have been successfully initialised from the application settings.
+    It does **not** probe the live database connection; a separate readiness
+    check should be used for that purpose.
 
     Returns:
-        A JSON envelope containing ``name``, ``version``, and ``status``.
+        A :class:`StatusResponse` with ``backend`` and ``database`` fields.
     """
-    return success_response(
-        data={
-            "name": settings.PROJECT_NAME,
-            "version": settings.PROJECT_VERSION,
-            "status": "operational",
-        },
-        message="API is operational.",
+    return StatusResponse(
+        backend="running",
+        database="configured",
     )

@@ -2,9 +2,10 @@
 Routes package for SafeFusion AI backend.
 
 Each sub-module exposes an :class:`~fastapi.APIRouter` that is mounted
-on the FastAPI application in ``server.py`` under the ``/api/v1`` prefix.
+on the FastAPI application in ``server.py``.
 
 Available routers:
+    - :mod:`src.routes.root`         — ``GET /``
     - :mod:`src.routes.health`       — ``GET /health``
     - :mod:`src.routes.status`       — ``GET /api/v1/status``
     - :mod:`src.routes.dashboard`    — ``GET /api/v1/dashboard``

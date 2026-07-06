@@ -5,7 +5,7 @@ This module is invoked by Alembic during ``alembic upgrade``,
 ``alembic downgrade``, and ``alembic revision --autogenerate`` commands.
 
 It injects the database URL from :data:`src.config.settings.settings`
-and registers :attr:`src.database.session.Base.metadata` as the
+and registers :attr:`src.database.base.Base.metadata` as the
 autogenerate target so that Alembic can detect ORM model changes.
 
 Usage::
@@ -33,7 +33,7 @@ from sqlalchemy import engine_from_config, pool
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from src.config.settings import settings  # noqa: E402
-from src.database.session import Base  # noqa: E402
+from src.database.base import Base  # noqa: E402
 # Import all model modules to register their tables with Base.metadata
 # so that Alembic autogenerate can detect schema changes.
 import src.models  # noqa: E402, F401
