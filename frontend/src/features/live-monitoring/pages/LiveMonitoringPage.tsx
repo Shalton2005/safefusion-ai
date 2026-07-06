@@ -1,6 +1,7 @@
 import { Activity, Wifi, WifiOff, AlertTriangle } from 'lucide-react';
 import { Card, CardHeader, Badge, Table } from '@/components/ui';
-import type { TableColumn, Device } from '@/types';
+import type { TableColumn } from '@/components/ui';
+import type { Device } from '@/types';
 
 const MOCK_DEVICES: Device[] = [
   { id: '1', name: 'Sensor-A01', location: 'Zone A – Floor 1', status: 'online',   type: 'Gas',         lastSeen: new Date().toISOString() },

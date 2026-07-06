@@ -1,6 +1,7 @@
 import { Bell, Filter } from 'lucide-react';
 import { Card, CardHeader, Badge, Table, Button } from '@/components/ui';
-import type { TableColumn, Alert } from '@/types';
+import type { TableColumn } from '@/components/ui';
+import type { Alert } from '@/types';
 import { formatRelativeTime } from '@/utils/format';
 
 const MOCK_ALERTS: Alert[] = [

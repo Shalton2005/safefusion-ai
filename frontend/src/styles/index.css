@@ -1,19 +1,14 @@
-/* ─────────────────────────────────────────────────────────────────
+﻿/* ─────────────────────────────────────────────────────────────────
    SafeFusion AI – CSS Entry Point
-   This file is imported by src/main.tsx.
 
-   Layer order (intentional):
-     1. Tailwind base  – normalise / preflight
-     2. Tailwind components
-     3. globals.css    – SF design system (vars, components, utilities)
-     4. Tailwind utilities – generated utility classes (highest specificity)
+   IMPORTANT: @import must come before all other statements so that
+   postcss-import can inline the file before Tailwind processes layers.
    ───────────────────────────────────────────────────────────────── */
+
+/* Design system: CSS variables, component classes, utility classes */
+@import './globals.css';
 
 @tailwind base;
 @tailwind components;
-
-/* Design system – CSS variables, component classes, utilities */
-@import './globals.css';
-
 @tailwind utilities;
 

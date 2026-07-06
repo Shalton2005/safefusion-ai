@@ -121,32 +121,3 @@ const router = createBrowserRouter([
 export function AppRouter() {
   return <RouterProvider router={router} />;
 }
-
-        path: ROUTES.ANALYTICS,
-        element: (
-          <Suspense fallback={<PageLoader />}>
-            <AnalyticsPage />
-          </Suspense>
-        ),
-      },
-      {
-        path: ROUTES.SETTINGS,
-        element: (
-          <Suspense fallback={<PageLoader />}>
-            <SettingsPage />
-          </Suspense>
-        ),
-      },
-    ],
-  },
-
-  // 404
-  {
-    path: ROUTES.NOT_FOUND,
-    element: <NotFoundPage />,
-  },
-]);
-
-export function AppRouter() {
-  return <RouterProvider router={router} />;
-}

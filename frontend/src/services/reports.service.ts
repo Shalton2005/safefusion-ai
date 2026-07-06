@@ -1,6 +1,5 @@
 import { createService } from './base.service';
 import type { Report } from '@/types';
-import type { ApiResponse } from '@/types';
 import type { ListParams } from '@/api/types';
 
 const base = createService<Report>('/reports');
@@ -17,7 +16,7 @@ export const reportsService = {
    * poll `getOne(id)` or subscribe via WebSocket for completion.
    */
   generateReport: (payload: { title: string; type: string }) =>
-    base.create<Report>(payload),
+    base.create(payload),
 
   /** Hard-delete a report. */
   deleteReport: (id: string) => base.remove(id),

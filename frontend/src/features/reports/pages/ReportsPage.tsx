@@ -1,6 +1,7 @@
 import { FileBarChart2, Download, Plus, Clock } from 'lucide-react';
 import { Card, CardHeader, Badge, Table, Button } from '@/components/ui';
-import type { TableColumn, Report } from '@/types';
+import type { TableColumn } from '@/components/ui';
+import type { Report } from '@/types';
 import { formatDateTime } from '@/utils/format';
 
 const MOCK_REPORTS: Report[] = [
@@ -37,7 +38,7 @@ const columns: TableColumn<Report>[] = [
     key: 'title',
     header: 'Report',
     accessor: 'title',
-    render: (v, row) => (
+    render: (v, _row) => (
       <div className="flex items-center gap-2">
         <FileBarChart2 className="w-4 h-4 text-[var(--color-text-muted)] flex-shrink-0" />
         <span className="font-medium text-[var(--color-text-primary)]">{v as string}</span>
