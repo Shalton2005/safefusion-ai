@@ -3,124 +3,92 @@ import {
   Activity,
   Bell,
   CheckCircle2,
-  TrendingUp,
-  TrendingDown,
-  Minus,
 } from 'lucide-react';
-import { Card, CardHeader, Badge, Skeleton } from '@/components/ui';
+import { Card, CardHeader, Badge, Skeleton, StatCard, PageHeader } from '@/components/ui';
 
-interface StatCardProps {
-  label: string;
-  value: string | number;
-  trend?: 'up' | 'down' | 'stable';
-  trendLabel?: string;
-  icon: React.ElementType;
-  iconColor: string;
-}
-
-function StatCard({ label, value, trend, trendLabel, icon: Icon, iconColor }: StatCardProps) {
-  const TrendIcon =
-    trend === 'up' ? TrendingUp : trend === 'down' ? TrendingDown : Minus;
-  const trendColor =
-    trend === 'up' ? 'text-safe-500' : trend === 'down' ? 'text-danger-500' : 'text-[var(--color-text-muted)]';
-
-  return (
-    <Card className="flex items-start gap-4">
-      <div className={`flex-shrink-0 p-3 rounded-xl ${iconColor}`}>
-        <Icon className="w-6 h-6 text-white" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm text-[var(--color-text-muted)] truncate">{label}</p>
-        <p className="text-2xl font-bold text-[var(--color-text-primary)] mt-0.5">{value}</p>
-        {trend && trendLabel && (
-          <p className={`flex items-center gap-1 text-xs mt-1 ${trendColor}`}>
-            <TrendIcon className="w-3 h-3" />
-            {trendLabel}
-          </p>
-        )}
-      </div>
-    </Card>
-  );
-}
+const SEVERITY_BARS = [
+  { label: 'Critical', count: 2,  barClass: 'bg-danger-600  w-[15%]' },
+  { label: 'High',     count: 5,  barClass: 'bg-caution-500 w-[38%]' },
+  { label: 'Medium',   count: 8,  barClass: 'bg-primary-500 w-[62%]' },
+  { label: 'Low',      count: 3,  barClass: 'bg-safe-500    w-[23%]' },
+] as const;
 
 export function DashboardPage() {
   return (
     <div className="page-container">
-      {/* Page heading */}
-      <div>
-        <h1 className="text-[var(--color-text-primary)]">Dashboard</h1>
-        <p className="mt-1 text-sm text-[var(--color-text-muted)]">
-          Real-time overview of your safety monitoring system.
-        </p>
-      </div>
+      <PageHeader
+        title="Dashboard"
+        description="Real-time overview of your safety monitoring system."
+        border={false}
+        className="px-0 pt-0"
+      />
 
       {/* Stat cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <StatCard
           label="Safety Score"
           value="94%"
+          delta="+2%"
+          deltaLabel="from last week"
           trend="up"
-          trendLabel="+2% from last week"
+          trendPositive
           icon={CheckCircle2}
-          iconColor="bg-safe-600"
+          iconVariant="success"
         />
         <StatCard
           label="Active Alerts"
-          value="7"
+          value={7}
+          delta="-3"
+          deltaLabel="from yesterday"
           trend="down"
-          trendLabel="-3 from yesterday"
+          trendPositive
           icon={Bell}
-          iconColor="bg-danger-600"
+          iconVariant="danger"
         />
         <StatCard
           label="Devices Online"
           value="142 / 148"
+          delta="4"
+          deltaLabel="in maintenance"
           trend="stable"
-          trendLabel="4 in maintenance"
           icon={Activity}
-          iconColor="bg-primary-600"
+          iconVariant="primary"
         />
         <StatCard
           label="Incidents (30d)"
-          value="12"
+          value={12}
+          delta="-25%"
+          deltaLabel="vs last month"
           trend="down"
-          trendLabel="-25% vs last month"
+          trendPositive
           icon={LayoutDashboard}
-          iconColor="bg-caution-600"
+          iconVariant="warning"
         />
       </div>
 
-      {/* Placeholder chart area */}
+      {/* Chart area */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <Card className="lg:col-span-2">
           <CardHeader
             title="Alert Trend — Last 30 Days"
-            action={<Badge variant="primary" size="sm">Live</Badge>}
+            action={<Badge variant="danger" size="sm" dot pulsing>Live</Badge>}
           />
-          <div className="h-56 flex items-center justify-center rounded-lg border border-dashed border-[var(--color-border)]">
-            <p className="text-sm text-[var(--color-text-muted)]">Chart will render here</p>
+          <div className="chart-placeholder h-56">
+            <p className="text-sm">Chart will render here</p>
           </div>
         </Card>
 
         <Card>
           <CardHeader title="Severity Breakdown" />
           <div className="space-y-3 mt-2">
-            {[
-              { label: 'Critical', value: 2, color: 'bg-danger-600',  width: '15%' },
-              { label: 'High',     value: 5, color: 'bg-caution-500', width: '38%' },
-              { label: 'Medium',   value: 8, color: 'bg-primary-500', width: '62%' },
-              { label: 'Low',      value: 3, color: 'bg-safe-500',    width: '23%' },
-            ].map((item) => (
+            {SEVERITY_BARS.map((item) => (
               <div key={item.label} className="space-y-1">
-                <div className="flex justify-between text-xs text-[var(--color-text-muted)]">
+                <div className="flex justify-between text-xs text-[var(--sf-text-tertiary)]">
                   <span>{item.label}</span>
-                  <span>{item.value}</span>
+                  <span>{item.count}</span>
                 </div>
-                <div className="h-2 rounded-full bg-[var(--color-bg-secondary)]">
-                  <div
-                    className={`h-2 rounded-full ${item.color}`}
-                    style={{ width: item.width }}
-                  />
+                <div className="risk-bar">
+                  <div className={`risk-bar-fill ${item.barClass}`} />
                 </div>
               </div>
             ))}
@@ -128,7 +96,7 @@ export function DashboardPage() {
         </Card>
       </div>
 
-      {/* Skeleton placeholder for recent activity */}
+      {/* Recent activity skeleton */}
       <Card>
         <CardHeader title="Recent Activity" />
         <div className="space-y-3">
@@ -136,8 +104,8 @@ export function DashboardPage() {
             <div key={i} className="flex items-center gap-3">
               <Skeleton className="w-8 h-8 rounded-full" />
               <div className="flex-1 space-y-1.5">
-                <Skeleton className="h-3 w-3/4" />
-                <Skeleton className="h-3 w-1/2" />
+                <Skeleton className="h-3 w-3/4 rounded" />
+                <Skeleton className="h-3 w-1/2 rounded" />
               </div>
               <Skeleton className="h-5 w-16 rounded-full" />
             </div>

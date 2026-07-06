@@ -73,14 +73,19 @@ export function AnalyticsPage() {
         <CardHeader title="Facility Risk Heatmap" />
         <div className="h-72 flex items-center justify-center rounded-lg border border-dashed border-[var(--color-border)]">
           <div className="space-y-3 text-center text-[var(--color-text-muted)]">
-            <div className="grid gap-1" style={{ gridTemplateColumns: 'repeat(10, 1.5rem)' }}>
-              {Array.from({ length: 100 }).map((_, i) => (
-                <Skeleton
-                  key={i}
-                  className="w-6 h-6"
-                  style={{ opacity: Math.random() * 0.6 + 0.15 }}
-                />
-              ))}
+            {/* 10×10 grid — opacity cycles through 5 levels for a heatmap look */}
+            <div className="grid grid-cols-10 gap-1">
+              {Array.from({ length: 100 }).map((_, i) => {
+                const opacityClasses = [
+                  'opacity-15', 'opacity-30', 'opacity-50', 'opacity-65', 'opacity-80',
+                ];
+                return (
+                  <Skeleton
+                    key={i}
+                    className={`w-6 h-6 ${opacityClasses[i % opacityClasses.length]}`}
+                  />
+                );
+              })}
             </div>
             <p className="text-sm">Heatmap will render here</p>
           </div>
