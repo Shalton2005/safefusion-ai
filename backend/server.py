@@ -25,7 +25,6 @@ Once running, the interactive API documentation is available at:
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 
 from src.config.settings import settings
 from src.middleware.exception_handler import global_exception_handler
@@ -37,11 +36,11 @@ from src.routes import incidents as incidents_router
 from src.routes import maintenance as maintenance_router
 from src.routes import permits as permits_router
 from src.routes import risk_scores as risk_scores_router
+from src.routes import root as root_router
 from src.routes import sensors as sensors_router
 from src.routes import status as status_router
 from src.routes import workers as workers_router
 from src.utils.logger import logger
-from src.utils.response import success_response
 
 
 def create_application() -> FastAPI:
@@ -88,29 +87,8 @@ def create_application() -> FastAPI:
     # ── Global exception handler ──────────────────────────────────────────────
     application.add_exception_handler(Exception, global_exception_handler)  # type: ignore[arg-type]
 
-    # ── Root endpoint ─────────────────────────────────────────────────────────
-    @application.get(
-        "/",
-        tags=["Root"],
-        summary="API root",
-        description="Returns project metadata and links to key API endpoints.",
-        response_class=JSONResponse,
-    )
-    async def root() -> JSONResponse:
-        """Return welcome metadata and endpoint discovery links."""
-        return success_response(
-            data={
-                "name": settings.PROJECT_NAME,
-                "version": settings.PROJECT_VERSION,
-                "docs": "/docs",
-                "redoc": "/redoc",
-                "health": "/health",
-                "status": f"{settings.API_PREFIX}/status",
-            },
-            message=f"Welcome to {settings.PROJECT_NAME}.",
-        )
-
     # ── Routers ───────────────────────────────────────────────────────────────
+    application.include_router(root_router.router)
     application.include_router(health_router.router)
     application.include_router(status_router.router, prefix=settings.API_PREFIX)
     application.include_router(dashboard_router.router, prefix=settings.API_PREFIX)
