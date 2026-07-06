@@ -1,3 +1,45 @@
-services: {}
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: safefusion_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: safefusion_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d safefusion_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-volumes: {}
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: safefusion_backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://postgres:password@db:5432/safefusion_db
+      SECRET_KEY: change-this-in-production
+      DEBUG: "false"
+      API_PREFIX: /api/v1
+      PROJECT_NAME: SafeFusion AI
+      PROJECT_VERSION: "1.0.0"
+      ALLOWED_ORIGINS: '["http://localhost:3000","http://localhost:8080"]'
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+    working_dir: /app
+    command: uvicorn server:app --host 0.0.0.0 --port 8000 --reload
+
+volumes:
+  postgres_data:
