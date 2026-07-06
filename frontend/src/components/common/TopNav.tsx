@@ -1,19 +1,18 @@
 import { Bell, Sun, Moon, User, Menu } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { useTheme } from '@/hooks/useTheme';
+import { useRouteConfig } from '@/hooks/useRouteConfig';
 import { useSidebarStore, useNotificationStore } from '@/store';
 import { APP_NAME } from '@/constants';
 
-interface TopNavProps {
-  /** Page title displayed in the breadcrumb area */
-  title?: string;
-}
-
-export function TopNav({ title }: TopNavProps) {
+export function TopNav() {
   const { resolvedTheme, toggleTheme } = useTheme();
   const { toggle } = useSidebarStore();
   const { notifications } = useNotificationStore();
+  const currentRoute = useRouteConfig();
   const unreadCount = notifications.length;
+
+  const pageTitle = currentRoute?.label ?? APP_NAME;
 
   return (
     <header className="sticky top-0 z-30 flex items-center justify-between h-16 px-4 sm:px-6 bg-[var(--color-bg-card)] border-b border-[var(--color-border)] shadow-sm">
@@ -28,11 +27,9 @@ export function TopNav({ title }: TopNavProps) {
           <Menu className="w-5 h-5" />
         </button>
 
-        {title && (
-          <h1 className="text-base font-semibold text-[var(--color-text-primary)] hidden sm:block">
-            {title}
-          </h1>
-        )}
+        <h1 className="text-base font-semibold text-[var(--color-text-primary)] hidden sm:block">
+          {pageTitle}
+        </h1>
       </div>
 
       {/* Right */}
