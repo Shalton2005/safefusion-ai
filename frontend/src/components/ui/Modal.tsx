@@ -211,7 +211,7 @@ export function Modal({
           'relative w-full flex flex-col',
           'bg-[var(--sf-surface-overlay)]',
           'border border-[var(--sf-border-strong)]',
-          'rounded-2xl shadow-sf-xl',
+          'rounded-2xl shadow-sf-lg',
           'max-h-[calc(100dvh-2rem)] overflow-hidden',
           'animate-scale-in',
           sizeMap[size],
