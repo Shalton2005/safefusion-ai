@@ -487,13 +487,3 @@ const config: Config = {
   },
   plugins: [],
 };
-          '100%': { opacity: '1', transform: 'translateY(0)' },
-        },
-      },
-      borderRadius: {
-        card: '0.75rem',
-      },
-    },
-  },
-  plugins: [],
-};
