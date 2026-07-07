@@ -24,7 +24,7 @@ export function Sidebar() {
           collapsed && 'justify-center px-0',
         )}
       >
-        <div className="flex-shrink-0 flex items-center justify-center w-9 h-9 rounded-lg bg-primary-600 shadow-glow">
+        <div className="flex-shrink-0 flex items-center justify-center w-9 h-9 rounded-lg bg-primary-600 shadow-glow-brand">
           <Shield className="w-5 h-5 text-white" />
         </div>
         {!collapsed && (

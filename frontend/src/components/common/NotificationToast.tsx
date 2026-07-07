@@ -65,7 +65,7 @@ function ToastItem({ id, type, title, message }: ToastItemProps) {
       className={cn(
         'relative flex items-start gap-3 p-4 pl-5',
         'rounded-xl border border-[var(--sf-border-strong)]',
-        'bg-[var(--sf-surface-overlay)] shadow-sf-xl',
+        'bg-[var(--sf-surface-overlay)] shadow-sf-lg',
         'pointer-events-auto animate-slide-in-up',
       )}
     >
