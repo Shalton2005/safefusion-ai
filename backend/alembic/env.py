@@ -52,6 +52,16 @@ if config.config_file_name is not None:
 target_metadata = Base.metadata
 
 
+def _configure_context(**kwargs) -> None:
+    """Apply the shared Alembic configuration for both execution modes."""
+    context.configure(
+        target_metadata=target_metadata,
+        compare_type=True,
+        compare_server_default=True,
+        **kwargs,
+    )
+
+
 # ── Migration runners ─────────────────────────────────────────────────────────
 
 def run_migrations_offline() -> None:
@@ -61,9 +71,8 @@ def run_migrations_offline() -> None:
     for reviewing or applying migrations manually.
     """
     url: str = config.get_main_option("sqlalchemy.url")  # type: ignore[assignment]
-    context.configure(
+    _configure_context(
         url=url,
-        target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
     )
@@ -81,9 +90,8 @@ def run_migrations_online() -> None:
     )
 
     with connectable.connect() as connection:
-        context.configure(
+        _configure_context(
             connection=connection,
-            target_metadata=target_metadata,
         )
 
         with context.begin_transaction():
