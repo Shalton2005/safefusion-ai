@@ -4,10 +4,12 @@ import { useTheme } from '@/hooks/useTheme';
 import { useRouteConfig } from '@/hooks/useRouteConfig';
 import { useSidebarStore, useNotificationStore } from '@/store';
 import { APP_NAME } from '@/constants';
+import { RightPanelToggle } from '@/components/common/RightPanel';
+import { TopNavSearch } from '@/components/common/TopNavSearch';
 
 export function TopNav() {
   const { resolvedTheme, toggleTheme } = useTheme();
-  const { toggle } = useSidebarStore();
+  const { toggleMobile } = useSidebarStore();
   const { notifications } = useNotificationStore();
   const currentRoute = useRouteConfig();
   const unreadCount = notifications.length;
@@ -20,7 +22,7 @@ export function TopNav() {
       <div className="flex items-center gap-3">
         {/* Mobile hamburger */}
         <button
-          onClick={toggle}
+          onClick={toggleMobile}
           aria-label="Toggle sidebar"
           className="p-2 rounded-lg text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-bg-secondary)] transition-colors lg:hidden"
         >
@@ -30,6 +32,11 @@ export function TopNav() {
         <h1 className="text-base font-semibold text-[var(--color-text-primary)] hidden sm:block">
           {pageTitle}
         </h1>
+      </div>
+
+      {/* Center: search */}
+      <div className="hidden md:block w-full max-w-xs">
+        <TopNavSearch />
       </div>
 
       {/* Right */}
@@ -78,6 +85,9 @@ export function TopNav() {
             {APP_NAME}
           </span>
         </button>
+
+        {/* Right panel toggle */}
+        <RightPanelToggle />
       </div>
     </header>
   );

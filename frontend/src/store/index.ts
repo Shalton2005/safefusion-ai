@@ -3,6 +3,7 @@ export { useThemeStore }                     from './useThemeStore';
 
 // ─── Layout / UI state ────────────────────────────────────────────
 export { useSidebarStore }                   from './useSidebarStore';
+export { useRightPanelStore }                from './useRightPanelStore';
 
 // ─── Notifications ────────────────────────────────────────────────
 export { useNotificationStore, toast }       from './useNotificationStore';

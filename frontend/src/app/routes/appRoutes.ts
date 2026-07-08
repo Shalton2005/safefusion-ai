@@ -15,6 +15,9 @@ import { lazy } from 'react';
 import {
   LayoutDashboard,
   Activity,
+  HardHat,
+  Radio,
+  FileCheck2,
   Bell,
   FileBarChart2,
   BarChart3,
@@ -56,6 +59,54 @@ export const appRouteDefinitions: AppRouteDefinition[] = [
     ),
   },
 
+  // ── Workers ───────────────────────────────────────────────────
+  {
+    id:          'workers',
+    path:        ROUTES.WORKERS,
+    label:       'Workers',
+    description: 'Track worker attendance, zones, and safety certifications.',
+    icon:        HardHat,
+    showInNav:   true,
+    isProtected: true,
+    component: lazy(() =>
+      import('@/features/workers/pages/WorkersPage').then((m) => ({
+        default: m.WorkersPage,
+      })),
+    ),
+  },
+
+  // ── Sensors ───────────────────────────────────────────────────
+  {
+    id:          'sensors',
+    path:        ROUTES.SENSORS,
+    label:       'Sensors',
+    description: 'Monitor connected sensor hardware across all zones.',
+    icon:        Radio,
+    showInNav:   true,
+    isProtected: true,
+    component: lazy(() =>
+      import('@/features/sensors/pages/SensorsPage').then((m) => ({
+        default: m.SensorsPage,
+      })),
+    ),
+  },
+
+  // ── Permits ───────────────────────────────────────────────────
+  {
+    id:          'permits',
+    path:        ROUTES.PERMITS,
+    label:       'Permits',
+    description: 'Review and track work permits across all active sites.',
+    icon:        FileCheck2,
+    showInNav:   true,
+    isProtected: true,
+    component: lazy(() =>
+      import('@/features/permits/pages/PermitsPage').then((m) => ({
+        default: m.PermitsPage,
+      })),
+    ),
+  },
+
   // ── Alerts ────────────────────────────────────────────────────
   {
     id:          'alerts',
@@ -74,22 +125,6 @@ export const appRouteDefinitions: AppRouteDefinition[] = [
     ),
   },
 
-  // ── Reports ───────────────────────────────────────────────────
-  {
-    id:          'reports',
-    path:        ROUTES.REPORTS,
-    label:       'Reports',
-    description: 'Generate and download safety compliance reports.',
-    icon:        FileBarChart2,
-    showInNav:   true,
-    isProtected: true,
-    component: lazy(() =>
-      import('@/features/reports/pages/ReportsPage').then((m) => ({
-        default: m.ReportsPage,
-      })),
-    ),
-  },
-
   // ── Analytics ─────────────────────────────────────────────────
   {
     id:          'analytics',
@@ -102,6 +137,22 @@ export const appRouteDefinitions: AppRouteDefinition[] = [
     component: lazy(() =>
       import('@/features/analytics/pages/AnalyticsPage').then((m) => ({
         default: m.AnalyticsPage,
+      })),
+    ),
+  },
+
+  // ── Reports ───────────────────────────────────────────────────
+  {
+    id:          'reports',
+    path:        ROUTES.REPORTS,
+    label:       'Reports',
+    description: 'Generate and download safety compliance reports.',
+    icon:        FileBarChart2,
+    showInNav:   true,
+    isProtected: true,
+    component: lazy(() =>
+      import('@/features/reports/pages/ReportsPage').then((m) => ({
+        default: m.ReportsPage,
       })),
     ),
   },

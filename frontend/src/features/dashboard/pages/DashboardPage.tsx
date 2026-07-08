@@ -1,17 +1,11 @@
+import { Card, CardHeader, Badge, Skeleton, PageHeader } from '@/components/ui';
+import { KpiCardGrid } from '@/features/dashboard/components/KpiCardGrid';
+import { ChartCard, RiskTrendChart, SensorReadingsChart, AlertDistributionChart } from '@/components/charts';
 import {
-  LayoutDashboard,
-  Activity,
-  Bell,
-  CheckCircle2,
-} from 'lucide-react';
-import { Card, CardHeader, Badge, Skeleton, StatCard, PageHeader } from '@/components/ui';
-
-const SEVERITY_BARS = [
-  { label: 'Critical', count: 2,  barClass: 'bg-danger-600  w-[15%]' },
-  { label: 'High',     count: 5,  barClass: 'bg-caution-500 w-[38%]' },
-  { label: 'Medium',   count: 8,  barClass: 'bg-primary-500 w-[62%]' },
-  { label: 'Low',      count: 3,  barClass: 'bg-safe-500    w-[23%]' },
-] as const;
+  RISK_TREND_DATA,
+  SENSOR_READINGS_DATA,
+  ALERT_DISTRIBUTION_DATA,
+} from '@/features/dashboard/data/chartDummyData';
 
 export function DashboardPage() {
   return (
@@ -23,77 +17,32 @@ export function DashboardPage() {
         className="px-0 pt-0"
       />
 
-      {/* Stat cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        <StatCard
-          label="Safety Score"
-          value="94%"
-          delta="+2%"
-          deltaLabel="from last week"
-          trend="up"
-          trendPositive
-          icon={CheckCircle2}
-          iconVariant="success"
-        />
-        <StatCard
-          label="Active Alerts"
-          value={7}
-          delta="-3"
-          deltaLabel="from yesterday"
-          trend="down"
-          trendPositive
-          icon={Bell}
-          iconVariant="danger"
-        />
-        <StatCard
-          label="Devices Online"
-          value="142 / 148"
-          delta="4"
-          deltaLabel="in maintenance"
-          trend="stable"
-          icon={Activity}
-          iconVariant="primary"
-        />
-        <StatCard
-          label="Incidents (30d)"
-          value={12}
-          delta="-25%"
-          deltaLabel="vs last month"
-          trend="down"
-          trendPositive
-          icon={LayoutDashboard}
-          iconVariant="warning"
-        />
-      </div>
+      {/* KPI cards */}
+      <KpiCardGrid />
 
-      {/* Chart area */}
+      {/* Risk trend */}
+      <ChartCard
+        title="Risk Trend"
+        description="Overall risk score — last 30 days"
+        action={<Badge variant="danger" size="sm" dot pulsing>Live</Badge>}
+      >
+        <RiskTrendChart data={RISK_TREND_DATA} />
+      </ChartCard>
+
+      {/* Sensor readings */}
+      <ChartCard
+        title="Sensor Readings"
+        description="Gas, temperature, and pressure — today"
+        height={220}
+      >
+        <SensorReadingsChart data={SENSOR_READINGS_DATA} />
+      </ChartCard>
+
+      {/* Alert distribution */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <Card className="lg:col-span-2">
-          <CardHeader
-            title="Alert Trend — Last 30 Days"
-            action={<Badge variant="danger" size="sm" dot pulsing>Live</Badge>}
-          />
-          <div className="chart-placeholder h-56">
-            <p className="text-sm">Chart will render here</p>
-          </div>
-        </Card>
-
-        <Card>
-          <CardHeader title="Severity Breakdown" />
-          <div className="space-y-3 mt-2">
-            {SEVERITY_BARS.map((item) => (
-              <div key={item.label} className="space-y-1">
-                <div className="flex justify-between text-xs text-[var(--sf-text-tertiary)]">
-                  <span>{item.label}</span>
-                  <span>{item.count}</span>
-                </div>
-                <div className="risk-bar">
-                  <div className={`risk-bar-fill ${item.barClass}`} />
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
+        <ChartCard title="Alert Distribution" description="By severity" className="lg:col-span-1">
+          <AlertDistributionChart data={ALERT_DISTRIBUTION_DATA} />
+        </ChartCard>
       </div>
 
       {/* Recent activity skeleton */}
