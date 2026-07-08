@@ -1,6 +1,7 @@
 import { HardHat, ShieldCheck } from 'lucide-react';
 import { Card, CardHeader, Badge, PageHeader, Table } from '@/components/ui';
 import type { TableColumn } from '@/components/ui';
+import { WorkerMonitoringPanel } from '@/features/workers/components/WorkerMonitoringPanel';
 
 interface Worker {
   id: string;
@@ -112,6 +113,8 @@ export function WorkersPage() {
           />
         </div>
       </Card>
+
+      <WorkerMonitoringPanel />
     </div>
   );
 }

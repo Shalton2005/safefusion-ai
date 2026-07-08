@@ -69,6 +69,23 @@ export interface Alert {
   acknowledgedBy?: string;
 }
 
+// ─── Worker ────────────────────────────────────────────────────────
+export type WorkerStatus = 'working' | 'idle' | 'emergency';
+
+export interface Worker {
+  id: string;
+  name: string;
+  employee_id: string;
+  department: string;
+  role: string;
+  current_zone: string | null;
+  ppe_status: boolean;
+  shift: 'Morning' | 'Afternoon' | 'Night';
+  status: WorkerStatus;
+  created_at: string;
+  updated_at: string;
+}
+
 // ─── Report ────────────────────────────────────────────────────────
 export interface Report {
   id: string;
