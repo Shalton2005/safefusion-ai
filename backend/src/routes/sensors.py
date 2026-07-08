@@ -28,13 +28,14 @@ SensorServiceDep = Annotated[SensorService, Depends(get_sensor_service)]
 @router.get(
     "",
     summary="List sensor readings",
-    description="Return a paginated list of all ingested sensor readings.",
+    description="Retrieve a paginated list of ingested industrial sensor readings across all configured plant zones.",
     response_model=list[SensorRead],
+    response_description="List of sensor readings.",
 )
 async def list_sensors(
     service: SensorServiceDep,
-    skip: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=1000),
+    skip: int = Query(0, ge=0, description="Number of sensor readings to skip before returning results.", examples=[0]),
+    limit: int = Query(100, ge=1, le=1000, description="Maximum number of sensor readings to return.", examples=[100]),
 ) -> list[SensorRead]:
     sensors = service.list_sensors(skip=skip, limit=limit)
     return [SensorRead.model_validate(sensor) for sensor in sensors]

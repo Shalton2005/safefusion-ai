@@ -28,13 +28,14 @@ PermitServiceDep = Annotated[PermitService, Depends(get_permit_service)]
 @router.get(
     "",
     summary="List permits",
-    description="Return a paginated list of all Permit-to-Work records.",
+    description="Retrieve a paginated list of Permit-to-Work records for active and historical work authorizations.",
     response_model=list[PermitRead],
+    response_description="List of permit records.",
 )
 async def list_permits(
     service: PermitServiceDep,
-    skip: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=500),
+    skip: int = Query(0, ge=0, description="Number of permit records to skip before returning results.", examples=[0]),
+    limit: int = Query(100, ge=1, le=500, description="Maximum number of permit records to return.", examples=[100]),
 ) -> list[PermitRead]:
     permits = service.list_permits(skip=skip, limit=limit)
     return [PermitRead.model_validate(permit) for permit in permits]

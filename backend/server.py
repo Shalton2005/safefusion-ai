@@ -47,6 +47,21 @@ configure_logging(debug=settings.DEBUG)
 logger = get_logger(__name__)
 
 
+OPENAPI_TAGS_METADATA = [
+    {"name": "Root", "description": "Top-level API discovery and version information."},
+    {"name": "Health", "description": "Liveness and process-health probes for infrastructure checks."},
+    {"name": "Status", "description": "High-level operational status of the backend and database configuration layer."},
+    {"name": "Dashboard", "description": "Aggregated operational metrics and monitoring summaries for the main dashboard."},
+    {"name": "Workers", "description": "Worker registry and on-site personnel management endpoints."},
+    {"name": "Sensors", "description": "Industrial sensor readings collected from IoT and SCADA inputs."},
+    {"name": "Permits", "description": "Permit-to-Work records for controlled safety-critical tasks."},
+    {"name": "Maintenance", "description": "Maintenance activity records for equipment and plant assets."},
+    {"name": "Incidents", "description": "Historical and simulated incident records for investigation and analytics."},
+    {"name": "Alerts", "description": "Safety alerts generated from operational monitoring and risk analysis."},
+    {"name": "Risk Scores", "description": "Risk assessment records used to monitor zone-level exposure and safety posture."},
+]
+
+
 def create_application() -> FastAPI:
     """Construct and configure the FastAPI application instance.
 
@@ -68,13 +83,19 @@ def create_application() -> FastAPI:
             "SafeFusion AI — Enterprise-grade AI-powered industrial safety "
             "monitoring platform.\n\n"
             "Provides real-time hazard detection, PPE compliance monitoring, "
-            "predictive analytics, and safety incident management."
+            "predictive analytics, and safety incident management.\n\n"
+            "This API follows a layered Route -> Service -> Repository architecture "
+            "and exposes operational data for workers, sensors, permits, maintenance, "
+            "incidents, alerts, dashboard aggregation, and risk assessments."
         ),
         docs_url="/docs",
         redoc_url="/redoc",
         openapi_url="/openapi.json",
         debug=settings.DEBUG,
         responses=API_ERROR_RESPONSES,
+        openapi_tags=OPENAPI_TAGS_METADATA,
+        contact={"name": "SafeFusion AI Backend Team"},
+        license_info={"name": "MIT"},
     )
 
     # ── CORS ──────────────────────────────────────────────────────────────────
