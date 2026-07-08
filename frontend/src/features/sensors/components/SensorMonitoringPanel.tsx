@@ -3,6 +3,7 @@ import { Radio, RotateCw } from 'lucide-react';
 import { Card, CardHeader, Badge, EmptyState, Alert, Button, Skeleton } from '@/components/ui';
 import { sensorsService } from '@/services';
 import { ApiError } from '@/api/errors';
+import { createRequestController } from '@/api/client';
 import type { SensorReading, SensorStatus } from '@/types';
 import { SensorCard, type ZoneSensorGroup } from './SensorCard';
 
@@ -39,21 +40,28 @@ export function SensorMonitoringPanel() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchSensors = async () => {
+  const fetchSensors = async (signal?: AbortSignal) => {
     setLoading(true);
     setError(null);
     try {
-      const { data } = await sensorsService.getSensors({ skip: 0, limit: 500 });
+      const { data } = await sensorsService.getSensors({ skip: 0, limit: 500 }, { signal });
       setGroups(groupByZone(data));
     } catch (err) {
-      setError(ApiError.from(err).toUserMessage());
+      const apiError = ApiError.from(err);
+      if (!apiError.isCancelledError) {
+        setError(apiError.toUserMessage());
+      }
     } finally {
-      setLoading(false);
+      if (!signal?.aborted) {
+        setLoading(false);
+      }
     }
   };
 
   useEffect(() => {
-    fetchSensors();
+    const { controller, signal } = createRequestController();
+    fetchSensors(signal);
+    return () => controller.abort();
   }, []);
 
   const criticalCount = groups.filter((g) => g.status === 'critical').length;
@@ -79,7 +87,7 @@ export function SensorMonitoringPanel() {
             variant="danger"
             title="Failed to load sensor data"
             actions={
-              <Button size="sm" variant="outline" onClick={fetchSensors} leftIcon={<RotateCw className="w-3.5 h-3.5" />}>
+              <Button size="sm" variant="outline" onClick={() => fetchSensors()} leftIcon={<RotateCw className="w-3.5 h-3.5" />}>
                 Retry
               </Button>
             }

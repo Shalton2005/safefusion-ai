@@ -4,6 +4,7 @@ import { Card, CardHeader, Badge, Table, EmptyState, Alert, Button } from '@/com
 import type { TableColumn } from '@/components/ui';
 import { permitsService } from '@/services';
 import { ApiError } from '@/api/errors';
+import { createRequestController } from '@/api/client';
 import { capitalise, formatDateTime } from '@/utils/format';
 import type { Permit, PermitStatus, PermitType } from '@/types';
 
@@ -66,21 +67,28 @@ export function PermitDashboardPanel() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchPermits = async () => {
+  const fetchPermits = async (signal?: AbortSignal) => {
     setLoading(true);
     setError(null);
     try {
-      const { data } = await permitsService.getPermits({ skip: 0, limit: 100 });
+      const { data } = await permitsService.getPermits({ skip: 0, limit: 100 }, { signal });
       setPermits(data);
     } catch (err) {
-      setError(ApiError.from(err).toUserMessage());
+      const apiError = ApiError.from(err);
+      if (!apiError.isCancelledError) {
+        setError(apiError.toUserMessage());
+      }
     } finally {
-      setLoading(false);
+      if (!signal?.aborted) {
+        setLoading(false);
+      }
     }
   };
 
   useEffect(() => {
-    fetchPermits();
+    const { controller, signal } = createRequestController();
+    fetchPermits(signal);
+    return () => controller.abort();
   }, []);
 
   const activeCount = permits.filter((p) => p.status === 'active').length;
@@ -105,7 +113,7 @@ export function PermitDashboardPanel() {
             variant="danger"
             title="Failed to load permits"
             actions={
-              <Button size="sm" variant="outline" onClick={fetchPermits} leftIcon={<RotateCw className="w-3.5 h-3.5" />}>
+              <Button size="sm" variant="outline" onClick={() => fetchPermits()} leftIcon={<RotateCw className="w-3.5 h-3.5" />}>
                 Retry
               </Button>
             }

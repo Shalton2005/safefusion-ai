@@ -3,6 +3,7 @@ import { Flame, RotateCw } from 'lucide-react';
 import { Card, CardHeader, Badge, EmptyState, Alert, Button, Skeleton } from '@/components/ui';
 import { incidentsService } from '@/services';
 import { ApiError } from '@/api/errors';
+import { createRequestController } from '@/api/client';
 import type { Incident } from '@/types';
 import { IncidentCard } from './IncidentCard';
 
@@ -11,24 +12,31 @@ export function RecentIncidentsPanel() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchIncidents = async () => {
+  const fetchIncidents = async (signal?: AbortSignal) => {
     setLoading(true);
     setError(null);
     try {
-      const { data } = await incidentsService.getIncidents({ skip: 0, limit: 6 });
+      const { data } = await incidentsService.getIncidents({ skip: 0, limit: 6 }, { signal });
       const sorted = [...data].sort(
         (a, b) => new Date(b.occurred_at).getTime() - new Date(a.occurred_at).getTime(),
       );
       setIncidents(sorted);
     } catch (err) {
-      setError(ApiError.from(err).toUserMessage());
+      const apiError = ApiError.from(err);
+      if (!apiError.isCancelledError) {
+        setError(apiError.toUserMessage());
+      }
     } finally {
-      setLoading(false);
+      if (!signal?.aborted) {
+        setLoading(false);
+      }
     }
   };
 
   useEffect(() => {
-    fetchIncidents();
+    const { controller, signal } = createRequestController();
+    fetchIncidents(signal);
+    return () => controller.abort();
   }, []);
 
   const criticalCount = incidents.filter((i) => i.severity === 'critical').length;
@@ -53,7 +61,7 @@ export function RecentIncidentsPanel() {
             variant="danger"
             title="Failed to load recent incidents"
             actions={
-              <Button size="sm" variant="outline" onClick={fetchIncidents} leftIcon={<RotateCw className="w-3.5 h-3.5" />}>
+              <Button size="sm" variant="outline" onClick={() => fetchIncidents()} leftIcon={<RotateCw className="w-3.5 h-3.5" />}>
                 Retry
               </Button>
             }

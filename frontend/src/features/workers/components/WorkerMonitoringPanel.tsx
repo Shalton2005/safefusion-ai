@@ -4,6 +4,7 @@ import { Card, CardHeader, Badge, Table, EmptyState, Alert, Button } from '@/com
 import type { TableColumn } from '@/components/ui';
 import { workersService } from '@/services';
 import { ApiError } from '@/api/errors';
+import { createRequestController } from '@/api/client';
 import type { Worker, WorkerStatus } from '@/types';
 
 const statusConfig: Record<WorkerStatus, { label: string; variant: 'success' | 'warning' | 'danger' }> = {
@@ -72,21 +73,28 @@ export function WorkerMonitoringPanel() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchWorkers = async () => {
+  const fetchWorkers = async (signal?: AbortSignal) => {
     setLoading(true);
     setError(null);
     try {
-      const { data } = await workersService.getWorkers({ skip: 0, limit: 100 });
+      const { data } = await workersService.getWorkers({ skip: 0, limit: 100 }, { signal });
       setWorkers(data);
     } catch (err) {
-      setError(ApiError.from(err).toUserMessage());
+      const apiError = ApiError.from(err);
+      if (!apiError.isCancelledError) {
+        setError(apiError.toUserMessage());
+      }
     } finally {
-      setLoading(false);
+      if (!signal?.aborted) {
+        setLoading(false);
+      }
     }
   };
 
   useEffect(() => {
-    fetchWorkers();
+    const { controller, signal } = createRequestController();
+    fetchWorkers(signal);
+    return () => controller.abort();
   }, []);
 
   const emergencyCount = workers.filter((w) => w.status === 'emergency').length;
@@ -111,7 +119,7 @@ export function WorkerMonitoringPanel() {
             variant="danger"
             title="Failed to load workers"
             actions={
-              <Button size="sm" variant="outline" onClick={fetchWorkers} leftIcon={<RotateCw className="w-3.5 h-3.5" />}>
+              <Button size="sm" variant="outline" onClick={() => fetchWorkers()} leftIcon={<RotateCw className="w-3.5 h-3.5" />}>
                 Retry
               </Button>
             }

@@ -4,6 +4,7 @@ import { Card, CardHeader, Badge, Table, EmptyState, Alert as AlertBanner, Butto
 import type { TableColumn } from '@/components/ui';
 import { incidentsService } from '@/services';
 import { ApiError } from '@/api/errors';
+import { createRequestController } from '@/api/client';
 import { capitalise, formatRelativeTime } from '@/utils/format';
 import { SEVERITY_BADGE_VARIANT, INCIDENT_TYPE_LABEL } from '@/utils/severity';
 import type { Incident, IncidentType } from '@/types';
@@ -57,21 +58,28 @@ export function AlertsPanel() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchIncidents = async () => {
+  const fetchIncidents = async (signal?: AbortSignal) => {
     setLoading(true);
     setError(null);
     try {
-      const { data } = await incidentsService.getIncidents({ skip: 0, limit: 100 });
+      const { data } = await incidentsService.getIncidents({ skip: 0, limit: 100 }, { signal });
       setIncidents(data);
     } catch (err) {
-      setError(ApiError.from(err).toUserMessage());
+      const apiError = ApiError.from(err);
+      if (!apiError.isCancelledError) {
+        setError(apiError.toUserMessage());
+      }
     } finally {
-      setLoading(false);
+      if (!signal?.aborted) {
+        setLoading(false);
+      }
     }
   };
 
   useEffect(() => {
-    fetchIncidents();
+    const { controller, signal } = createRequestController();
+    fetchIncidents(signal);
+    return () => controller.abort();
   }, []);
 
   const criticalCount = incidents.filter((i) => i.severity === 'critical').length;
@@ -97,7 +105,7 @@ export function AlertsPanel() {
             variant="danger"
             title="Failed to load alerts"
             actions={
-              <Button size="sm" variant="outline" onClick={fetchIncidents} leftIcon={<RotateCw className="w-3.5 h-3.5" />}>
+              <Button size="sm" variant="outline" onClick={() => fetchIncidents()} leftIcon={<RotateCw className="w-3.5 h-3.5" />}>
                 Retry
               </Button>
             }
