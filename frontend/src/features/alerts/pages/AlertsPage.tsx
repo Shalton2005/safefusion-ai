@@ -3,6 +3,7 @@ import { Card, CardHeader, Badge, Table, Button } from '@/components/ui';
 import type { TableColumn } from '@/components/ui';
 import type { Alert } from '@/types';
 import { formatRelativeTime } from '@/utils/format';
+import { SEVERITY_BADGE_VARIANT } from '@/utils/severity';
 import { AlertsPanel } from '@/features/alerts/components/AlertsPanel';
 import { RecentIncidentsPanel } from '@/features/alerts/components/RecentIncidentsPanel';
 
@@ -44,13 +45,6 @@ const MOCK_ALERTS: Alert[] = [
   },
 ];
 
-const severityVariant: Record<string, 'danger' | 'warning' | 'primary' | 'success'> = {
-  critical: 'danger',
-  high:     'warning',
-  medium:   'primary',
-  low:      'success',
-};
-
 const statusVariant: Record<string, 'danger' | 'warning' | 'success'> = {
   active:       'danger',
   acknowledged: 'warning',
@@ -76,7 +70,7 @@ const columns: TableColumn<Alert>[] = [
     header: 'Severity',
     accessor: 'severity',
     render: (v) => (
-      <Badge variant={severityVariant[v as string]} dot size="sm">
+      <Badge variant={SEVERITY_BADGE_VARIANT[v as Alert['severity']]} dot size="sm">
         {(v as string).charAt(0).toUpperCase() + (v as string).slice(1)}
       </Badge>
     ),

@@ -1,21 +1,14 @@
 import { Flame, Bomb, HardHat, MapPin, Clock } from 'lucide-react';
 import { Card, Badge } from '@/components/ui';
 import { capitalise, formatRelativeTime } from '@/utils/format';
+import { SEVERITY_BADGE_VARIANT, INCIDENT_TYPE_LABEL } from '@/utils/severity';
 import type { Incident, IncidentType } from '@/types';
-import type { SeverityLevel } from '@/constants';
 
-const severityVariant: Record<SeverityLevel, 'danger' | 'warning' | 'primary' | 'success'> = {
-  critical: 'danger',
-  high:     'warning',
-  medium:   'primary',
-  low:      'success',
-};
-
-const incidentTypeConfig: Record<IncidentType, { label: string; icon: React.ElementType }> = {
-  gas_leak:      { label: 'Gas Leak',      icon: Flame },
-  fire:          { label: 'Fire',          icon: Flame },
-  explosion:     { label: 'Explosion',     icon: Bomb },
-  ppe_violation: { label: 'PPE Violation', icon: HardHat },
+const incidentTypeIcon: Record<IncidentType, React.ElementType> = {
+  gas_leak:      Flame,
+  fire:          Flame,
+  explosion:     Bomb,
+  ppe_violation: HardHat,
 };
 
 interface IncidentCardProps {
@@ -23,7 +16,8 @@ interface IncidentCardProps {
 }
 
 export function IncidentCard({ incident }: IncidentCardProps) {
-  const { label, icon: Icon } = incidentTypeConfig[incident.incident_type];
+  const label = INCIDENT_TYPE_LABEL[incident.incident_type];
+  const Icon = incidentTypeIcon[incident.incident_type];
 
   return (
     <Card padding="sm" className="flex flex-col gap-3">
@@ -32,7 +26,7 @@ export function IncidentCard({ incident }: IncidentCardProps) {
           <Icon className="w-4 h-4 flex-shrink-0 text-[var(--sf-text-tertiary)]" aria-hidden="true" />
           <p className="text-sm font-semibold text-[var(--sf-text-primary)] truncate">{label}</p>
         </div>
-        <Badge variant={severityVariant[incident.severity]} size="sm" dot pulsing={incident.severity === 'critical'}>
+        <Badge variant={SEVERITY_BADGE_VARIANT[incident.severity]} size="sm" dot pulsing={incident.severity === 'critical'}>
           {capitalise(incident.severity)}
         </Badge>
       </div>

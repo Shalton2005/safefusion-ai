@@ -5,22 +5,9 @@ import type { TableColumn } from '@/components/ui';
 import { incidentsService } from '@/services';
 import { ApiError } from '@/api/errors';
 import { capitalise, formatRelativeTime } from '@/utils/format';
+import { SEVERITY_BADGE_VARIANT, INCIDENT_TYPE_LABEL } from '@/utils/severity';
 import type { Incident, IncidentType } from '@/types';
 import type { SeverityLevel } from '@/constants';
-
-const severityVariant: Record<SeverityLevel, 'danger' | 'warning' | 'primary' | 'success'> = {
-  critical: 'danger',
-  high:     'warning',
-  medium:   'primary',
-  low:      'success',
-};
-
-const incidentTypeLabel: Record<IncidentType, string> = {
-  gas_leak:      'Gas Leak',
-  fire:          'Fire',
-  explosion:     'Explosion',
-  ppe_violation: 'PPE Violation',
-};
 
 const columns: TableColumn<Incident>[] = [
   {
@@ -28,7 +15,7 @@ const columns: TableColumn<Incident>[] = [
     header: 'Alert Severity',
     accessor: 'severity',
     render: (v) => (
-      <Badge variant={severityVariant[v as SeverityLevel]} size="sm" dot pulsing={v === 'critical'}>
+      <Badge variant={SEVERITY_BADGE_VARIANT[v as SeverityLevel]} size="sm" dot pulsing={v === 'critical'}>
         {capitalise(v as string)}
       </Badge>
     ),
@@ -37,7 +24,7 @@ const columns: TableColumn<Incident>[] = [
     key: 'incident_type',
     header: 'Alert Type',
     accessor: 'incident_type',
-    render: (v) => <span className="text-[var(--sf-text-secondary)]">{incidentTypeLabel[v as IncidentType]}</span>,
+    render: (v) => <span className="text-[var(--sf-text-secondary)]">{INCIDENT_TYPE_LABEL[v as IncidentType]}</span>,
   },
   {
     key: 'zone',

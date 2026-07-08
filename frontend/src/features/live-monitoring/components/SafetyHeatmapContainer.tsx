@@ -1,6 +1,7 @@
 import { MapPin, Factory } from 'lucide-react';
 import { Card, CardHeader, Badge } from '@/components/ui';
 import { cn } from '@/lib/cn';
+import { SEVERITY_BADGE_VARIANT } from '@/utils/severity';
 import type { SeverityLevel } from '@/constants';
 
 // ─── Placeholder plant zone data ───────────────────────────────────
@@ -40,13 +41,6 @@ const riskBorderClass: Record<SeverityLevel, string> = {
   medium:   'border-primary-500/40',
   high:     'border-caution-500/40',
   critical: 'border-danger-500/40',
-};
-
-const riskBadgeVariant: Record<SeverityLevel, 'success' | 'primary' | 'warning' | 'danger'> = {
-  low:      'success',
-  medium:   'primary',
-  high:     'warning',
-  critical: 'danger',
 };
 
 export function SafetyHeatmapContainer() {
@@ -125,7 +119,7 @@ export function SafetyHeatmapContainer() {
               className="flex items-center justify-between gap-2 rounded-lg border border-[var(--sf-border-default)] bg-[var(--sf-surface-raised)] px-3 py-2"
             >
               <span className="text-xs font-medium text-[var(--sf-text-primary)] truncate">{zone.name}</span>
-              <Badge variant={riskBadgeVariant[zone.risk]} size="sm" dot>
+              <Badge variant={SEVERITY_BADGE_VARIANT[zone.risk]} size="sm" dot>
                 {zone.risk}
               </Badge>
             </div>
