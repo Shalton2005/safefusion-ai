@@ -1,39 +1,20 @@
-"""
-Pydantic v2 schemas for the Incident domain.
-"""
+"""Pydantic schemas for the Incident domain (request/response/validation split)."""
 
-import uuid
-from datetime import datetime
+from src.schemas.request.incident import IncidentCreateRequest, IncidentUpdateRequest
+from src.schemas.response.incident import IncidentResponse
+from src.validators.incident import IncidentSchema
 
-from pydantic import Field
+# Backward-compatible aliases used by existing routes/services.
+IncidentCreate = IncidentCreateRequest
+IncidentUpdate = IncidentUpdateRequest
+IncidentRead = IncidentResponse
 
-from src.models.enums import IncidentType, SeverityLevel
-from src.schemas.base import AppBaseModel
-
-
-class IncidentBase(AppBaseModel):
-    zone: str = Field(..., max_length=50, examples=["Zone-C"])
-    severity: SeverityLevel
-    incident_type: IncidentType
-    description: str = Field(..., examples=["Gas leak detected near compressor unit."])
-    root_cause: str | None = Field(None, examples=["Worn gasket on pipe joint."])
-    occurred_at: datetime
-
-
-class IncidentCreate(IncidentBase):
-    """Schema for creating a new incident record."""
-
-
-class IncidentUpdate(AppBaseModel):
-    """Schema for partial incident updates."""
-
-    severity: SeverityLevel | None = None
-    description: str | None = None
-    root_cause: str | None = None
-
-
-class IncidentRead(IncidentBase):
-    """Schema for returning an incident record (includes server-assigned fields)."""
-
-    id: uuid.UUID
-    created_at: datetime
+__all__: list[str] = [
+    "IncidentSchema",
+    "IncidentCreateRequest",
+    "IncidentUpdateRequest",
+    "IncidentResponse",
+    "IncidentCreate",
+    "IncidentUpdate",
+    "IncidentRead",
+]

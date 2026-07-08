@@ -27,7 +27,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.config.settings import settings
-from src.middleware.exception_handler import global_exception_handler
+from src.middleware.exception_handler import API_ERROR_RESPONSES, register_exception_handlers
 from src.middleware.logging_middleware import RequestLoggingMiddleware
 from src.routes import alerts as alerts_router
 from src.routes import dashboard as dashboard_router
@@ -40,7 +40,11 @@ from src.routes import root as root_router
 from src.routes import sensors as sensors_router
 from src.routes import status as status_router
 from src.routes import workers as workers_router
-from src.utils.logger import logger
+from src.utils.logger import configure_logging, get_logger
+
+
+configure_logging(debug=settings.DEBUG)
+logger = get_logger(__name__)
 
 
 def create_application() -> FastAPI:
@@ -50,7 +54,7 @@ def create_application() -> FastAPI:
         - Set application metadata (title, version, docs URLs).
         - Register CORS middleware with configured origins.
         - Register request-logging middleware.
-        - Register the global exception handler.
+        - Register centralized exception handlers.
         - Mount all API routers.
         - Define the root ``GET /`` endpoint.
 
@@ -70,6 +74,7 @@ def create_application() -> FastAPI:
         redoc_url="/redoc",
         openapi_url="/openapi.json",
         debug=settings.DEBUG,
+        responses=API_ERROR_RESPONSES,
     )
 
     # ── CORS ──────────────────────────────────────────────────────────────────
@@ -85,7 +90,7 @@ def create_application() -> FastAPI:
     application.add_middleware(RequestLoggingMiddleware)
 
     # ── Global exception handler ──────────────────────────────────────────────
-    application.add_exception_handler(Exception, global_exception_handler)  # type: ignore[arg-type]
+    register_exception_handlers(application)
 
     # ── Routers ───────────────────────────────────────────────────────────────
     application.include_router(root_router.router)

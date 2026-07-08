@@ -44,6 +44,10 @@ from sqlalchemy import Engine, create_engine, event, text
 from sqlalchemy.pool import QueuePool
 
 from src.config.settings import settings
+from src.utils.logger import get_logger
+
+
+logger = get_logger(__name__)
 
 
 # ── Engine factory ────────────────────────────────────────────────────────────
@@ -85,9 +89,10 @@ def _register_engine_events(eng: Engine) -> None:
     @event.listens_for(eng, "connect")
     def _on_connect(dbapi_conn, connection_record) -> None:  # noqa: ANN001
         """Log each new DBAPI connection being added to the pool."""
-        # Uncomment the line below to trace new physical connections:
-        # logger.debug("New DBAPI connection established: %s", dbapi_conn)
-        pass
+        logger.info(
+            "Database connection established record_id=%s",
+            id(connection_record),
+        )
 
     @event.listens_for(eng, "checkout")
     def _on_checkout(dbapi_conn, connection_record, connection_proxy) -> None:  # noqa: ANN001
@@ -96,7 +101,18 @@ def _register_engine_events(eng: Engine) -> None:
         pool_pre_ping already validates the connection; this hook exists
         as an extension point for future per-request instrumentation.
         """
-        pass
+        logger.debug(
+            "Database connection checked out record_id=%s",
+            id(connection_record),
+        )
+
+    @event.listens_for(eng, "checkin")
+    def _on_checkin(dbapi_conn, connection_record) -> None:  # noqa: ANN001
+        """Log when a connection is returned to the pool."""
+        logger.debug(
+            "Database connection checked in record_id=%s",
+            id(connection_record),
+        )
 
 
 # ── Module-level singleton ────────────────────────────────────────────────────

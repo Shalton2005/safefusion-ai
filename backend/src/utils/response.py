@@ -47,6 +47,7 @@ def error_response(
     message: str = "An error occurred.",
     status_code: int = 400,
     data: Optional[Any] = None,
+    headers: Optional[dict[str, str]] = None,
 ) -> JSONResponse:
     """Build a standardized error JSON response.
 
@@ -54,12 +55,14 @@ def error_response(
         message: A human-readable error description.
         status_code: The HTTP status code to set on the response (default ``400``).
         data: Optional additional context (e.g. validation error details).
+        headers: Optional HTTP headers to include in the response.
 
     Returns:
         A :class:`~fastapi.responses.JSONResponse` with the error envelope.
     """
     return JSONResponse(
         status_code=status_code,
+        headers=headers,
         content={
             "success": False,
             "message": message,

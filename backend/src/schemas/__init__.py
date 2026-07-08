@@ -16,9 +16,42 @@ from src.schemas.maintenance import (
     MaintenanceLogUpdate,
 )
 from src.schemas.permit import PermitCreate, PermitRead, PermitUpdate
-from src.schemas.risk_score import RiskScoreCreate, RiskScoreRead
+from src.schemas.risk_score import RiskScoreCreate, RiskScoreRead, RiskScoreUpdate
 from src.schemas.sensor import SensorCreate, SensorRead
 from src.schemas.worker import WorkerCreate, WorkerRead, WorkerUpdate
+from src.validators import (
+    AlertSchema,
+    IncidentSchema,
+    MaintenanceLogSchema,
+    PermitSchema,
+    RiskScoreSchema,
+    SensorSchema,
+    WorkerSchema,
+)
+from src.schemas.request import (
+    AlertCreateRequest,
+    AlertUpdateRequest,
+    IncidentCreateRequest,
+    IncidentUpdateRequest,
+    MaintenanceLogCreateRequest,
+    MaintenanceLogUpdateRequest,
+    PermitCreateRequest,
+    PermitUpdateRequest,
+    RiskScoreCreateRequest,
+    RiskScoreUpdateRequest,
+    SensorCreateRequest,
+    WorkerCreateRequest,
+    WorkerUpdateRequest,
+)
+from src.schemas.response import (
+    AlertResponse,
+    IncidentResponse,
+    MaintenanceLogResponse,
+    PermitResponse,
+    RiskScoreResponse,
+    SensorResponse,
+    WorkerResponse,
+)
 
 __all__: list[str] = [
     "WorkerCreate", "WorkerRead", "WorkerUpdate",
@@ -28,5 +61,15 @@ __all__: list[str] = [
     "IncidentCreate", "IncidentRead", "IncidentUpdate",
     "AlertCreate", "AlertRead", "AlertUpdate",
     "RiskScoreCreate", "RiskScoreRead",
+    "RiskScoreUpdate",
     "DashboardSummary", "ZoneSensorSummary", "DashboardResponse",
+    "WorkerSchema", "SensorSchema", "PermitSchema", "AlertSchema", "IncidentSchema",
+    "MaintenanceLogSchema", "RiskScoreSchema",
+    "WorkerCreateRequest", "WorkerUpdateRequest", "WorkerResponse",
+    "SensorCreateRequest", "SensorResponse",
+    "PermitCreateRequest", "PermitUpdateRequest", "PermitResponse",
+    "AlertCreateRequest", "AlertUpdateRequest", "AlertResponse",
+    "IncidentCreateRequest", "IncidentUpdateRequest", "IncidentResponse",
+    "MaintenanceLogCreateRequest", "MaintenanceLogUpdateRequest", "MaintenanceLogResponse",
+    "RiskScoreCreateRequest", "RiskScoreUpdateRequest", "RiskScoreResponse",
 ]

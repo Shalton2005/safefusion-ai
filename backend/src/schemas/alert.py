@@ -1,37 +1,20 @@
-"""
-Pydantic v2 schemas for the Alert domain.
-"""
+"""Pydantic schemas for the Alert domain (request/response/validation split)."""
 
-import uuid
-from datetime import datetime
+from src.schemas.request.alert import AlertCreateRequest, AlertUpdateRequest
+from src.schemas.response.alert import AlertResponse
+from src.validators.alert import AlertSchema
 
-from pydantic import Field
+# Backward-compatible aliases used by existing routes/services.
+AlertCreate = AlertCreateRequest
+AlertUpdate = AlertUpdateRequest
+AlertRead = AlertResponse
 
-from src.models.enums import AlertStatus, AlertType
-from src.schemas.base import AppBaseModel
-
-
-class AlertBase(AppBaseModel):
-    zone: str = Field(..., max_length=50, examples=["Zone-A"])
-    alert_type: AlertType
-    message: str = Field(..., examples=["Gas concentration exceeds safe threshold."])
-    generated_by: str = Field("AI Engine", max_length=50)
-    status: AlertStatus = AlertStatus.ACTIVE
-
-
-class AlertCreate(AlertBase):
-    """Schema for creating a new alert."""
-
-
-class AlertUpdate(AppBaseModel):
-    """Schema for partial alert updates."""
-
-    status: AlertStatus | None = None
-    message: str | None = None
-
-
-class AlertRead(AlertBase):
-    """Schema for returning an alert (includes server-assigned fields)."""
-
-    id: uuid.UUID
-    generated_at: datetime
+__all__: list[str] = [
+    "AlertSchema",
+    "AlertCreateRequest",
+    "AlertUpdateRequest",
+    "AlertResponse",
+    "AlertCreate",
+    "AlertUpdate",
+    "AlertRead",
+]
