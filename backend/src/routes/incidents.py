@@ -33,7 +33,7 @@ IncidentServiceDep = Annotated[IncidentService, Depends(get_incident_service)]
     response_model=list[IncidentRead],
     response_description="List of incident records.",
 )
-async def list_incidents(
+def list_incidents(
     service: IncidentServiceDep,
     skip: int = Query(0, ge=0, description="Number of incident records to skip before returning results.", examples=[0]),
     limit: int = Query(100, ge=1, le=500, description="Maximum number of incident records to return.", examples=[100]),
@@ -48,7 +48,7 @@ async def list_incidents(
     response_model=IncidentRead,
     response_description="Incident record.",
 )
-async def get_incident(
+def get_incident(
     incident_id: Annotated[uuid.UUID, Path(description="Unique identifier of the incident.")],
     service: IncidentServiceDep,
 ) -> IncidentRead:
@@ -66,7 +66,7 @@ async def get_incident(
     response_model=IncidentRead,
     response_description="Created incident record.",
 )
-async def create_incident(
+def create_incident(
     payload: Annotated[
         IncidentCreate,
         Body(
@@ -97,7 +97,7 @@ async def create_incident(
     response_model=IncidentRead,
     response_description="Updated incident record.",
 )
-async def update_incident(
+def update_incident(
     incident_id: Annotated[uuid.UUID, Path(description="Unique identifier of the incident.")],
     payload: Annotated[
         IncidentUpdate,
@@ -125,7 +125,7 @@ async def update_incident(
     status_code=status.HTTP_204_NO_CONTENT,
     response_description="Incident record deleted successfully.",
 )
-async def delete_incident(
+def delete_incident(
     incident_id: Annotated[uuid.UUID, Path(description="Unique identifier of the incident.")],
     service: IncidentServiceDep,
 ) -> Response:

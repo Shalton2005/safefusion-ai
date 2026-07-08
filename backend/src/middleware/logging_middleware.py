@@ -46,6 +46,19 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
 
         try:
             response: Response = await call_next(request)
+
+            duration_ms: float = (time.perf_counter() - start) * 1_000
+            response.headers["X-Request-ID"] = request_id
+
+            logger.info(
+                "Request completed method=%s path=%s status_code=%s duration_ms=%.2f",
+                request.method,
+                request.url.path,
+                response.status_code,
+                duration_ms,
+            )
+
+            return response
         except Exception:
             duration_ms = (time.perf_counter() - start) * 1_000
             logger.exception(
@@ -56,19 +69,4 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
             )
             raise
         finally:
-            pass
-
-        duration_ms: float = (time.perf_counter() - start) * 1_000
-        response.headers["X-Request-ID"] = request_id
-
-        logger.info(
-            "Request completed method=%s path=%s status_code=%s duration_ms=%.2f",
-            request.method,
-            request.url.path,
-            response.status_code,
-            duration_ms,
-        )
-
-        clear_request_id(token)
-
-        return response
+            clear_request_id(token)

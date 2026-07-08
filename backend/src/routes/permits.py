@@ -32,7 +32,7 @@ PermitServiceDep = Annotated[PermitService, Depends(get_permit_service)]
     response_model=list[PermitRead],
     response_description="List of permit records.",
 )
-async def list_permits(
+def list_permits(
     service: PermitServiceDep,
     skip: int = Query(0, ge=0, description="Number of permit records to skip before returning results.", examples=[0]),
     limit: int = Query(100, ge=1, le=500, description="Maximum number of permit records to return.", examples=[100]),

@@ -32,7 +32,7 @@ AlertServiceDep = Annotated[AlertService, Depends(get_alert_service)]
     response_model=list[AlertRead],
     response_description="List of alert records.",
 )
-async def list_alerts(
+def list_alerts(
     service: AlertServiceDep,
     skip: int = Query(0, ge=0, description="Number of alert records to skip before returning results.", examples=[0]),
     limit: int = Query(100, ge=1, le=500, description="Maximum number of alert records to return.", examples=[100]),

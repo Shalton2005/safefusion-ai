@@ -33,7 +33,7 @@ RiskScoreServiceDep = Annotated[RiskScoreService, Depends(get_risk_score_service
     response_model=list[RiskScoreRead],
     response_description="List of risk score records.",
 )
-async def list_risk_scores(
+def list_risk_scores(
     service: RiskScoreServiceDep,
     skip: int = Query(0, ge=0, description="Number of risk score records to skip before returning results.", examples=[0]),
     limit: int = Query(100, ge=1, le=500, description="Maximum number of risk score records to return.", examples=[100]),
@@ -48,7 +48,7 @@ async def list_risk_scores(
     response_model=RiskScoreRead,
     response_description="Risk score record.",
 )
-async def get_risk_score(
+def get_risk_score(
     score_id: Annotated[uuid.UUID, Path(description="Unique identifier of the risk score record.")],
     service: RiskScoreServiceDep,
 ) -> RiskScoreRead:
@@ -66,7 +66,7 @@ async def get_risk_score(
     response_model=RiskScoreRead,
     response_description="Created risk score record.",
 )
-async def create_risk_score(
+def create_risk_score(
     payload: Annotated[
         RiskScoreCreate,
         Body(
@@ -96,7 +96,7 @@ async def create_risk_score(
     response_model=RiskScoreRead,
     response_description="Updated risk score record.",
 )
-async def update_risk_score(
+def update_risk_score(
     score_id: Annotated[uuid.UUID, Path(description="Unique identifier of the risk score record.")],
     payload: Annotated[
         RiskScoreUpdate,
@@ -124,7 +124,7 @@ async def update_risk_score(
     status_code=status.HTTP_204_NO_CONTENT,
     response_description="Risk score record deleted successfully.",
 )
-async def delete_risk_score(
+def delete_risk_score(
     score_id: Annotated[uuid.UUID, Path(description="Unique identifier of the risk score record.")],
     service: RiskScoreServiceDep,
 ) -> Response:

@@ -33,7 +33,7 @@ WorkerServiceDep = Annotated[WorkerService, Depends(get_worker_service)]
     response_model=list[WorkerRead],
     response_description="List of worker records.",
 )
-async def list_workers(
+def list_workers(
     service: WorkerServiceDep,
     skip: int = Query(0, ge=0, description="Number of worker records to skip before returning results.", examples=[0]),
     limit: int = Query(100, ge=1, le=500, description="Maximum number of worker records to return.", examples=[100]),
@@ -50,7 +50,7 @@ async def list_workers(
     response_model=WorkerRead,
     response_description="Created worker record.",
 )
-async def create_worker(
+def create_worker(
     payload: Annotated[
         WorkerCreate,
         Body(
@@ -84,7 +84,7 @@ async def create_worker(
     response_model=WorkerRead,
     response_description="Updated worker record.",
 )
-async def update_worker(
+def update_worker(
     worker_id: Annotated[uuid.UUID, Path(description="Unique identifier of the worker.")],
     payload: Annotated[
         WorkerUpdate,
@@ -115,7 +115,7 @@ async def update_worker(
     status_code=status.HTTP_204_NO_CONTENT,
     response_description="Worker deleted successfully.",
 )
-async def delete_worker(
+def delete_worker(
     worker_id: Annotated[uuid.UUID, Path(description="Unique identifier of the worker.")],
     service: WorkerServiceDep,
 ) -> Response:

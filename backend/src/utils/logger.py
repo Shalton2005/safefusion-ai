@@ -55,7 +55,7 @@ def configure_logging(*, log_level: str = "INFO", debug: bool = False) -> None:
             "disable_existing_loggers": False,
             "filters": {
                 "request_context": {
-                    "()": "src.utils.logger.RequestContextFilter",
+                    "()": RequestContextFilter,
                 }
             },
             "formatters": {

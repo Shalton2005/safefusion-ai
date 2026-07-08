@@ -37,7 +37,7 @@ MaintenanceServiceDep = Annotated[MaintenanceLogService, Depends(get_maintenance
     response_model=list[MaintenanceLogRead],
     response_description="List of maintenance log records.",
 )
-async def list_maintenance(
+def list_maintenance(
     service: MaintenanceServiceDep,
     skip: int = Query(0, ge=0, description="Number of maintenance logs to skip before returning results.", examples=[0]),
     limit: int = Query(100, ge=1, le=500, description="Maximum number of maintenance logs to return.", examples=[100]),
@@ -52,7 +52,7 @@ async def list_maintenance(
     response_model=MaintenanceLogRead,
     response_description="Maintenance log record.",
 )
-async def get_maintenance(
+def get_maintenance(
     log_id: Annotated[uuid.UUID, Path(description="Unique identifier of the maintenance log.")],
     service: MaintenanceServiceDep,
 ) -> MaintenanceLogRead:
@@ -73,7 +73,7 @@ async def get_maintenance(
     response_model=MaintenanceLogRead,
     response_description="Created maintenance log record.",
 )
-async def create_maintenance(
+def create_maintenance(
     payload: Annotated[
         MaintenanceLogCreate,
         Body(
@@ -105,7 +105,7 @@ async def create_maintenance(
     response_model=MaintenanceLogRead,
     response_description="Updated maintenance log record.",
 )
-async def update_maintenance(
+def update_maintenance(
     log_id: Annotated[uuid.UUID, Path(description="Unique identifier of the maintenance log.")],
     payload: Annotated[
         MaintenanceLogUpdate,
@@ -136,7 +136,7 @@ async def update_maintenance(
     status_code=status.HTTP_204_NO_CONTENT,
     response_description="Maintenance log deleted successfully.",
 )
-async def delete_maintenance(
+def delete_maintenance(
     log_id: Annotated[uuid.UUID, Path(description="Unique identifier of the maintenance log.")],
     service: MaintenanceServiceDep,
 ) -> Response:

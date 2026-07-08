@@ -36,7 +36,7 @@ DbDep = Annotated[Session, Depends(get_db)]
     response_class=JSONResponse,
     response_description="Dashboard summary and per-zone monitoring breakdown.",
 )
-async def get_dashboard(db: DbDep) -> JSONResponse:
+def get_dashboard(db: DbDep) -> JSONResponse:
     """Assemble and return the full dashboard payload."""
     worker_repo = WorkerRepository(db)
     sensor_repo = SensorRepository(db)
@@ -98,7 +98,7 @@ async def get_dashboard(db: DbDep) -> JSONResponse:
     response_class=JSONResponse,
     response_description="Dashboard summary counters.",
 )
-async def get_dashboard_summary(db: DbDep) -> JSONResponse:
+def get_dashboard_summary(db: DbDep) -> JSONResponse:
     """Return summary counters without zone-level sensor breakdown."""
     worker_repo = WorkerRepository(db)
     alert_repo = AlertRepository(db)

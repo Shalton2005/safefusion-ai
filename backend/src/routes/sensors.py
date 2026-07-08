@@ -32,7 +32,7 @@ SensorServiceDep = Annotated[SensorService, Depends(get_sensor_service)]
     response_model=list[SensorRead],
     response_description="List of sensor readings.",
 )
-async def list_sensors(
+def list_sensors(
     service: SensorServiceDep,
     skip: int = Query(0, ge=0, description="Number of sensor readings to skip before returning results.", examples=[0]),
     limit: int = Query(100, ge=1, le=1000, description="Maximum number of sensor readings to return.", examples=[100]),

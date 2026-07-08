@@ -7,8 +7,7 @@ validated at startup — the application will not start if required
 values are missing or malformed.
 """
 
-from typing import List
-
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -34,10 +33,22 @@ class Settings(BaseSettings):
     PROJECT_VERSION: str = "1.0.0"
 
     # ── CORS ──────────────────────────────────────────────────────────────────
-    ALLOWED_ORIGINS: List[str] = [
+    ALLOWED_ORIGINS: list[str] = [
         "http://localhost:3000",
         "http://localhost:8080",
     ]
+
+    @field_validator("DEBUG", mode="before")
+    @classmethod
+    def parse_debug(cls, value: object) -> bool:
+        """Accept common environment names while preserving boolean DEBUG semantics."""
+        if isinstance(value, str):
+            normalized = value.strip().lower()
+            if normalized in {"release", "prod", "production"}:
+                return False
+            if normalized in {"dev", "development"}:
+                return True
+        return value
 
     model_config = SettingsConfigDict(
         env_file=".env",
