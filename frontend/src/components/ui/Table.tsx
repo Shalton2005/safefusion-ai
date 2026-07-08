@@ -101,11 +101,24 @@ export function Table<TRow = Record<string, unknown>>({
               <tr
                 key={keyExtractor(row)}
                 onClick={onRowClick ? () => onRowClick(row) : undefined}
+                tabIndex={onRowClick ? 0 : undefined}
+                role={onRowClick ? 'button' : undefined}
+                onKeyDown={
+                  onRowClick
+                    ? (e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          onRowClick(row);
+                        }
+                      }
+                    : undefined
+                }
                 className={cn(
                   'border-b border-[var(--color-border)] last:border-0',
                   'bg-[var(--color-bg-card)] hover:bg-[var(--color-bg-secondary)]',
                   'transition-colors duration-100',
                   onRowClick && 'cursor-pointer',
+                  onRowClick && 'focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-inset',
                 )}
               >
                 {columns.map((col) => (
