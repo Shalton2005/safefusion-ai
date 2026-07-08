@@ -3,6 +3,7 @@ import { Card, CardHeader, Badge, Table, Button } from '@/components/ui';
 import type { TableColumn } from '@/components/ui';
 import type { Alert } from '@/types';
 import { formatRelativeTime } from '@/utils/format';
+import { AlertsPanel } from '@/features/alerts/components/AlertsPanel';
 
 const MOCK_ALERTS: Alert[] = [
   {
@@ -149,6 +150,8 @@ export function AlertsPage() {
           />
         </div>
       </Card>
+
+      <AlertsPanel />
     </div>
   );
 }

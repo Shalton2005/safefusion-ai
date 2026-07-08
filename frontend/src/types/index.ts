@@ -69,6 +69,21 @@ export interface Alert {
   acknowledgedBy?: string;
 }
 
+// ─── Incident (safety alert source) ───────────────────────────────
+export type IncidentType = 'gas_leak' | 'fire' | 'explosion' | 'ppe_violation';
+
+export interface Incident {
+  id: string;
+  zone: string;
+  severity: SeverityLevel;
+  incident_type: IncidentType;
+  description: string;
+  root_cause: string | null;
+  occurred_at: string;
+  created_at: string;
+  updated_at: string;
+}
+
 // ─── Worker ────────────────────────────────────────────────────────
 export type WorkerStatus = 'working' | 'idle' | 'emergency';
 
