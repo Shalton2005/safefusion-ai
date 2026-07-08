@@ -4,6 +4,7 @@ import type { TableColumn } from '@/components/ui';
 import type { Alert } from '@/types';
 import { formatRelativeTime } from '@/utils/format';
 import { AlertsPanel } from '@/features/alerts/components/AlertsPanel';
+import { RecentIncidentsPanel } from '@/features/alerts/components/RecentIncidentsPanel';
 
 const MOCK_ALERTS: Alert[] = [
   {
@@ -152,6 +153,8 @@ export function AlertsPage() {
       </Card>
 
       <AlertsPanel />
+
+      <RecentIncidentsPanel />
     </div>
   );
 }
