@@ -86,6 +86,20 @@ export interface Worker {
   updated_at: string;
 }
 
+// ─── Sensor Reading ────────────────────────────────────────────────
+export type SensorType   = 'gas' | 'temperature' | 'pressure' | 'humidity';
+export type SensorStatus = 'normal' | 'warning' | 'critical';
+
+export interface SensorReading {
+  id: string;
+  zone: string;
+  sensor_type: SensorType;
+  value: number;
+  unit: string;
+  status: SensorStatus;
+  timestamp: string;
+}
+
 // ─── Report ────────────────────────────────────────────────────────
 export interface Report {
   id: string;

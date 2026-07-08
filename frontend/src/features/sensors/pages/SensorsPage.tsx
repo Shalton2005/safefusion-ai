@@ -2,6 +2,7 @@ import { Radio, Wifi, WifiOff, AlertTriangle } from 'lucide-react';
 import { Card, CardHeader, Badge, PageHeader, Table } from '@/components/ui';
 import type { TableColumn } from '@/components/ui';
 import type { Device } from '@/types';
+import { SensorMonitoringPanel } from '@/features/sensors/components/SensorMonitoringPanel';
 
 const PLACEHOLDER_SENSORS: Device[] = [
   { id: '1', name: 'Sensor-A01', location: 'Zone A – Floor 1', status: 'online',   type: 'Gas',         lastSeen: new Date().toISOString() },
@@ -96,6 +97,8 @@ export function SensorsPage() {
           />
         </div>
       </Card>
+
+      <SensorMonitoringPanel />
     </div>
   );
 }

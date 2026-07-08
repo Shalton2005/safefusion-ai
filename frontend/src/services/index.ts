@@ -10,6 +10,7 @@ export { analyticsService } from './analytics.service';
 export { dashboardService } from './dashboard.service';
 export { monitoringService }from './monitoring.service';
 export { reportsService }   from './reports.service';
+export { sensorsService }  from './sensors.service';
 export { workersService }  from './workers.service';
 
 export { createService }    from './base.service';
