@@ -1,6 +1,7 @@
 import { FileCheck2, Clock, XCircle } from 'lucide-react';
 import { Card, CardHeader, Badge, PageHeader, Table } from '@/components/ui';
 import type { TableColumn } from '@/components/ui';
+import { PermitDashboardPanel } from '@/features/permits/components/PermitDashboardPanel';
 
 interface Permit {
   id: string;
@@ -102,6 +103,8 @@ export function PermitsPage() {
           />
         </div>
       </Card>
+
+      <PermitDashboardPanel />
     </div>
   );
 }

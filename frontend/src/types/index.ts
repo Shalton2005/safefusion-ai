@@ -84,6 +84,23 @@ export interface Incident {
   updated_at: string;
 }
 
+// ─── Permit-to-Work ────────────────────────────────────────────────
+export type PermitType   = 'hot_work' | 'confined_space' | 'electrical';
+export type PermitStatus = 'active' | 'closed' | 'suspended';
+
+export interface Permit {
+  id: string;
+  permit_type: PermitType;
+  zone: string;
+  issued_by: string;
+  assigned_team: string;
+  start_time: string;
+  end_time: string;
+  status: PermitStatus;
+  created_at: string;
+  updated_at: string;
+}
+
 // ─── Worker ────────────────────────────────────────────────────────
 export type WorkerStatus = 'working' | 'idle' | 'emergency';
 
