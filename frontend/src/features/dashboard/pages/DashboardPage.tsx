@@ -6,6 +6,12 @@ import {
   SENSOR_READINGS_DATA,
   ALERT_DISTRIBUTION_DATA,
 } from '@/features/dashboard/data/chartDummyData';
+import { WorkerMonitoringPanel } from '@/features/workers/components/WorkerMonitoringPanel';
+import { SensorMonitoringPanel } from '@/features/sensors/components/SensorMonitoringPanel';
+import { AlertsPanel } from '@/features/alerts/components/AlertsPanel';
+import { RecentIncidentsPanel } from '@/features/alerts/components/RecentIncidentsPanel';
+import { PermitDashboardPanel } from '@/features/permits/components/PermitDashboardPanel';
+import { SafetyHeatmapContainer } from '@/features/live-monitoring/components/SafetyHeatmapContainer';
 
 export function DashboardPage() {
   return (
@@ -61,6 +67,20 @@ export function DashboardPage() {
           ))}
         </div>
       </Card>
+
+      {/* Safety heatmap */}
+      <SafetyHeatmapContainer />
+
+      {/* Worker & sensor monitoring */}
+      <WorkerMonitoringPanel />
+      <SensorMonitoringPanel />
+
+      {/* Alerts & incidents */}
+      <AlertsPanel />
+      <RecentIncidentsPanel />
+
+      {/* Permits */}
+      <PermitDashboardPanel />
     </div>
   );
 }
