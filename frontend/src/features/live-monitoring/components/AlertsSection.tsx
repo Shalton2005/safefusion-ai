@@ -1,7 +1,43 @@
-import { Bell } from 'lucide-react';
-import { Card, CardHeader, Badge, EmptyState } from '@/components/ui';
+import { useEffect, useState } from 'react';
+import { Bell, RotateCw } from 'lucide-react';
+import { Card, CardHeader, Badge, EmptyState, Alert, Button, Skeleton } from '@/components/ui';
+import { incidentsService } from '@/services';
+import { ApiError } from '@/api/errors';
+import { createRequestController } from '@/api/client';
+import type { Incident } from '@/types';
+import { AlertStatusIndicator } from '@/features/alerts/components/AlertStatusIndicator';
 
 export function AlertsSection() {
+  const [incidents, setIncidents] = useState<Incident[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchIncidents = async (signal?: AbortSignal) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const { data } = await incidentsService.getIncidents({ skip: 0, limit: 100 }, { signal });
+      setIncidents(data);
+    } catch (err) {
+      const apiError = ApiError.from(err);
+      if (!apiError.isCancelledError) {
+        setError(apiError.toUserMessage());
+      }
+    } finally {
+      if (!signal?.aborted) {
+        setLoading(false);
+      }
+    }
+  };
+
+  useEffect(() => {
+    const { controller, signal } = createRequestController();
+    fetchIncidents(signal);
+    return () => controller.abort();
+  }, []);
+
+  const criticalCount = incidents.filter((i) => i.severity === 'critical').length;
+
   return (
     <Card padding="none">
       <CardHeader
@@ -9,18 +45,54 @@ export function AlertsSection() {
         description="Safety alerts by severity, type, and location."
         className="px-6 pt-5 pb-0"
         action={
-          <Badge variant="ghost" size="sm">
-            Awaiting data
-          </Badge>
+          !loading && !error && incidents.length > 0 && (
+            <Badge variant={criticalCount > 0 ? 'danger' : 'primary'} size="sm" dot pulsing={criticalCount > 0}>
+              <Bell className="w-3 h-3 mr-1" />
+              {incidents.length} alert{incidents.length === 1 ? '' : 's'}
+            </Badge>
+          )
         }
       />
+
       <div className="p-4">
-        <EmptyState
-          icon={Bell}
-          size="sm"
-          title="Alert feed not yet connected"
-          description="Active safety alerts will appear here as they are reported."
-        />
+        {error ? (
+          <Alert
+            variant="danger"
+            title="Failed to load alerts"
+            actions={
+              <Button size="sm" variant="outline" onClick={() => fetchIncidents()} leftIcon={<RotateCw className="w-3.5 h-3.5" />}>
+                Retry
+              </Button>
+            }
+          >
+            {error}
+          </Alert>
+        ) : loading ? (
+          <div className="space-y-2">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Skeleton key={i} className="h-16 rounded-lg" />
+            ))}
+          </div>
+        ) : incidents.length === 0 ? (
+          <EmptyState
+            icon={Bell}
+            size="sm"
+            title="No alerts"
+            description="No safety alerts have been reported."
+          />
+        ) : (
+          <div className="space-y-2">
+            {incidents.map((incident) => (
+              <AlertStatusIndicator
+                key={incident.id}
+                severity={incident.severity}
+                message={incident.description}
+                timestamp={incident.occurred_at}
+                source={incident.zone}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </Card>
   );
