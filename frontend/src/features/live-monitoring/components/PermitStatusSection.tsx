@@ -16,7 +16,19 @@ const permitTypeLabel: Record<PermitType, string> = {
 };
 
 function isPermitExpired(permit: Permit): boolean {
-  return permit.status !== 'closed' && new Date(permit.end_time).getTime() < Date.now();
+  // A suspended permit is never displayed as "Expired" — Suspended takes priority.
+  return (
+    permit.status === 'active' &&
+    new Date(permit.end_time).getTime() < Date.now()
+  );
+}
+
+// Priority for sorting: Suspended > Expired > Active > Closed.
+function permitPriority(permit: Permit): number {
+  if (permit.status === 'suspended') return 3;
+  if (isPermitExpired(permit)) return 2;
+  if (permit.status === 'active') return 1;
+  return 0; // closed
 }
 
 export function PermitStatusSection() {
@@ -47,7 +59,7 @@ export function PermitStatusSection() {
   const { lastUpdated, refresh } = usePolling(fetchPermits, DASHBOARD_REFRESH_INTERVAL);
 
   const expiredCount = permits.filter(isPermitExpired).length;
-  const sorted = [...permits].sort((a, b) => Number(isPermitExpired(b)) - Number(isPermitExpired(a)));
+  const sorted = [...permits].sort((a, b) => permitPriority(b) - permitPriority(a));
 
   return (
     <Card padding="none">

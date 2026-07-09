@@ -43,18 +43,25 @@ export function usePolling(
 
   useEffect(() => {
     let { controller, signal } = createRequestController();
-    runTick(signal);
+    let id: ReturnType<typeof setInterval>;
 
-    const id = setInterval(() => {
+    const tick = () => {
       controller.abort();
       ({ controller, signal } = createRequestController());
       runTick(signal);
-    }, intervalMs);
+    };
+
+    const startInterval = () => {
+      id = setInterval(tick, intervalMs);
+    };
+
+    runTick(signal);
+    startInterval();
 
     refreshRef.current = () => {
-      controller.abort();
-      ({ controller, signal } = createRequestController());
-      runTick(signal);
+      clearInterval(id);
+      tick();
+      startInterval();
     };
 
     return () => {

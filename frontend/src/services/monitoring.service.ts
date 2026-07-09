@@ -1,7 +1,7 @@
 import { createService } from './base.service';
-import type { Device, RiskSummary } from '@/types';
+import type { Device } from '@/types';
 import type { ApiResponse } from '@/types';
-import type { ListParams, RequestOptions } from '@/api/types';
+import type { ListParams } from '@/api/types';
 
 const base = createService<Device>('/monitoring');
 
@@ -21,7 +21,7 @@ export const monitoringService = {
       params,
     ),
 
-  /** Aggregated overall risk score, level, and trend. */
-  getSummary: (options?: RequestOptions) =>
-    base.get<ApiResponse<RiskSummary>>('summary', undefined, options),
+  // NOTE: there is no GET /monitoring/summary route on the backend.
+  // Overall risk score/level is served by GET /dashboard/summary instead —
+  // see dashboardService.getSummary() in dashboard.service.ts.
 };

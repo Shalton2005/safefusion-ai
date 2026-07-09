@@ -5,8 +5,9 @@
  * zone, shift, permit status, and PPE status. Purely props-driven — no
  * data fetching — so it can be reused in dashboards, grids, or detail views.
  *
- * Permit status has no backend field yet, so it is rendered as a fixed
- * placeholder badge until permit-to-worker linkage is wired up.
+ * Permit status has no backend field yet. When `permitStatus` is not
+ * supplied, the badge is omitted rather than showing misleading
+ * placeholder data.
  *
  * @example
  * <WorkerStatusIndicator
@@ -18,6 +19,7 @@
  */
 
 import { Badge } from '@/components/ui';
+import type { PermitStatus } from '@/types';
 
 export interface WorkerStatusIndicatorProps {
   /** Worker's full name. */
@@ -28,6 +30,8 @@ export interface WorkerStatusIndicatorProps {
   shift: 'Morning' | 'Afternoon' | 'Night';
   /** PPE compliance — placeholder until live PPE detection is wired up. */
   ppeCompliant: boolean;
+  /** Worker's permit status, when known. Omitted if not yet linked to a permit record. */
+  permitStatus?: PermitStatus;
   className?: string;
 }
 
@@ -36,6 +40,7 @@ export function WorkerStatusIndicator({
   zone,
   shift,
   ppeCompliant,
+  permitStatus,
   className,
 }: WorkerStatusIndicatorProps) {
   return (
@@ -49,7 +54,7 @@ export function WorkerStatusIndicator({
 
       <div className="flex flex-wrap items-center gap-2">
         <Badge variant="ghost" size="sm">
-          Permit: Pending
+          Permit: {permitStatus ? permitStatus.charAt(0).toUpperCase() + permitStatus.slice(1) : 'Unknown'}
         </Badge>
         <Badge variant={ppeCompliant ? 'success' : 'danger'} size="sm" dot>
           {ppeCompliant ? 'PPE Compliant' : 'PPE Non-Compliant'}

@@ -2,12 +2,20 @@ import { useRef, useState } from 'react';
 import { RotateCw } from 'lucide-react';
 import { Alert, Button, Skeleton } from '@/components/ui';
 import { LastUpdated } from '@/components/common/LastUpdated';
-import { monitoringService } from '@/services';
+import { dashboardService } from '@/services';
 import { ApiError } from '@/api/errors';
 import { usePolling } from '@/hooks/usePolling';
 import { DASHBOARD_REFRESH_INTERVAL } from '@/constants';
 import type { RiskSummary } from '@/types';
+import type { SeverityLevel } from '@/constants';
+import { SEVERITY_LEVELS } from '@/constants';
 import { RiskScoreWidget } from './RiskScoreWidget';
+
+function toRiskLevel(level: string | null): SeverityLevel {
+  return (SEVERITY_LEVELS as readonly string[]).includes(level ?? '')
+    ? (level as SeverityLevel)
+    : 'low';
+}
 
 export function OverallRiskScoreSection() {
   const [summary, setSummary] = useState<RiskSummary | null>(null);
@@ -19,8 +27,12 @@ export function OverallRiskScoreSection() {
     if (!hasLoadedOnce.current) setLoading(true);
     setError(null);
     try {
-      const { data } = await monitoringService.getSummary({ signal });
-      setSummary(data.data);
+      const { data } = await dashboardService.getSummary({ signal });
+      setSummary({
+        score: data.data.overall_risk_score ?? 0,
+        level: toRiskLevel(data.data.overall_risk_level),
+        trend: 'stable',
+      });
       hasLoadedOnce.current = true;
     } catch (err) {
       const apiError = ApiError.from(err);

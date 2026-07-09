@@ -171,6 +171,17 @@ export interface RiskSummary {
   trend: 'up' | 'down' | 'stable';
 }
 
+// ─── Dashboard Summary (GET /dashboard/summary) ────────────────────
+export interface DashboardSummary {
+  total_workers: number;
+  active_workers: number;
+  active_alerts: number;
+  critical_alerts: number;
+  active_permits: number;
+  overall_risk_score: number | null;
+  overall_risk_level: string | null;
+}
+
 // ─── Navigation ────────────────────────────────────────────────────
 export interface NavItem {
   label: string;
