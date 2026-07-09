@@ -1,7 +1,7 @@
 import { createService } from './base.service';
-import type { Device } from '@/types';
+import type { Device, RiskSummary } from '@/types';
 import type { ApiResponse } from '@/types';
-import type { ListParams } from '@/api/types';
+import type { ListParams, RequestOptions } from '@/api/types';
 
 const base = createService<Device>('/monitoring');
 
@@ -20,4 +20,8 @@ export const monitoringService = {
       `${id}/metrics`,
       params,
     ),
+
+  /** Aggregated overall risk score, level, and trend. */
+  getSummary: (options?: RequestOptions) =>
+    base.get<ApiResponse<RiskSummary>>('summary', undefined, options),
 };

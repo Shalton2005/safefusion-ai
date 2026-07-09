@@ -1,5 +1,7 @@
 // ─── Global TypeScript types ───────────────────────────────────────
 
+import type { SeverityLevel } from '@/constants';
+
 export type Theme = 'light' | 'dark' | 'system';
 
 // ─── API primitives ────────────────────────────────────────────────
@@ -156,6 +158,16 @@ export interface AnalyticsSummary {
   devicesTotal: number;
   incidentRate: number;
   safetyScore: number;
+  trend: 'up' | 'down' | 'stable';
+}
+
+// ─── Risk Summary ──────────────────────────────────────────────────
+export interface RiskSummary {
+  /** Overall risk score, 0-100. */
+  score: number;
+  /** Bucketed risk level derived from the score. */
+  level: SeverityLevel;
+  /** Direction of change since the previous reading. */
   trend: 'up' | 'down' | 'stable';
 }
 
