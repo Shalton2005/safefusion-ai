@@ -2,7 +2,7 @@
 Sensor repository for SafeFusion AI.
 """
 
-from sqlalchemy import func, select
+from sqlalchemy import and_, func, select
 from sqlalchemy.orm import Session
 
 from src.models.enums import SensorStatus, SensorType
@@ -40,6 +40,34 @@ class SensorRepository(BaseRepository[Sensor]):
             select(Sensor.zone).distinct().order_by(Sensor.zone)
         ).scalars().all()
         return list(rows)
+
+    def get_latest_by_zone_and_type(self) -> list[Sensor]:
+        """Return the single latest sensor reading for each (zone, sensor_type) pair.
+
+        Ties on ``timestamp`` (e.g. from a batch ingest) are broken by the
+        highest ``id`` so exactly one row is returned per group, preventing
+        the monitoring/risk engines from double-counting a duplicated reading.
+        """
+        ranked = (
+            select(
+                Sensor.id.label("id"),
+                func.row_number()
+                .over(
+                    partition_by=(Sensor.zone, Sensor.sensor_type),
+                    order_by=(Sensor.timestamp.desc(), Sensor.id.desc()),
+                )
+                .label("rank"),
+            )
+            .subquery()
+        )
+
+        return list(
+            self._db.execute(
+                select(Sensor)
+                .join(ranked, and_(Sensor.id == ranked.c.id, ranked.c.rank == 1))
+                .order_by(Sensor.zone, Sensor.sensor_type)
+            ).scalars().all()
+        )
 
     def count_by_zone_and_status(self, zone: str, status: SensorStatus) -> int:
         """Return the count of readings for a zone filtered by status."""

@@ -32,6 +32,44 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "SafeFusion AI"
     PROJECT_VERSION: str = "1.0.0"
 
+    # ── Sensor monitoring thresholds (rule-based baseline) ──────────────────
+    SENSOR_GAS_WARNING_MAX: float = 60.0
+    SENSOR_GAS_CRITICAL_MAX: float = 80.0
+
+    SENSOR_TEMPERATURE_WARNING_MAX: float = 36.0
+    SENSOR_TEMPERATURE_CRITICAL_MAX: float = 42.0
+
+    SENSOR_PRESSURE_WARNING_MAX: float = 7.0
+    SENSOR_PRESSURE_CRITICAL_MAX: float = 8.5
+
+    SENSOR_HUMIDITY_WARNING_MAX: float = 62.0
+    SENSOR_HUMIDITY_CRITICAL_MAX: float = 72.0
+
+    SENSOR_SMOKE_WARNING_MAX: float = 4.0
+    SENSOR_SMOKE_CRITICAL_MAX: float = 8.0
+
+    # ── Permit validation rules ─────────────────────────────────────────────
+    PERMIT_VALIDATION_VALID_STATUSES: list[str] = ["active"]
+    PERMIT_VALIDATION_PENDING_STATUSES: list[str] = ["active"]
+    PERMIT_VALIDATION_INVALID_STATUSES: list[str] = ["suspended"]
+    PERMIT_VALIDATION_EXPIRED_GRACE_SECONDS: int = 0
+
+    # ── Alert generation rules ───────────────────────────────────────────────
+    ALERT_RESTRICTED_ZONES: list[str] = ["Boiler-Area", "Confined-Space-1"]
+
+    # ── Risk score engine weights (v1) ───────────────────────────────────────
+    # Each weight is the maximum point contribution (out of 100) of that
+    # factor to a zone's overall risk score. Weights need not sum to 100 —
+    # the engine clamps the final score to [0, 100].
+    RISK_WEIGHT_CRITICAL_SENSORS: float = 40.0
+    RISK_WEIGHT_WARNING_SENSORS: float = 15.0
+    RISK_WEIGHT_EXPIRED_PERMITS: float = 25.0
+    RISK_WEIGHT_RESTRICTED_ZONE_WORKERS: float = 20.0
+
+    RISK_LEVEL_LOW_MAX: float = 25.0
+    RISK_LEVEL_MEDIUM_MAX: float = 50.0
+    RISK_LEVEL_HIGH_MAX: float = 75.0
+
     # ── CORS ──────────────────────────────────────────────────────────────────
     ALLOWED_ORIGINS: list[str] = [
         "http://localhost:3000",

@@ -1,0 +1,232 @@
+"""Unified monitoring routes for SafeFusion AI API v1.
+
+Thin Route -> Service -> Repository endpoints exposing the sensor,
+worker, permit, and risk monitoring summaries under a single
+``/monitoring`` namespace, plus a combined ``/monitoring/summary``.
+"""
+
+from typing import Annotated
+
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+
+from src.config.settings import settings
+from src.database.session import get_db
+from src.models.enums import PermitStatus, SensorType
+from src.repositories.permit import PermitRepository
+from src.repositories.risk_score import RiskScoreRepository
+from src.repositories.sensor import SensorRepository
+from src.repositories.worker import WorkerRepository
+from src.schemas.response.monitoring import MonitoringSummaryResponse
+from src.schemas.response.permit_validation import PermitValidationSummaryResponse
+from src.schemas.response.risk_scoring import RiskScoreCalculationResultResponse
+from src.schemas.response.sensor_monitoring import SensorMonitoringSummaryResponse
+from src.schemas.response.worker_monitoring import WorkerMonitoringSummaryResponse
+from src.services.permit_validation import PermitValidationRules, PermitValidationService
+from src.services.risk_score_calculation import RiskScoreCalculationService
+from src.services.risk_scoring import (
+    CriticalSensorFactor,
+    ExpiredPermitFactor,
+    RestrictedZoneWorkerFactor,
+    RiskLevelBands,
+    RiskScoreEngine,
+    WarningSensorFactor,
+)
+from src.services.sensor_monitoring import SensorMonitoringService, SensorThresholdBand
+from src.services.worker_monitoring import WorkerMonitoringService
+
+router: APIRouter = APIRouter(prefix="/monitoring", tags=["Monitoring"])
+
+DbDep = Annotated[Session, Depends(get_db)]
+
+
+def _sensor_thresholds_from_settings() -> dict[SensorType, SensorThresholdBand]:
+    return {
+        SensorType.GAS: SensorThresholdBand(
+            warning_max=settings.SENSOR_GAS_WARNING_MAX,
+            critical_max=settings.SENSOR_GAS_CRITICAL_MAX,
+        ),
+        SensorType.TEMPERATURE: SensorThresholdBand(
+            warning_max=settings.SENSOR_TEMPERATURE_WARNING_MAX,
+            critical_max=settings.SENSOR_TEMPERATURE_CRITICAL_MAX,
+        ),
+        SensorType.PRESSURE: SensorThresholdBand(
+            warning_max=settings.SENSOR_PRESSURE_WARNING_MAX,
+            critical_max=settings.SENSOR_PRESSURE_CRITICAL_MAX,
+        ),
+        SensorType.HUMIDITY: SensorThresholdBand(
+            warning_max=settings.SENSOR_HUMIDITY_WARNING_MAX,
+            critical_max=settings.SENSOR_HUMIDITY_CRITICAL_MAX,
+        ),
+        SensorType.SMOKE: SensorThresholdBand(
+            warning_max=settings.SENSOR_SMOKE_WARNING_MAX,
+            critical_max=settings.SENSOR_SMOKE_CRITICAL_MAX,
+        ),
+    }
+
+
+def get_sensor_monitoring_service(db: DbDep) -> SensorMonitoringService:
+    """Create the sensor monitoring service with repository + configurable thresholds."""
+    return SensorMonitoringService(
+        repository=SensorRepository(db),
+        thresholds=_sensor_thresholds_from_settings(),
+    )
+
+
+def get_worker_monitoring_service(db: DbDep) -> WorkerMonitoringService:
+    """Create the worker monitoring service with repository dependencies."""
+    return WorkerMonitoringService(
+        worker_repository=WorkerRepository(db),
+        permit_repository=PermitRepository(db),
+    )
+
+
+def _permit_validation_rules() -> PermitValidationRules:
+    return PermitValidationRules(
+        valid_statuses={PermitStatus(value) for value in settings.PERMIT_VALIDATION_VALID_STATUSES},
+        pending_statuses={PermitStatus(value) for value in settings.PERMIT_VALIDATION_PENDING_STATUSES},
+        invalid_statuses={PermitStatus(value) for value in settings.PERMIT_VALIDATION_INVALID_STATUSES},
+        expired_grace_seconds=settings.PERMIT_VALIDATION_EXPIRED_GRACE_SECONDS,
+    )
+
+
+def get_permit_validation_service(db: DbDep) -> PermitValidationService:
+    """Create the permit validation service with configured business rules."""
+    return PermitValidationService(rules=_permit_validation_rules())
+
+
+def get_permit_repository(db: DbDep) -> PermitRepository:
+    """Create the permit repository for the current request."""
+    return PermitRepository(db)
+
+
+class _PermitValidationSummaryAdapter:
+    """Adapts ``PermitValidationService`` + repository into the summary-only port."""
+
+    def __init__(self, validation_service: PermitValidationService, repository: PermitRepository) -> None:
+        self._validation_service = validation_service
+        self._repository = repository
+
+    def get_validation_summary(self) -> dict:
+        permits = self._repository.get_all(skip=0, limit=10_000)
+        return self._validation_service.build_validation_summary(permits)
+
+
+def get_risk_score_calculation_service(db: DbDep) -> RiskScoreCalculationService:
+    """Create the risk score calculation service with monitoring sources and engine wired in."""
+    risk_engine = RiskScoreEngine(
+        factors=[
+            CriticalSensorFactor(weight=settings.RISK_WEIGHT_CRITICAL_SENSORS),
+            WarningSensorFactor(weight=settings.RISK_WEIGHT_WARNING_SENSORS),
+            ExpiredPermitFactor(weight=settings.RISK_WEIGHT_EXPIRED_PERMITS),
+            RestrictedZoneWorkerFactor(
+                weight=settings.RISK_WEIGHT_RESTRICTED_ZONE_WORKERS,
+                restricted_zones=set(settings.ALERT_RESTRICTED_ZONES),
+            ),
+        ],
+        level_bands=RiskLevelBands(
+            low_max=settings.RISK_LEVEL_LOW_MAX,
+            medium_max=settings.RISK_LEVEL_MEDIUM_MAX,
+            high_max=settings.RISK_LEVEL_HIGH_MAX,
+        ),
+    )
+    return RiskScoreCalculationService(
+        repository=RiskScoreRepository(db),
+        risk_engine=risk_engine,
+        sensor_monitoring=get_sensor_monitoring_service(db),
+        permit_validation=_PermitValidationSummaryAdapter(
+            get_permit_validation_service(db), PermitRepository(db)
+        ),
+        worker_monitoring=get_worker_monitoring_service(db),
+    )
+
+
+SensorMonitoringServiceDep = Annotated[SensorMonitoringService, Depends(get_sensor_monitoring_service)]
+WorkerMonitoringServiceDep = Annotated[WorkerMonitoringService, Depends(get_worker_monitoring_service)]
+PermitValidationServiceDep = Annotated[PermitValidationService, Depends(get_permit_validation_service)]
+PermitRepositoryDep = Annotated[PermitRepository, Depends(get_permit_repository)]
+RiskScoreCalculationServiceDep = Annotated[
+    RiskScoreCalculationService,
+    Depends(get_risk_score_calculation_service),
+]
+
+
+@router.get(
+    "/sensors",
+    summary="Get sensor monitoring summary",
+    description="Classifies latest sensor readings by zone and sensor type using configurable thresholds.",
+    response_model=SensorMonitoringSummaryResponse,
+    response_description="Structured sensor monitoring summary.",
+)
+def get_sensor_monitoring(service: SensorMonitoringServiceDep) -> SensorMonitoringSummaryResponse:
+    return SensorMonitoringSummaryResponse.model_validate(service.get_monitoring_summary())
+
+
+@router.get(
+    "/workers",
+    summary="Get worker monitoring summary",
+    description="Returns monitoring-oriented worker status, zone assignment, and active permit association.",
+    response_model=WorkerMonitoringSummaryResponse,
+    response_description="Structured worker monitoring summary.",
+)
+def get_worker_monitoring(service: WorkerMonitoringServiceDep) -> WorkerMonitoringSummaryResponse:
+    return WorkerMonitoringSummaryResponse.model_validate(service.get_monitoring_summary())
+
+
+@router.get(
+    "/permits",
+    summary="Get permit monitoring summary",
+    description="Classifies permits as Valid, Expired, Pending, or Invalid using configured business rules.",
+    response_model=PermitValidationSummaryResponse,
+    response_description="Structured permit monitoring summary.",
+)
+def get_permit_monitoring(
+    service: PermitValidationServiceDep,
+    permit_repository: PermitRepositoryDep,
+) -> PermitValidationSummaryResponse:
+    permits = permit_repository.get_all(skip=0, limit=10_000)
+    return PermitValidationSummaryResponse.model_validate(service.build_validation_summary(permits))
+
+
+@router.get(
+    "/risk",
+    summary="Get risk summary",
+    description=(
+        "Runs the rule-based Risk Score Engine over the latest monitoring outputs and "
+        "returns a per-zone score, risk level, and contributing factors without persisting."
+    ),
+    response_model=RiskScoreCalculationResultResponse,
+    response_description="Structured per-zone risk summary.",
+)
+def get_risk_summary(
+    service: RiskScoreCalculationServiceDep,
+) -> RiskScoreCalculationResultResponse:
+    results = service.calculate_risk_scores()
+    return RiskScoreCalculationResultResponse(zone_count=len(results), results=results)
+
+
+@router.get(
+    "/summary",
+    summary="Get combined monitoring summary",
+    description="Returns sensor, worker, permit, and risk monitoring summaries in a single response.",
+    response_model=MonitoringSummaryResponse,
+    response_description="Combined monitoring summary across all domains.",
+)
+def get_monitoring_summary(
+    sensor_service: SensorMonitoringServiceDep,
+    worker_service: WorkerMonitoringServiceDep,
+    permit_service: PermitValidationServiceDep,
+    risk_service: RiskScoreCalculationServiceDep,
+    permit_repository: PermitRepositoryDep,
+) -> MonitoringSummaryResponse:
+    permits = permit_repository.get_all(skip=0, limit=10_000)
+    risk_results = risk_service.calculate_risk_scores()
+
+    return MonitoringSummaryResponse(
+        sensors=SensorMonitoringSummaryResponse.model_validate(sensor_service.get_monitoring_summary()),
+        workers=WorkerMonitoringSummaryResponse.model_validate(worker_service.get_monitoring_summary()),
+        permits=PermitValidationSummaryResponse.model_validate(
+            permit_service.build_validation_summary(permits)
+        ),
+        risk=RiskScoreCalculationResultResponse(zone_count=len(risk_results), results=risk_results),
+    )

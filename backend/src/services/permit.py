@@ -10,7 +10,9 @@ from __future__ import annotations
 from typing import Protocol
 from uuid import UUID
 
+from src.models.enums import PermitValidationState
 from src.models.permit import Permit
+from src.services.permit_validation import PermitValidationService
 
 
 class PermitRepositoryPort(Protocol):
@@ -43,9 +45,11 @@ class PermitService:
     def __init__(
         self,
         repository: PermitRepositoryPort,
+        validation_service: PermitValidationService | None = None,
         ai_pipeline: PermitAIPipelinePort | None = None,
     ) -> None:
         self._repository = repository
+        self._validation_service = validation_service
         self._ai_pipeline = ai_pipeline
 
     def create_permit(self, payload: dict) -> Permit:
@@ -71,3 +75,19 @@ class PermitService:
         if deleted and self._ai_pipeline is not None:
             self._ai_pipeline.on_permit_deleted(permit_id)
         return deleted
+
+    def validate_permit(self, permit_id: UUID) -> PermitValidationState | None:
+        """Return permit validation state for a single permit, or None if absent."""
+        if self._validation_service is None:
+            raise ValueError("Permit validation service is not configured")
+        permit = self._repository.get_by_id(permit_id)
+        if permit is None:
+            return None
+        return self._validation_service.validate_permit(permit)
+
+    def get_validation_summary(self) -> dict:
+        """Return structured validation summary for all permits."""
+        if self._validation_service is None:
+            raise ValueError("Permit validation service is not configured")
+        permits = self._repository.get_all(skip=0, limit=10_000)
+        return self._validation_service.build_validation_summary(permits)

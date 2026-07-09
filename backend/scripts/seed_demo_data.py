@@ -8,6 +8,13 @@ Seeds deterministic, relationship-aware records for:
 - Alerts
 - Incidents
 
+Also seeds a single, coherent Day 7 dashboard demo scenario in Zone-A:
+- One critical gas sensor
+- One elevated (warning) temperature reading
+- One normal pressure reading
+- One expired permit
+- One worker inside the affected zone
+
 Design goals:
 - Uses SQLAlchemy ORM models and the project's configured session factory.
 - Avoids hardcoded credentials by relying on application settings.
@@ -25,7 +32,8 @@ Optional overrides:
         --permits 15 \
         --alerts 20 \
         --incidents 15 \
-        --maintenance-logs 10
+        --maintenance-logs 10 \
+        --no-demo-scenario
 """
 
 from __future__ import annotations
@@ -170,6 +178,10 @@ PERMIT_ASSIGNMENTS = [
 ]
 
 
+DEMO_SCENARIO_ZONE = "Zone-A"
+DEMO_SCENARIO_EMPLOYEE_ID = "EMP-DEMO-001"
+
+
 @dataclass
 class SeedReport:
     workers_created: int = 0
@@ -178,6 +190,7 @@ class SeedReport:
     maintenance_logs_created: int = 0
     alerts_created: int = 0
     incidents_created: int = 0
+    demo_scenario_created: int = 0
 
 
 def seed_workers(db: Session, target_count: int) -> int:
@@ -495,6 +508,140 @@ def seed_alerts(db: Session, target_count: int) -> int:
     return created
 
 
+def seed_demo_scenario(db: Session) -> int:
+    """Seed a single deterministic, coherent Day 7 dashboard demo scenario.
+
+    Ties one critical gas sensor, one elevated temperature reading, one
+    normal pressure reading, one expired permit, and one worker together
+    in the same zone so the dashboard tells one coherent story instead of
+    scattering independent random signals across zones.
+
+    Uses fixed natural keys (employee ID, zone + sensor type + timestamp,
+    permit start_time) so re-running the seeder does not duplicate rows.
+    Permit expiry is anchored to wall-clock "now" (not ``BASE_TIME``)
+    because permit validation classifies expiry relative to real time.
+    """
+    created = 0
+    now = datetime.now(UTC)
+    scenario_timestamp = now - timedelta(minutes=5)
+
+    # ── Critical gas sensor ──────────────────────────────────────────────────
+    gas_exists = db.execute(
+        select(Sensor.id)
+        .where(
+            Sensor.zone == DEMO_SCENARIO_ZONE,
+            Sensor.sensor_type == SensorType.GAS,
+            Sensor.timestamp == scenario_timestamp,
+        )
+        .limit(1)
+    ).scalar_one_or_none()
+    if gas_exists is None:
+        db.add(
+            Sensor(
+                zone=DEMO_SCENARIO_ZONE,
+                sensor_type=SensorType.GAS,
+                value=92.5,
+                unit="ppm",
+                status=SensorStatus.CRITICAL,
+                timestamp=scenario_timestamp,
+            )
+        )
+        created += 1
+
+    # ── Elevated (warning) temperature ───────────────────────────────────────
+    temperature_exists = db.execute(
+        select(Sensor.id)
+        .where(
+            Sensor.zone == DEMO_SCENARIO_ZONE,
+            Sensor.sensor_type == SensorType.TEMPERATURE,
+            Sensor.timestamp == scenario_timestamp,
+        )
+        .limit(1)
+    ).scalar_one_or_none()
+    if temperature_exists is None:
+        db.add(
+            Sensor(
+                zone=DEMO_SCENARIO_ZONE,
+                sensor_type=SensorType.TEMPERATURE,
+                value=39.5,
+                unit="C",
+                status=SensorStatus.WARNING,
+                timestamp=scenario_timestamp,
+            )
+        )
+        created += 1
+
+    # ── Normal pressure ───────────────────────────────────────────────────────
+    pressure_exists = db.execute(
+        select(Sensor.id)
+        .where(
+            Sensor.zone == DEMO_SCENARIO_ZONE,
+            Sensor.sensor_type == SensorType.PRESSURE,
+            Sensor.timestamp == scenario_timestamp,
+        )
+        .limit(1)
+    ).scalar_one_or_none()
+    if pressure_exists is None:
+        db.add(
+            Sensor(
+                zone=DEMO_SCENARIO_ZONE,
+                sensor_type=SensorType.PRESSURE,
+                value=5.5,
+                unit="bar",
+                status=SensorStatus.NORMAL,
+                timestamp=scenario_timestamp,
+            )
+        )
+        created += 1
+
+    # ── Expired permit ───────────────────────────────────────────────────────
+    permit_start_time = now - timedelta(hours=10)
+    permit_end_time = now - timedelta(hours=2)
+    permit_exists = db.execute(
+        select(Permit.id)
+        .where(
+            Permit.permit_type == PermitType.HOT_WORK,
+            Permit.zone == DEMO_SCENARIO_ZONE,
+            Permit.start_time == permit_start_time,
+        )
+        .limit(1)
+    ).scalar_one_or_none()
+    if permit_exists is None:
+        db.add(
+            Permit(
+                permit_type=PermitType.HOT_WORK,
+                zone=DEMO_SCENARIO_ZONE,
+                issued_by="Safety Officer Sharma",
+                assigned_team="Mechanical Team Bravo",
+                start_time=permit_start_time,
+                end_time=permit_end_time,
+                status=PermitStatus.ACTIVE,
+            )
+        )
+        created += 1
+
+    # ── Worker inside the affected zone ──────────────────────────────────────
+    worker_exists = db.execute(
+        select(Worker.id).where(Worker.employee_id == DEMO_SCENARIO_EMPLOYEE_ID).limit(1)
+    ).scalar_one_or_none()
+    if worker_exists is None:
+        db.add(
+            Worker(
+                name="Arjun Mehta",
+                employee_id=DEMO_SCENARIO_EMPLOYEE_ID,
+                department="Operations",
+                role="Field Operator",
+                current_zone=DEMO_SCENARIO_ZONE,
+                ppe_status=True,
+                shift="Morning",
+                status=WorkerStatus.WORKING,
+            )
+        )
+        created += 1
+
+    return created
+
+
 def run_seed(
     workers: int,
     sensors: int,
@@ -502,6 +649,7 @@ def run_seed(
     maintenance_logs: int,
     alerts: int,
     incidents: int,
+    demo_scenario: bool = True,
 ) -> SeedReport:
     report = SeedReport()
 
@@ -512,6 +660,8 @@ def run_seed(
         report.maintenance_logs_created = seed_maintenance_logs(db, maintenance_logs)
         report.incidents_created = seed_incidents(db, incidents)
         report.alerts_created = seed_alerts(db, alerts)
+        if demo_scenario:
+            report.demo_scenario_created = seed_demo_scenario(db)
         db.commit()
 
     return report
@@ -530,6 +680,15 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--alerts", type=int, default=20, help="Number of alerts to seed")
     parser.add_argument("--incidents", type=int, default=15, help="Number of incidents to seed")
+    parser.add_argument(
+        "--no-demo-scenario",
+        action="store_true",
+        help=(
+            "Skip seeding the deterministic Day 7 demo scenario "
+            f"(critical gas sensor, elevated temperature, normal pressure, "
+            f"expired permit, and worker, all in {DEMO_SCENARIO_ZONE})."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -542,6 +701,7 @@ def main() -> None:
         maintenance_logs=args.maintenance_logs,
         alerts=args.alerts,
         incidents=args.incidents,
+        demo_scenario=not args.no_demo_scenario,
     )
 
     print("Demo seed completed.")
@@ -551,6 +711,7 @@ def main() -> None:
     print(f"Maintenance logs created: {report.maintenance_logs_created}")
     print(f"Alerts created: {report.alerts_created}")
     print(f"Incidents created: {report.incidents_created}")
+    print(f"Demo scenario records created: {report.demo_scenario_created}")
 
 
 if __name__ == "__main__":

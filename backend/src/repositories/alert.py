@@ -4,11 +4,11 @@ Alert repository for SafeFusion AI.
 
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from src.models.alert import Alert
-from src.models.enums import AlertStatus, AlertType
+from src.models.enums import AlertSeverity, AlertStatus, AlertType
 from src.repositories.base import BaseRepository
 
 
@@ -37,11 +37,24 @@ class AlertRepository(BaseRepository[Alert]):
         ).scalar_one()
 
     def count_critical_active(self) -> int:
-        """Return the count of active critical alerts."""
+        """Return the count of active alerts that are urgent by either severity signal.
+
+        Counts alerts flagged via the legacy ``alert_type`` field (CRITICAL)
+        or the newer, more granular ``severity`` field (CRITICAL/HIGH), since
+        rule-generated alerts (e.g. an expired permit) may carry
+        ``alert_type=WARNING`` alongside ``severity=HIGH`` and would
+        otherwise be invisible to this count.
+        """
         return self._db.execute(
             select(func.count())
             .select_from(Alert)
-            .where(Alert.alert_type == AlertType.CRITICAL, Alert.status == AlertStatus.ACTIVE)
+            .where(
+                Alert.status == AlertStatus.ACTIVE,
+                or_(
+                    Alert.alert_type == AlertType.CRITICAL,
+                    Alert.severity.in_([AlertSeverity.CRITICAL, AlertSeverity.HIGH]),
+                ),
+            )
         ).scalar_one()
 
     def acknowledge(self, alert_id: UUID) -> Alert | None:

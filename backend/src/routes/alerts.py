@@ -7,10 +7,26 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
+from src.config.settings import settings
 from src.database.session import get_db
+from src.models.enums import PermitStatus, SensorType
 from src.repositories.alert import AlertRepository
+from src.repositories.permit import PermitRepository
+from src.repositories.sensor import SensorRepository
+from src.repositories.worker import WorkerRepository
 from src.schemas.alert import AlertRead
+from src.schemas.response.alert_generation import AlertGenerationResultResponse
 from src.services.alert import AlertService
+from src.services.alert_generation import AlertGenerationService
+from src.services.alert_rules import (
+    AlertRuleEngine,
+    CriticalSensorRule,
+    ExpiredPermitRule,
+    RestrictedZoneRule,
+)
+from src.services.permit_validation import PermitValidationRules, PermitValidationService
+from src.services.sensor_monitoring import SensorMonitoringService, SensorThresholdBand
+from src.services.worker_monitoring import WorkerMonitoringService
 
 router: APIRouter = APIRouter(prefix="/alerts", tags=["Alerts"])
 
@@ -22,7 +38,84 @@ def get_alert_service(db: DbDep) -> AlertService:
     return AlertService(repository=AlertRepository(db))
 
 
+def _sensor_thresholds_from_settings() -> dict[SensorType, SensorThresholdBand]:
+    return {
+        SensorType.GAS: SensorThresholdBand(
+            warning_max=settings.SENSOR_GAS_WARNING_MAX,
+            critical_max=settings.SENSOR_GAS_CRITICAL_MAX,
+        ),
+        SensorType.TEMPERATURE: SensorThresholdBand(
+            warning_max=settings.SENSOR_TEMPERATURE_WARNING_MAX,
+            critical_max=settings.SENSOR_TEMPERATURE_CRITICAL_MAX,
+        ),
+        SensorType.PRESSURE: SensorThresholdBand(
+            warning_max=settings.SENSOR_PRESSURE_WARNING_MAX,
+            critical_max=settings.SENSOR_PRESSURE_CRITICAL_MAX,
+        ),
+        SensorType.HUMIDITY: SensorThresholdBand(
+            warning_max=settings.SENSOR_HUMIDITY_WARNING_MAX,
+            critical_max=settings.SENSOR_HUMIDITY_CRITICAL_MAX,
+        ),
+        SensorType.SMOKE: SensorThresholdBand(
+            warning_max=settings.SENSOR_SMOKE_WARNING_MAX,
+            critical_max=settings.SENSOR_SMOKE_CRITICAL_MAX,
+        ),
+    }
+
+
+def get_alert_generation_service(db: DbDep) -> AlertGenerationService:
+    """Create the alert generation service with monitoring sources and rule engine wired in."""
+    sensor_monitoring = SensorMonitoringService(
+        repository=SensorRepository(db),
+        thresholds=_sensor_thresholds_from_settings(),
+    )
+    permit_validation_rules = PermitValidationRules(
+        valid_statuses={PermitStatus(value) for value in settings.PERMIT_VALIDATION_VALID_STATUSES},
+        pending_statuses={PermitStatus(value) for value in settings.PERMIT_VALIDATION_PENDING_STATUSES},
+        invalid_statuses={PermitStatus(value) for value in settings.PERMIT_VALIDATION_INVALID_STATUSES},
+        expired_grace_seconds=settings.PERMIT_VALIDATION_EXPIRED_GRACE_SECONDS,
+    )
+    permit_repository = PermitRepository(db)
+    permit_validation = PermitValidationService(rules=permit_validation_rules)
+    worker_monitoring = WorkerMonitoringService(
+        worker_repository=WorkerRepository(db),
+        permit_repository=permit_repository,
+    )
+
+    rule_engine = AlertRuleEngine(
+        rules=[
+            CriticalSensorRule(),
+            ExpiredPermitRule(),
+            RestrictedZoneRule(restricted_zones=set(settings.ALERT_RESTRICTED_ZONES)),
+        ]
+    )
+
+    return AlertGenerationService(
+        repository=AlertRepository(db),
+        rule_engine=rule_engine,
+        sensor_monitoring=sensor_monitoring,
+        permit_validation=_PermitValidationSummaryAdapter(permit_validation, permit_repository),
+        worker_monitoring=worker_monitoring,
+    )
+
+
+class _PermitValidationSummaryAdapter:
+    """Adapts ``PermitValidationService`` + repository into the summary-only port."""
+
+    def __init__(self, validation_service: PermitValidationService, repository) -> None:
+        self._validation_service = validation_service
+        self._repository = repository
+
+    def get_validation_summary(self) -> dict:
+        permits = self._repository.get_all(skip=0, limit=10_000)
+        return self._validation_service.build_validation_summary(permits)
+
+
 AlertServiceDep = Annotated[AlertService, Depends(get_alert_service)]
+AlertGenerationServiceDep = Annotated[
+    AlertGenerationService,
+    Depends(get_alert_generation_service),
+]
 
 
 @router.get(
@@ -39,3 +132,24 @@ def list_alerts(
 ) -> list[AlertRead]:
     alerts = service.list_alerts(skip=skip, limit=limit)
     return [AlertRead.model_validate(alert) for alert in alerts]
+
+
+@router.post(
+    "/generate",
+    summary="Run the alert generation engine",
+    description=(
+        "Evaluates configurable rules against the latest sensor, permit, and worker "
+        "monitoring outputs (critical sensor readings, expired permits, workers in "
+        "restricted zones) and persists any resulting alerts."
+    ),
+    response_model=AlertGenerationResultResponse,
+    response_description="Alerts generated and persisted by this run.",
+)
+def generate_alerts(
+    service: AlertGenerationServiceDep,
+) -> AlertGenerationResultResponse:
+    alerts = service.generate_and_persist_alerts()
+    return AlertGenerationResultResponse(
+        generated_count=len(alerts),
+        alerts=[AlertRead.model_validate(alert) for alert in alerts],
+    )

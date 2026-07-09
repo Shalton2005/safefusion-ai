@@ -9,9 +9,12 @@ from fastapi import APIRouter, Body, Depends, HTTPException, Path, Query, Respon
 from sqlalchemy.orm import Session
 
 from src.database.session import get_db
+from src.repositories.permit import PermitRepository
 from src.repositories.worker import WorkerRepository
 from src.schemas.worker import WorkerCreate, WorkerRead, WorkerUpdate
 from src.services.worker import WorkerService
+from src.services.worker_monitoring import WorkerMonitoringService
+from src.schemas.response.worker_monitoring import WorkerMonitoringSummaryResponse
 
 router: APIRouter = APIRouter(prefix="/workers", tags=["Workers"])
 
@@ -23,7 +26,19 @@ def get_worker_service(db: DbDep) -> WorkerService:
     return WorkerService(repository=WorkerRepository(db))
 
 
+def get_worker_monitoring_service(db: DbDep) -> WorkerMonitoringService:
+    """Create worker monitoring service with repository dependencies."""
+    return WorkerMonitoringService(
+        worker_repository=WorkerRepository(db),
+        permit_repository=PermitRepository(db),
+    )
+
+
 WorkerServiceDep = Annotated[WorkerService, Depends(get_worker_service)]
+WorkerMonitoringServiceDep = Annotated[
+    WorkerMonitoringService,
+    Depends(get_worker_monitoring_service),
+]
 
 
 @router.get(
@@ -40,6 +55,23 @@ def list_workers(
 ) -> list[WorkerRead]:
     workers = service.list_workers(skip=skip, limit=limit)
     return [WorkerRead.model_validate(worker) for worker in workers]
+
+
+@router.get(
+    "/monitoring/summary",
+    summary="Get worker monitoring summary",
+    description=(
+        "Returns monitoring-oriented worker status view including assigned zone, "
+        "active permit association, simulated location, shift, PPE placeholder, and current status."
+    ),
+    response_model=WorkerMonitoringSummaryResponse,
+    response_description="Structured worker monitoring summary.",
+)
+def get_worker_monitoring_summary(
+    service: WorkerMonitoringServiceDep,
+) -> WorkerMonitoringSummaryResponse:
+    summary = service.get_monitoring_summary()
+    return WorkerMonitoringSummaryResponse.model_validate(summary)
 
 
 @router.post(

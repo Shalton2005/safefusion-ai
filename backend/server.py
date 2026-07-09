@@ -34,6 +34,7 @@ from src.routes import dashboard as dashboard_router
 from src.routes import health as health_router
 from src.routes import incidents as incidents_router
 from src.routes import maintenance as maintenance_router
+from src.routes import monitoring as monitoring_router
 from src.routes import permits as permits_router
 from src.routes import risk_scores as risk_scores_router
 from src.routes import root as root_router
@@ -59,6 +60,7 @@ OPENAPI_TAGS_METADATA = [
     {"name": "Incidents", "description": "Historical and simulated incident records for investigation and analytics."},
     {"name": "Alerts", "description": "Safety alerts generated from operational monitoring and risk analysis."},
     {"name": "Risk Scores", "description": "Risk assessment records used to monitor zone-level exposure and safety posture."},
+    {"name": "Monitoring", "description": "Unified sensor, worker, permit, and risk monitoring summaries."},
 ]
 
 
@@ -125,6 +127,7 @@ def create_application() -> FastAPI:
     application.include_router(incidents_router.router, prefix=settings.API_PREFIX)
     application.include_router(alerts_router.router, prefix=settings.API_PREFIX)
     application.include_router(risk_scores_router.router, prefix=settings.API_PREFIX)
+    application.include_router(monitoring_router.router, prefix=settings.API_PREFIX)
 
     return application
 

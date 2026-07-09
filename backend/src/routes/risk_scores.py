@@ -8,10 +8,28 @@ from typing import Annotated
 from fastapi import APIRouter, Body, Depends, HTTPException, Path, Query, Response, status
 from sqlalchemy.orm import Session
 
+from src.config.settings import settings
 from src.database.session import get_db
+from src.models.enums import PermitStatus, SensorType
+from src.repositories.permit import PermitRepository
 from src.repositories.risk_score import RiskScoreRepository
+from src.repositories.sensor import SensorRepository
+from src.repositories.worker import WorkerRepository
+from src.schemas.response.risk_scoring import RiskScoreCalculationResultResponse
 from src.schemas.risk_score import RiskScoreCreate, RiskScoreRead, RiskScoreUpdate
+from src.services.permit_validation import PermitValidationRules, PermitValidationService
 from src.services.risk_score import RiskScoreService
+from src.services.risk_score_calculation import RiskScoreCalculationService
+from src.services.risk_scoring import (
+    CriticalSensorFactor,
+    ExpiredPermitFactor,
+    RestrictedZoneWorkerFactor,
+    RiskLevelBands,
+    RiskScoreEngine,
+    WarningSensorFactor,
+)
+from src.services.sensor_monitoring import SensorMonitoringService, SensorThresholdBand
+from src.services.worker_monitoring import WorkerMonitoringService
 
 router: APIRouter = APIRouter(prefix="/risk-scores", tags=["Risk Scores"])
 
@@ -23,7 +41,94 @@ def get_risk_score_service(db: DbDep) -> RiskScoreService:
     return RiskScoreService(repository=RiskScoreRepository(db))
 
 
+def _sensor_thresholds_from_settings() -> dict[SensorType, SensorThresholdBand]:
+    return {
+        SensorType.GAS: SensorThresholdBand(
+            warning_max=settings.SENSOR_GAS_WARNING_MAX,
+            critical_max=settings.SENSOR_GAS_CRITICAL_MAX,
+        ),
+        SensorType.TEMPERATURE: SensorThresholdBand(
+            warning_max=settings.SENSOR_TEMPERATURE_WARNING_MAX,
+            critical_max=settings.SENSOR_TEMPERATURE_CRITICAL_MAX,
+        ),
+        SensorType.PRESSURE: SensorThresholdBand(
+            warning_max=settings.SENSOR_PRESSURE_WARNING_MAX,
+            critical_max=settings.SENSOR_PRESSURE_CRITICAL_MAX,
+        ),
+        SensorType.HUMIDITY: SensorThresholdBand(
+            warning_max=settings.SENSOR_HUMIDITY_WARNING_MAX,
+            critical_max=settings.SENSOR_HUMIDITY_CRITICAL_MAX,
+        ),
+        SensorType.SMOKE: SensorThresholdBand(
+            warning_max=settings.SENSOR_SMOKE_WARNING_MAX,
+            critical_max=settings.SENSOR_SMOKE_CRITICAL_MAX,
+        ),
+    }
+
+
+class _PermitValidationSummaryAdapter:
+    """Adapts ``PermitValidationService`` + repository into the summary-only port."""
+
+    def __init__(self, validation_service: PermitValidationService, repository: PermitRepository) -> None:
+        self._validation_service = validation_service
+        self._repository = repository
+
+    def get_validation_summary(self) -> dict:
+        permits = self._repository.get_all(skip=0, limit=10_000)
+        return self._validation_service.build_validation_summary(permits)
+
+
+def get_risk_score_calculation_service(db: DbDep) -> RiskScoreCalculationService:
+    """Create the risk score calculation service with monitoring sources and engine wired in."""
+    sensor_monitoring = SensorMonitoringService(
+        repository=SensorRepository(db),
+        thresholds=_sensor_thresholds_from_settings(),
+    )
+    permit_validation_rules = PermitValidationRules(
+        valid_statuses={PermitStatus(value) for value in settings.PERMIT_VALIDATION_VALID_STATUSES},
+        pending_statuses={PermitStatus(value) for value in settings.PERMIT_VALIDATION_PENDING_STATUSES},
+        invalid_statuses={PermitStatus(value) for value in settings.PERMIT_VALIDATION_INVALID_STATUSES},
+        expired_grace_seconds=settings.PERMIT_VALIDATION_EXPIRED_GRACE_SECONDS,
+    )
+    permit_validation = _PermitValidationSummaryAdapter(
+        PermitValidationService(rules=permit_validation_rules), PermitRepository(db)
+    )
+    worker_monitoring = WorkerMonitoringService(
+        worker_repository=WorkerRepository(db),
+        permit_repository=PermitRepository(db),
+    )
+
+    risk_engine = RiskScoreEngine(
+        factors=[
+            CriticalSensorFactor(weight=settings.RISK_WEIGHT_CRITICAL_SENSORS),
+            WarningSensorFactor(weight=settings.RISK_WEIGHT_WARNING_SENSORS),
+            ExpiredPermitFactor(weight=settings.RISK_WEIGHT_EXPIRED_PERMITS),
+            RestrictedZoneWorkerFactor(
+                weight=settings.RISK_WEIGHT_RESTRICTED_ZONE_WORKERS,
+                restricted_zones=set(settings.ALERT_RESTRICTED_ZONES),
+            ),
+        ],
+        level_bands=RiskLevelBands(
+            low_max=settings.RISK_LEVEL_LOW_MAX,
+            medium_max=settings.RISK_LEVEL_MEDIUM_MAX,
+            high_max=settings.RISK_LEVEL_HIGH_MAX,
+        ),
+    )
+
+    return RiskScoreCalculationService(
+        repository=RiskScoreRepository(db),
+        risk_engine=risk_engine,
+        sensor_monitoring=sensor_monitoring,
+        permit_validation=permit_validation,
+        worker_monitoring=worker_monitoring,
+    )
+
+
 RiskScoreServiceDep = Annotated[RiskScoreService, Depends(get_risk_score_service)]
+RiskScoreCalculationServiceDep = Annotated[
+    RiskScoreCalculationService,
+    Depends(get_risk_score_calculation_service),
+]
 
 
 @router.get(
@@ -40,6 +145,30 @@ def list_risk_scores(
 ) -> list[RiskScoreRead]:
     scores = service.list_risk_scores(skip=skip, limit=limit)
     return [RiskScoreRead.model_validate(score) for score in scores]
+
+
+@router.post(
+    "/calculate",
+    summary="Run the risk score engine",
+    description=(
+        "Combines the latest sensor, permit, and worker monitoring outputs using "
+        "configurable weighted rules to calculate an overall risk score, risk level, "
+        "and contributing factors for each zone with signal. Version 1 rule-based engine."
+    ),
+    response_model=RiskScoreCalculationResultResponse,
+    response_description="Per-zone risk score results (score, risk level, contributing factors).",
+)
+def calculate_risk_scores(
+    service: RiskScoreCalculationServiceDep,
+    persist: bool = Query(
+        True,
+        description="When true, persist each calculated zone result as a new risk score record.",
+    ),
+) -> RiskScoreCalculationResultResponse:
+    results = service.calculate_risk_scores()
+    if persist:
+        service.persist_risk_scores(results)
+    return RiskScoreCalculationResultResponse(zone_count=len(results), results=results)
 
 
 @router.get(
