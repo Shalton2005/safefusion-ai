@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useRef, useState } from 'react';
 import { Bell, RotateCw } from 'lucide-react';
 import { Card, CardHeader, Badge, EmptyState, Alert, Button, Skeleton } from '@/components/ui';
+import { LastUpdated } from '@/components/common/LastUpdated';
 import { incidentsService } from '@/services';
 import { ApiError } from '@/api/errors';
-import { createRequestController } from '@/api/client';
+import { usePolling } from '@/hooks/usePolling';
+import { DASHBOARD_REFRESH_INTERVAL } from '@/constants';
 import type { Incident } from '@/types';
 import { AlertStatusIndicator } from '@/features/alerts/components/AlertStatusIndicator';
 
@@ -11,13 +13,15 @@ export function AlertsSection() {
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const hasLoadedOnce = useRef(false);
 
   const fetchIncidents = async (signal?: AbortSignal) => {
-    setLoading(true);
+    if (!hasLoadedOnce.current) setLoading(true);
     setError(null);
     try {
       const { data } = await incidentsService.getIncidents({ skip: 0, limit: 100 }, { signal });
       setIncidents(data);
+      hasLoadedOnce.current = true;
     } catch (err) {
       const apiError = ApiError.from(err);
       if (!apiError.isCancelledError) {
@@ -30,11 +34,7 @@ export function AlertsSection() {
     }
   };
 
-  useEffect(() => {
-    const { controller, signal } = createRequestController();
-    fetchIncidents(signal);
-    return () => controller.abort();
-  }, []);
+  const { lastUpdated, refresh } = usePolling(fetchIncidents, DASHBOARD_REFRESH_INTERVAL);
 
   const criticalCount = incidents.filter((i) => i.severity === 'critical').length;
 
@@ -54,13 +54,17 @@ export function AlertsSection() {
         }
       />
 
+      <div className="px-6 pb-1">
+        <LastUpdated timestamp={lastUpdated} />
+      </div>
+
       <div className="p-4">
         {error ? (
           <Alert
             variant="danger"
             title="Failed to load alerts"
             actions={
-              <Button size="sm" variant="outline" onClick={() => fetchIncidents()} leftIcon={<RotateCw className="w-3.5 h-3.5" />}>
+              <Button size="sm" variant="outline" onClick={refresh} leftIcon={<RotateCw className="w-3.5 h-3.5" />}>
                 Retry
               </Button>
             }

@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useRef, useState } from 'react';
 import { HardHat, RotateCw } from 'lucide-react';
 import { Card, CardHeader, Badge, EmptyState, Alert, Button, Skeleton } from '@/components/ui';
+import { LastUpdated } from '@/components/common/LastUpdated';
 import { workersService } from '@/services';
 import { ApiError } from '@/api/errors';
-import { createRequestController } from '@/api/client';
+import { usePolling } from '@/hooks/usePolling';
+import { DASHBOARD_REFRESH_INTERVAL } from '@/constants';
 import type { Worker } from '@/types';
 import { WorkerStatusIndicator } from '@/features/workers/components/WorkerStatusIndicator';
 
@@ -11,13 +13,15 @@ export function WorkerStatusSection() {
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const hasLoadedOnce = useRef(false);
 
   const fetchWorkers = async (signal?: AbortSignal) => {
-    setLoading(true);
+    if (!hasLoadedOnce.current) setLoading(true);
     setError(null);
     try {
       const { data } = await workersService.getWorkers({ skip: 0, limit: 100 }, { signal });
       setWorkers(data);
+      hasLoadedOnce.current = true;
     } catch (err) {
       const apiError = ApiError.from(err);
       if (!apiError.isCancelledError) {
@@ -30,11 +34,7 @@ export function WorkerStatusSection() {
     }
   };
 
-  useEffect(() => {
-    const { controller, signal } = createRequestController();
-    fetchWorkers(signal);
-    return () => controller.abort();
-  }, []);
+  const { lastUpdated, refresh } = usePolling(fetchWorkers, DASHBOARD_REFRESH_INTERVAL);
 
   const nonCompliantCount = workers.filter((w) => !w.ppe_status).length;
 
@@ -53,13 +53,17 @@ export function WorkerStatusSection() {
         }
       />
 
+      <div className="px-6 pb-1">
+        <LastUpdated timestamp={lastUpdated} />
+      </div>
+
       <div className="p-4">
         {error ? (
           <Alert
             variant="danger"
             title="Failed to load workers"
             actions={
-              <Button size="sm" variant="outline" onClick={() => fetchWorkers()} leftIcon={<RotateCw className="w-3.5 h-3.5" />}>
+              <Button size="sm" variant="outline" onClick={refresh} leftIcon={<RotateCw className="w-3.5 h-3.5" />}>
                 Retry
               </Button>
             }

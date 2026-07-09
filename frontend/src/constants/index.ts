@@ -15,8 +15,9 @@ export const LS_THEME_KEY   = 'safefusion:theme';
 export const LS_SIDEBAR_KEY = 'safefusion:sidebar-collapsed';
 
 // Polling intervals (ms)
-export const MONITOR_POLL_INTERVAL = 5000;
-export const ALERT_POLL_INTERVAL   = 10000;
+export const MONITOR_POLL_INTERVAL   = 5000;
+export const ALERT_POLL_INTERVAL     = 10000;
+export const DASHBOARD_REFRESH_INTERVAL = 10000;
 
 // Severity levels
 export const SEVERITY_LEVELS = ['low', 'medium', 'high', 'critical'] as const;

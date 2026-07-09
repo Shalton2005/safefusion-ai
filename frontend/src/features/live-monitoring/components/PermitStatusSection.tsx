@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useRef, useState } from 'react';
 import { FileCheck2, RotateCw } from 'lucide-react';
 import { Card, CardHeader, Badge, EmptyState, Alert, Button, Skeleton } from '@/components/ui';
+import { LastUpdated } from '@/components/common/LastUpdated';
 import { permitsService } from '@/services';
 import { ApiError } from '@/api/errors';
-import { createRequestController } from '@/api/client';
+import { usePolling } from '@/hooks/usePolling';
+import { DASHBOARD_REFRESH_INTERVAL } from '@/constants';
 import type { Permit, PermitType } from '@/types';
 import { PermitStatusIndicator } from '@/features/permits/components/PermitStatusIndicator';
 
@@ -21,13 +23,15 @@ export function PermitStatusSection() {
   const [permits, setPermits] = useState<Permit[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const hasLoadedOnce = useRef(false);
 
   const fetchPermits = async (signal?: AbortSignal) => {
-    setLoading(true);
+    if (!hasLoadedOnce.current) setLoading(true);
     setError(null);
     try {
       const { data } = await permitsService.getPermits({ skip: 0, limit: 100 }, { signal });
       setPermits(data);
+      hasLoadedOnce.current = true;
     } catch (err) {
       const apiError = ApiError.from(err);
       if (!apiError.isCancelledError) {
@@ -40,11 +44,7 @@ export function PermitStatusSection() {
     }
   };
 
-  useEffect(() => {
-    const { controller, signal } = createRequestController();
-    fetchPermits(signal);
-    return () => controller.abort();
-  }, []);
+  const { lastUpdated, refresh } = usePolling(fetchPermits, DASHBOARD_REFRESH_INTERVAL);
 
   const expiredCount = permits.filter(isPermitExpired).length;
   const sorted = [...permits].sort((a, b) => Number(isPermitExpired(b)) - Number(isPermitExpired(a)));
@@ -64,13 +64,17 @@ export function PermitStatusSection() {
         }
       />
 
+      <div className="px-6 pb-1">
+        <LastUpdated timestamp={lastUpdated} />
+      </div>
+
       <div className="p-4">
         {error ? (
           <Alert
             variant="danger"
             title="Failed to load permits"
             actions={
-              <Button size="sm" variant="outline" onClick={() => fetchPermits()} leftIcon={<RotateCw className="w-3.5 h-3.5" />}>
+              <Button size="sm" variant="outline" onClick={refresh} leftIcon={<RotateCw className="w-3.5 h-3.5" />}>
                 Retry
               </Button>
             }

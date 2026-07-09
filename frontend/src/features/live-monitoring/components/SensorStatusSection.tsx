@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useRef, useState } from 'react';
 import { Radio, RotateCw } from 'lucide-react';
 import { Card, CardHeader, Badge, EmptyState, Alert, Button, Skeleton } from '@/components/ui';
+import { LastUpdated } from '@/components/common/LastUpdated';
 import { sensorsService } from '@/services';
 import { ApiError } from '@/api/errors';
-import { createRequestController } from '@/api/client';
+import { usePolling } from '@/hooks/usePolling';
+import { DASHBOARD_REFRESH_INTERVAL } from '@/constants';
 import type { SensorReading, SensorStatus, SensorType } from '@/types';
 import { SensorStatusIndicator } from '@/features/sensors/components/SensorStatusIndicator';
 
@@ -28,13 +30,15 @@ export function SensorStatusSection() {
   const [readings, setReadings] = useState<SensorReading[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const hasLoadedOnce = useRef(false);
 
   const fetchSensors = async (signal?: AbortSignal) => {
-    setLoading(true);
+    if (!hasLoadedOnce.current) setLoading(true);
     setError(null);
     try {
       const { data } = await sensorsService.getSensors({ skip: 0, limit: 100 }, { signal });
       setReadings(data);
+      hasLoadedOnce.current = true;
     } catch (err) {
       const apiError = ApiError.from(err);
       if (!apiError.isCancelledError) {
@@ -47,11 +51,7 @@ export function SensorStatusSection() {
     }
   };
 
-  useEffect(() => {
-    const { controller, signal } = createRequestController();
-    fetchSensors(signal);
-    return () => controller.abort();
-  }, []);
+  const { lastUpdated, refresh } = usePolling(fetchSensors, DASHBOARD_REFRESH_INTERVAL);
 
   const criticalCount = readings.filter((r) => r.status === 'critical').length;
   const sorted = [...readings].sort((a, b) => STATUS_RANK[b.status] - STATUS_RANK[a.status]);
@@ -71,13 +71,17 @@ export function SensorStatusSection() {
         }
       />
 
+      <div className="px-6 pb-1">
+        <LastUpdated timestamp={lastUpdated} />
+      </div>
+
       <div className="p-4">
         {error ? (
           <Alert
             variant="danger"
             title="Failed to load sensor data"
             actions={
-              <Button size="sm" variant="outline" onClick={() => fetchSensors()} leftIcon={<RotateCw className="w-3.5 h-3.5" />}>
+              <Button size="sm" variant="outline" onClick={refresh} leftIcon={<RotateCw className="w-3.5 h-3.5" />}>
                 Retry
               </Button>
             }
