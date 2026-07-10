@@ -249,6 +249,44 @@ export interface RiskExplanation {
   contributing_factors: RiskFactorContribution[];
 }
 
+/** Persisted risk score record exactly as returned by `GET /risk-scores` (`RiskScoreRead`). */
+export interface RiskScoreRecord {
+  id: string;
+  zone: string;
+  risk_score: number;
+  risk_level: SeverityLevel;
+  /** Flattened factor summary on persisted records — a string, not the structured list `/calculate` returns. */
+  contributing_factors: string | null;
+  recommendation: string | null;
+  analyzed_at: string;
+  updated_at: string;
+}
+
+// ─── Safety Timeline ────────────────────────────────────────────────
+export type SafetyTimelineEventType =
+  | 'sensor_threshold_crossed'
+  | 'permit_expired'
+  | 'worker_entered_zone'
+  | 'compound_risk_generated';
+
+/**
+ * A single chronological entry for the `SafetyTimeline`. Built from real
+ * backend records only — `GET /alerts` (grouped by `source`) for the first
+ * three event types, `GET /risk-scores` for compound-risk entries.
+ */
+export interface SafetyTimelineEvent {
+  id: string;
+  type: SafetyTimelineEventType;
+  /** Human-readable event label, e.g. "Sensor Threshold Crossed". */
+  label: string;
+  /** Backend-authored message/description for this event. */
+  description: string;
+  severity: SeverityLevel;
+  /** ISO timestamp the backend recorded for this event. */
+  timestamp: string;
+  zone: string;
+}
+
 // ─── Dashboard Summary (GET /dashboard/summary) ────────────────────
 export interface DashboardSummary {
   total_workers: number;

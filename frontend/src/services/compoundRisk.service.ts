@@ -1,5 +1,5 @@
 import { createService } from './base.service';
-import type { CompoundRiskAssessment, RiskExplanation, RiskScoreCalculationResult, RiskStatus, ZoneRiskResult } from '@/types';
+import type { CompoundRiskAssessment, RiskExplanation, RiskScoreCalculationResult, RiskScoreRecord, RiskStatus, ZoneRiskResult } from '@/types';
 import type { SeverityLevel } from '@/constants';
 import type { RequestOptions } from '@/api/types';
 
@@ -65,4 +65,10 @@ export const compoundRiskService = {
     });
     return toRiskExplanation(data);
   },
+
+  /** Persisted risk score records with real `analyzed_at` timestamps — use for the `SafetyTimeline` and any history view. */
+  getRecent: (
+    params?:  { skip?: number; limit?: number },
+    options?: RequestOptions,
+  ) => base.get<RiskScoreRecord[]>('', params, options),
 };
