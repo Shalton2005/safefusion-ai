@@ -8,6 +8,7 @@ from typing import Annotated
 from fastapi import APIRouter, Body, Depends, HTTPException, Path, Query, Response, status
 from sqlalchemy.orm import Session
 
+from src.config.risk_rules import RISK_SCORE_LEVEL_BANDS, RISK_SCORE_RULES
 from src.config.settings import settings
 from src.database.session import get_db
 from src.models.enums import PermitStatus, SensorType
@@ -98,21 +99,18 @@ def get_risk_score_calculation_service(db: DbDep) -> RiskScoreCalculationService
         permit_repository=PermitRepository(db),
     )
 
+    rules = RISK_SCORE_RULES
     risk_engine = RiskScoreEngine(
         factors=[
-            CriticalSensorFactor(weight=settings.RISK_WEIGHT_CRITICAL_SENSORS),
-            WarningSensorFactor(weight=settings.RISK_WEIGHT_WARNING_SENSORS),
-            ExpiredPermitFactor(weight=settings.RISK_WEIGHT_EXPIRED_PERMITS),
+            CriticalSensorFactor(weight=rules["critical_sensors"].points),
+            WarningSensorFactor(weight=rules["warning_sensors"].points),
+            ExpiredPermitFactor(weight=rules["expired_permits"].points),
             RestrictedZoneWorkerFactor(
-                weight=settings.RISK_WEIGHT_RESTRICTED_ZONE_WORKERS,
-                restricted_zones=set(settings.ALERT_RESTRICTED_ZONES),
+                weight=rules["restricted_zone_workers"].points,
+                restricted_zones=rules["restricted_zone_workers"].params["restricted_zones"],
             ),
         ],
-        level_bands=RiskLevelBands(
-            low_max=settings.RISK_LEVEL_LOW_MAX,
-            medium_max=settings.RISK_LEVEL_MEDIUM_MAX,
-            high_max=settings.RISK_LEVEL_HIGH_MAX,
-        ),
+        level_bands=RiskLevelBands(**RISK_SCORE_LEVEL_BANDS),
     )
 
     return RiskScoreCalculationService(

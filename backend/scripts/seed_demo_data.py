@@ -547,7 +547,10 @@ def _seed_scenario_sensor(
     that changes on every run.
     """
     existing = db.execute(
-        select(Sensor).where(Sensor.zone == zone, Sensor.sensor_type == sensor_type).limit(1)
+        select(Sensor)
+        .where(Sensor.zone == zone, Sensor.sensor_type == sensor_type)
+        .order_by(Sensor.timestamp.desc())
+        .limit(1)
     ).scalar_one_or_none()
 
     if existing is not None:
@@ -588,7 +591,10 @@ def _seed_scenario_permit(
     instead of inserting a duplicate.
     """
     existing = db.execute(
-        select(Permit).where(Permit.permit_type == permit_type, Permit.zone == zone).limit(1)
+        select(Permit)
+        .where(Permit.permit_type == permit_type, Permit.zone == zone)
+        .order_by(Permit.start_time.desc())
+        .limit(1)
     ).scalar_one_or_none()
 
     if existing is not None:
@@ -766,11 +772,15 @@ def seed_scenario_expired_permit(db: Session) -> int:
         db, SCENARIO_EXPIRED_PERMIT_ZONE, SensorType.PRESSURE, 5.4, "bar", SensorStatus.NORMAL, timestamp
     )
 
+    # Uses HOT_WORK rather than ELECTRICAL: PERMIT_ASSIGNMENTS already bulk-seeds
+    # an ELECTRICAL permit for this same zone, and sharing a (permit_type, zone)
+    # key with the bulk seeder would let the two writers collide on this
+    # scenario's dedicated upsert row (see _seed_scenario_permit).
     permit_start_time = now - timedelta(hours=10)
     permit_end_time = now - timedelta(hours=2)
     created += _seed_scenario_permit(
         db,
-        PermitType.ELECTRICAL,
+        PermitType.HOT_WORK,
         SCENARIO_EXPIRED_PERMIT_ZONE,
         "Safety Officer Nair",
         "Electrical Team Sigma",
@@ -819,11 +829,15 @@ def seed_scenario_compound_risk(db: Session) -> int:
         db, SCENARIO_COMPOUND_RISK_ZONE, SensorType.GAS, 65.0, "ppm", SensorStatus.WARNING, timestamp
     )
 
+    # Uses CONFINED_SPACE rather than HOT_WORK: PERMIT_ASSIGNMENTS already bulk-seeds
+    # a HOT_WORK permit for this same zone, and sharing a (permit_type, zone) key
+    # with the bulk seeder would let the two writers collide on this scenario's
+    # dedicated upsert row (see _seed_scenario_permit).
     permit_start_time = now - timedelta(hours=12)
     permit_end_time = now - timedelta(hours=4)
     created += _seed_scenario_permit(
         db,
-        PermitType.HOT_WORK,
+        PermitType.CONFINED_SPACE,
         SCENARIO_COMPOUND_RISK_ZONE,
         "Safety Officer Patel",
         "Utilities Team Echo",

@@ -300,15 +300,26 @@ def get_monitoring_summary(
     permit_repository: PermitRepositoryDep,
 ) -> MonitoringSummaryResponse:
     permits = permit_repository.get_all(skip=0, limit=10_000)
-    risk_results = risk_service.calculate_risk_scores()
-    compound_risk_results = compound_risk_service.detect_compound_risks()
+
+    # Fetch each monitoring summary exactly once and share it across both risk
+    # engines, instead of letting each engine's service independently re-query
+    # sensors/workers/permits (risk_service and compound_risk_service otherwise
+    # each pull their own copies, tripling DB round trips for this endpoint).
+    sensor_summary = sensor_service.get_monitoring_summary()
+    worker_summary = worker_service.get_monitoring_summary()
+    permit_summary = permit_service.build_validation_summary(permits)
+
+    risk_results = risk_service.calculate_from_summaries(
+        sensor_summary=sensor_summary, permit_summary=permit_summary, worker_summary=worker_summary
+    )
+    compound_risk_results = compound_risk_service.evaluate(
+        sensor_summary=sensor_summary, permit_summary=permit_summary, worker_summary=worker_summary
+    )
 
     return MonitoringSummaryResponse(
-        sensors=SensorMonitoringSummaryResponse.model_validate(sensor_service.get_monitoring_summary()),
-        workers=WorkerMonitoringSummaryResponse.model_validate(worker_service.get_monitoring_summary()),
-        permits=PermitValidationSummaryResponse.model_validate(
-            permit_service.build_validation_summary(permits)
-        ),
+        sensors=SensorMonitoringSummaryResponse.model_validate(sensor_summary),
+        workers=WorkerMonitoringSummaryResponse.model_validate(worker_summary),
+        permits=PermitValidationSummaryResponse.model_validate(permit_summary),
         risk=RiskScoreCalculationResultResponse(zone_count=len(risk_results), results=risk_results),
         compound_risk=CompoundRiskDetectionResultResponse(
             zone_count=len(compound_risk_results), results=compound_risk_results

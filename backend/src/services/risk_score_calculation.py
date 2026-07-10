@@ -67,6 +67,24 @@ class RiskScoreCalculationService:
             self._worker_monitoring.get_monitoring_summary() if self._worker_monitoring else None
         )
 
+        return self.calculate_from_summaries(
+            sensor_summary=sensor_summary,
+            permit_summary=permit_summary,
+            worker_summary=worker_summary,
+        )
+
+    def calculate_from_summaries(
+        self,
+        sensor_summary: dict | None = None,
+        permit_summary: dict | None = None,
+        worker_summary: dict | None = None,
+    ) -> list[ZoneRiskResult]:
+        """Evaluate the risk engine against explicitly supplied monitoring summaries.
+
+        Use this instead of :meth:`calculate_risk_scores` when the caller
+        already has monitoring results on hand (e.g. from a combined
+        monitoring response) and wants to avoid re-fetching them.
+        """
         return self._risk_engine.calculate(
             sensor_summary=sensor_summary,
             permit_summary=permit_summary,
