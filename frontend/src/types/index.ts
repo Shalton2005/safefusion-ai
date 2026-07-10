@@ -242,6 +242,31 @@ export interface DashboardSummary {
   overall_risk_level: string | null;
 }
 
+// ─── Dashboard Full Payload (GET /dashboard) ───────────────────────
+export interface ZoneSensorSummary {
+  zone: string;
+  normal_count: number;
+  warning_count: number;
+  critical_count: number;
+  plant_status: 'Safe' | 'Warning' | 'Critical';
+}
+
+export interface DashboardPayload {
+  summary: DashboardSummary;
+  zones: ZoneSensorSummary[];
+}
+
+/** Aggregated plant-wide safety snapshot for the `PlantSafetyOverview`. */
+export interface PlantSafetyOverview {
+  total_workers: number;
+  /** Sensors currently reporting a reading across all zones (normal + warning + critical). */
+  active_sensors: number;
+  active_permits: number;
+  open_alerts: number;
+  /** Bucketed current risk level, or `null` when no risk assessment has been recorded yet. */
+  risk_level: SeverityLevel | null;
+}
+
 // ─── Navigation ────────────────────────────────────────────────────
 export interface NavItem {
   label: string;
