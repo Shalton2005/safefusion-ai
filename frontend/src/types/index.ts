@@ -71,6 +71,24 @@ export interface Alert {
   acknowledgedBy?: string;
 }
 
+/**
+ * Alert record exactly as returned by `GET /alerts` (`AlertResponse`).
+ * Distinct from `Alert` above, which does not match the live backend
+ * shape — use this type for any component that fetches real alert data.
+ */
+export interface AlertRecord {
+  id: string;
+  zone: string;
+  alert_type: string;
+  severity: SeverityLevel;
+  source: string;
+  message: string;
+  generated_by: string;
+  status: AlertStatus;
+  generated_at: string;
+  updated_at: string;
+}
+
 // ─── Incident (safety alert source) ───────────────────────────────
 export type IncidentType = 'gas_leak' | 'fire' | 'explosion' | 'ppe_violation';
 
