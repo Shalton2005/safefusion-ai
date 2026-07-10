@@ -7,6 +7,7 @@
 
 export { alertsService }    from './alerts.service';
 export { analyticsService } from './analytics.service';
+export { compoundRiskService } from './compoundRisk.service';
 export { dashboardService } from './dashboard.service';
 export { incidentsService } from './incidents.service';
 export { monitoringService }from './monitoring.service';
