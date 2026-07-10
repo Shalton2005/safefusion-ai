@@ -10,6 +10,12 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
+from src.config.risk_rules import (
+    COMPOUND_RISK_LEVEL_BANDS,
+    COMPOUND_RISK_RULES,
+    RISK_SCORE_LEVEL_BANDS,
+    RISK_SCORE_RULES,
+)
 from src.config.settings import settings
 from src.database.session import get_db
 from src.models.enums import PermitStatus, SensorType
@@ -17,11 +23,22 @@ from src.repositories.permit import PermitRepository
 from src.repositories.risk_score import RiskScoreRepository
 from src.repositories.sensor import SensorRepository
 from src.repositories.worker import WorkerRepository
+from src.schemas.response.compound_risk import CompoundRiskDetectionResultResponse
 from src.schemas.response.monitoring import MonitoringSummaryResponse
 from src.schemas.response.permit_validation import PermitValidationSummaryResponse
 from src.schemas.response.risk_scoring import RiskScoreCalculationResultResponse
 from src.schemas.response.sensor_monitoring import SensorMonitoringSummaryResponse
 from src.schemas.response.worker_monitoring import WorkerMonitoringSummaryResponse
+from src.services.compound_risk.compound_risk_service import CompoundRiskService
+from src.services.compound_risk.engine import CompoundRiskEngine
+from src.services.compound_risk.rules import (
+    CriticalSensorWithoutActivePermitRule,
+    CriticalSensorWithWorkerPresentRule,
+    ExpiredPermitWithWorkerPresentRule,
+    MultipleWarningSensorsRule,
+    RestrictedZoneWithoutActivePermitRule,
+)
+from src.services.compound_risk.schemas import CompoundRiskLevelBands
 from src.services.permit_validation import PermitValidationRules, PermitValidationService
 from src.services.risk_score_calculation import RiskScoreCalculationService
 from src.services.risk_scoring import (
@@ -112,32 +129,74 @@ class _PermitValidationSummaryAdapter:
         return self._validation_service.build_validation_summary(permits)
 
 
+def _build_risk_score_engine() -> RiskScoreEngine:
+    """Build the Risk Score Engine from the centralised rule registry."""
+    rules = RISK_SCORE_RULES
+    factors: list = [
+        CriticalSensorFactor(weight=rules["critical_sensors"].points),
+        WarningSensorFactor(weight=rules["warning_sensors"].points),
+        ExpiredPermitFactor(weight=rules["expired_permits"].points),
+        RestrictedZoneWorkerFactor(
+            weight=rules["restricted_zone_workers"].points,
+            restricted_zones=rules["restricted_zone_workers"].params["restricted_zones"],
+        ),
+    ]
+    return RiskScoreEngine(
+        factors=factors,
+        level_bands=RiskLevelBands(**RISK_SCORE_LEVEL_BANDS),
+    )
+
+
 def get_risk_score_calculation_service(db: DbDep) -> RiskScoreCalculationService:
     """Create the risk score calculation service with monitoring sources and engine wired in."""
-    risk_engine = RiskScoreEngine(
-        factors=[
-            CriticalSensorFactor(weight=settings.RISK_WEIGHT_CRITICAL_SENSORS),
-            WarningSensorFactor(weight=settings.RISK_WEIGHT_WARNING_SENSORS),
-            ExpiredPermitFactor(weight=settings.RISK_WEIGHT_EXPIRED_PERMITS),
-            RestrictedZoneWorkerFactor(
-                weight=settings.RISK_WEIGHT_RESTRICTED_ZONE_WORKERS,
-                restricted_zones=set(settings.ALERT_RESTRICTED_ZONES),
-            ),
-        ],
-        level_bands=RiskLevelBands(
-            low_max=settings.RISK_LEVEL_LOW_MAX,
-            medium_max=settings.RISK_LEVEL_MEDIUM_MAX,
-            high_max=settings.RISK_LEVEL_HIGH_MAX,
-        ),
-    )
     return RiskScoreCalculationService(
         repository=RiskScoreRepository(db),
-        risk_engine=risk_engine,
+        risk_engine=_build_risk_score_engine(),
         sensor_monitoring=get_sensor_monitoring_service(db),
         permit_validation=_PermitValidationSummaryAdapter(
             get_permit_validation_service(db), PermitRepository(db)
         ),
         worker_monitoring=get_worker_monitoring_service(db),
+    )
+
+
+def _build_compound_risk_engine() -> CompoundRiskEngine:
+    """Build the Compound Risk Engine from the centralised rule registry."""
+    rules = COMPOUND_RISK_RULES
+    engine_rules: list = [
+        CriticalSensorWithoutActivePermitRule(
+            points=rules["critical_sensor_without_active_permit"].points
+        ),
+        ExpiredPermitWithWorkerPresentRule(
+            points=rules["expired_permit_with_worker_present"].points
+        ),
+        CriticalSensorWithWorkerPresentRule(
+            points=rules["critical_sensor_with_worker_present"].points
+        ),
+        RestrictedZoneWithoutActivePermitRule(
+            points=rules["restricted_zone_without_active_permit"].points,
+            restricted_zones=rules["restricted_zone_without_active_permit"].params["restricted_zones"],
+        ),
+        MultipleWarningSensorsRule(
+            points=rules["multiple_warning_sensors"].points,
+            minimum_warning_count=rules["multiple_warning_sensors"].params["minimum_warning_count"],
+        ),
+    ]
+    return CompoundRiskEngine(
+        rules=engine_rules,
+        level_bands=CompoundRiskLevelBands(**COMPOUND_RISK_LEVEL_BANDS),
+    )
+
+
+def get_compound_risk_service(db: DbDep) -> CompoundRiskService:
+    """Create the compound risk detection service with monitoring sources and engine wired in."""
+    return CompoundRiskService(
+        engine=_build_compound_risk_engine(),
+        sensor_monitoring=get_sensor_monitoring_service(db),
+        worker_monitoring=get_worker_monitoring_service(db),
+        permit_validation=_PermitValidationSummaryAdapter(
+            get_permit_validation_service(db), PermitRepository(db)
+        ),
     )
 
 
@@ -149,6 +208,7 @@ RiskScoreCalculationServiceDep = Annotated[
     RiskScoreCalculationService,
     Depends(get_risk_score_calculation_service),
 ]
+CompoundRiskServiceDep = Annotated[CompoundRiskService, Depends(get_compound_risk_service)]
 
 
 @router.get(
@@ -206,6 +266,25 @@ def get_risk_summary(
 
 
 @router.get(
+    "/compound-risk",
+    summary="Get compound risk detection summary",
+    description=(
+        "Runs the configurable compound risk rule engine over the latest sensor, worker, "
+        "and permit monitoring summaries and returns, per affected zone, a risk score, "
+        "risk level, triggered rules, and a plain-language explanation. Rule-based only, "
+        "no AI/ML involved."
+    ),
+    response_model=CompoundRiskDetectionResultResponse,
+    response_description="Structured per-zone compound risk detection summary.",
+)
+def get_compound_risk_summary(
+    service: CompoundRiskServiceDep,
+) -> CompoundRiskDetectionResultResponse:
+    results = service.detect_compound_risks()
+    return CompoundRiskDetectionResultResponse(zone_count=len(results), results=results)
+
+
+@router.get(
     "/summary",
     summary="Get combined monitoring summary",
     description="Returns sensor, worker, permit, and risk monitoring summaries in a single response.",
@@ -217,10 +296,12 @@ def get_monitoring_summary(
     worker_service: WorkerMonitoringServiceDep,
     permit_service: PermitValidationServiceDep,
     risk_service: RiskScoreCalculationServiceDep,
+    compound_risk_service: CompoundRiskServiceDep,
     permit_repository: PermitRepositoryDep,
 ) -> MonitoringSummaryResponse:
     permits = permit_repository.get_all(skip=0, limit=10_000)
     risk_results = risk_service.calculate_risk_scores()
+    compound_risk_results = compound_risk_service.detect_compound_risks()
 
     return MonitoringSummaryResponse(
         sensors=SensorMonitoringSummaryResponse.model_validate(sensor_service.get_monitoring_summary()),
@@ -229,4 +310,7 @@ def get_monitoring_summary(
             permit_service.build_validation_summary(permits)
         ),
         risk=RiskScoreCalculationResultResponse(zone_count=len(risk_results), results=risk_results),
+        compound_risk=CompoundRiskDetectionResultResponse(
+            zone_count=len(compound_risk_results), results=compound_risk_results
+        ),
     )

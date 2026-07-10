@@ -70,6 +70,21 @@ class Settings(BaseSettings):
     RISK_LEVEL_MEDIUM_MAX: float = 50.0
     RISK_LEVEL_HIGH_MAX: float = 75.0
 
+    # ── Compound risk detection rule points ──────────────────────────────────
+    # Each value is the point contribution (out of 100) a compound rule adds
+    # to a zone's score when it fires. A zone's score is the sum of every
+    # triggered rule's points, clamped to [0, 100].
+    COMPOUND_RISK_POINTS_CRITICAL_SENSOR_WITHOUT_PERMIT: float = 35.0
+    COMPOUND_RISK_POINTS_EXPIRED_PERMIT_WITH_WORKER: float = 30.0
+    COMPOUND_RISK_POINTS_CRITICAL_SENSOR_WITH_WORKER: float = 40.0
+    COMPOUND_RISK_POINTS_RESTRICTED_ZONE_WITHOUT_PERMIT: float = 30.0
+    COMPOUND_RISK_POINTS_MULTIPLE_WARNING_SENSORS: float = 15.0
+    COMPOUND_RISK_MULTIPLE_WARNING_MIN_COUNT: int = 2
+
+    COMPOUND_RISK_LEVEL_LOW_MAX: float = 20.0
+    COMPOUND_RISK_LEVEL_MEDIUM_MAX: float = 45.0
+    COMPOUND_RISK_LEVEL_HIGH_MAX: float = 70.0
+
     # ── CORS ──────────────────────────────────────────────────────────────────
     ALLOWED_ORIGINS: list[str] = [
         "http://localhost:3000",
