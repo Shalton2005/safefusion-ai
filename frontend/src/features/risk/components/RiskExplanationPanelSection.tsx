@@ -10,49 +10,30 @@
  * <RiskExplanationPanelSection />
  */
 
-import { useRef, useState } from 'react';
-import { RotateCw, ShieldOff } from 'lucide-react';
+import { ShieldOff, RotateCw } from 'lucide-react';
 import { Alert, Button, EmptyState, Skeleton } from '@/components/ui';
 import { LastUpdated } from '@/components/common/LastUpdated';
-import { compoundRiskService } from '@/services';
-import { ApiError } from '@/api/errors';
-import { usePolling } from '@/hooks/usePolling';
+import { useCompoundRiskEngine } from '@/features/risk/hooks/useCompoundRiskEngine';
 import { cn } from '@/lib/cn';
-import { DASHBOARD_REFRESH_INTERVAL } from '@/constants';
 import type { RiskExplanation } from '@/types';
 import { RiskExplanationPanel } from './RiskExplanationPanel';
 
-export interface RiskExplanationPanelSectionProps {
+export interface RiskExplanationPanelSectionViewProps {
+  explanation: RiskExplanation | null;
+  loading: boolean;
+  error: string | null;
+  lastUpdated: Date | null;
+  refresh: () => void;
   className?: string;
 }
 
-export function RiskExplanationPanelSection({ className }: RiskExplanationPanelSectionProps) {
-  const [explanation, setExplanation] = useState<RiskExplanation | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const hasLoadedOnce = useRef(false);
-
-  const fetchExplanation = async (signal?: AbortSignal) => {
-    if (!hasLoadedOnce.current) setLoading(true);
-    setError(null);
-    try {
-      const data = await compoundRiskService.getExplanation({ signal });
-      setExplanation(data);
-      hasLoadedOnce.current = true;
-    } catch (err) {
-      const apiError = ApiError.from(err);
-      if (!apiError.isCancelledError) {
-        setError(apiError.toUserMessage());
-      }
-    } finally {
-      if (!signal?.aborted) {
-        setLoading(false);
-      }
-    }
-  };
-
-  const { lastUpdated, refresh } = usePolling(fetchExplanation, DASHBOARD_REFRESH_INTERVAL);
-
+/**
+ * Presentational risk-explanation panel — accepts an already-fetched
+ * explanation so a parent (e.g. `DashboardPage` via a shared
+ * `useCompoundRiskEngine()` call) can avoid running the compound risk
+ * engine twice in parallel (once here, once for `CompoundRiskCard`).
+ */
+export function RiskExplanationPanelSectionView({ explanation, loading, error, lastUpdated, refresh, className }: RiskExplanationPanelSectionViewProps) {
   if (error) {
     return (
       <Alert
@@ -102,5 +83,24 @@ export function RiskExplanationPanelSection({ className }: RiskExplanationPanelS
       />
       <LastUpdated timestamp={lastUpdated} className="px-1" />
     </div>
+  );
+}
+
+export interface RiskExplanationPanelSectionProps {
+  className?: string;
+}
+
+/** Standalone, self-fetching `RiskExplanationPanelSection` — runs its own engine call. Use `RiskExplanationPanelSectionView` instead when the result is already fetched elsewhere on the page. */
+export function RiskExplanationPanelSection({ className }: RiskExplanationPanelSectionProps) {
+  const { explanation, loading, error, lastUpdated, refresh } = useCompoundRiskEngine();
+  return (
+    <RiskExplanationPanelSectionView
+      explanation={explanation}
+      loading={loading}
+      error={error}
+      lastUpdated={lastUpdated}
+      refresh={refresh}
+      className={className}
+    />
   );
 }

@@ -48,22 +48,31 @@ function toRiskExplanation(result: RiskScoreCalculationResult): RiskExplanation 
 }
 
 export const compoundRiskService = {
-  /** Runs the compound risk engine and reduces it to a single overall assessment. */
-  getAssessment: async (options?: RequestOptions): Promise<CompoundRiskAssessment> => {
+  /**
+   * Runs the compound risk engine once. `getAssessment`/`getExplanation`
+   * both derive from this same call — prefer calling `calculate()` yourself
+   * and reducing locally (see `toAssessment`/`toExplanation` below) when a
+   * component needs both shapes, so the non-idempotent engine endpoint
+   * isn't invoked twice in parallel.
+   */
+  calculate: async (options?: RequestOptions): Promise<RiskScoreCalculationResult> => {
     const { data } = await base.post<RiskScoreCalculationResult>('calculate', undefined, {
       ...options,
       params: { persist: false },
     });
-    return toCompoundRiskAssessment(data);
+    return data;
+  },
+
+  /** Runs the compound risk engine and reduces it to a single overall assessment. */
+  getAssessment: async (options?: RequestOptions): Promise<CompoundRiskAssessment> => {
+    const result = await compoundRiskService.calculate(options);
+    return toCompoundRiskAssessment(result);
   },
 
   /** Runs the compound risk engine and returns the highest-risk zone's triggered rules and contributing factors. */
   getExplanation: async (options?: RequestOptions): Promise<RiskExplanation | null> => {
-    const { data } = await base.post<RiskScoreCalculationResult>('calculate', undefined, {
-      ...options,
-      params: { persist: false },
-    });
-    return toRiskExplanation(data);
+    const result = await compoundRiskService.calculate(options);
+    return toRiskExplanation(result);
   },
 
   /** Persisted risk score records with real `analyzed_at` timestamps — use for the `SafetyTimeline` and any history view. */
@@ -71,4 +80,8 @@ export const compoundRiskService = {
     params?:  { skip?: number; limit?: number },
     options?: RequestOptions,
   ) => base.get<RiskScoreRecord[]>('', params, options),
+
+  /** Pure reducers, exported so a shared fetch (e.g. `useCompoundRiskEngine`) can derive both shapes from one `calculate()` call. */
+  toAssessment: toCompoundRiskAssessment,
+  toExplanation: toRiskExplanation,
 };

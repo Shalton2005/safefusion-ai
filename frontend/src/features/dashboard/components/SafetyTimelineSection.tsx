@@ -10,52 +10,29 @@
  * <SafetyTimelineSection />
  */
 
-import { useEffect, useState } from 'react';
 import { History, RotateCw } from 'lucide-react';
 import { Card, CardHeader, Alert, Button, EmptyState, Skeleton } from '@/components/ui';
 import { safetyTimelineService } from '@/services';
-import { ApiError } from '@/api/errors';
-import { createRequestController } from '@/api/client';
-import { cn } from '@/lib/cn';
+import { useRecentAlerts } from '@/features/alerts/hooks/useRecentAlerts';
+import { useRecentRiskScores } from '@/features/dashboard/hooks/useRecentRiskScores';
 import type { SafetyTimelineEvent } from '@/types';
 import { SafetyTimeline } from './SafetyTimeline';
 
-export interface SafetyTimelineSectionProps {
-  /** Maximum number of recent events to display. @default 20 */
-  limit?: number;
+export interface SafetyTimelineSectionViewProps {
+  events: SafetyTimelineEvent[];
+  loading: boolean;
+  error: string | null;
+  refresh: () => void;
   className?: string;
 }
 
-export function SafetyTimelineSection({ limit = 20, className }: SafetyTimelineSectionProps) {
-  const [events, setEvents] = useState<SafetyTimelineEvent[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchTimeline = async (signal?: AbortSignal) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await safetyTimelineService.getTimeline({ limit }, { signal });
-      setEvents(data);
-    } catch (err) {
-      const apiError = ApiError.from(err);
-      if (!apiError.isCancelledError) {
-        setError(apiError.toUserMessage());
-      }
-    } finally {
-      if (!signal?.aborted) {
-        setLoading(false);
-      }
-    }
-  };
-
-  useEffect(() => {
-    const { controller, signal } = createRequestController();
-    fetchTimeline(signal);
-    return () => controller.abort();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [limit]);
-
+/**
+ * Presentational safety-timeline card — accepts an already-merged event
+ * feed so a parent that already fetched alert data elsewhere on the page
+ * (e.g. via a shared `useRecentAlerts()` call) can pass it in instead of
+ * this section refetching `GET /alerts` on its own.
+ */
+export function SafetyTimelineSectionView({ events, loading, error, refresh, className }: SafetyTimelineSectionViewProps) {
   return (
     <Card padding="none" className={className}>
       <CardHeader
@@ -69,7 +46,7 @@ export function SafetyTimelineSection({ limit = 20, className }: SafetyTimelineS
             variant="danger"
             title="Failed to load safety timeline"
             actions={
-              <Button size="sm" variant="outline" onClick={() => fetchTimeline()} leftIcon={<RotateCw className="w-3.5 h-3.5" />}>
+              <Button size="sm" variant="outline" onClick={refresh} leftIcon={<RotateCw className="w-3.5 h-3.5" />}>
                 Retry
               </Button>
             }
@@ -77,7 +54,7 @@ export function SafetyTimelineSection({ limit = 20, className }: SafetyTimelineS
             {error}
           </Alert>
         ) : loading ? (
-          <div className={cn('flex flex-col gap-6')}>
+          <div className="flex flex-col gap-6">
             {Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className="flex gap-3.5">
                 <Skeleton className="w-8 h-8 rounded-full flex-shrink-0" />
@@ -100,5 +77,42 @@ export function SafetyTimelineSection({ limit = 20, className }: SafetyTimelineS
         )}
       </div>
     </Card>
+  );
+}
+
+export interface SafetyTimelineSectionProps {
+  /** Maximum number of recent events to display. @default 20 */
+  limit?: number;
+  className?: string;
+}
+
+/**
+ * Standalone, self-fetching `SafetyTimelineSection`. Uses the shared
+ * `useRecentAlerts()` hook (so it dedupes against any other consumer of
+ * that same hook higher up the tree) plus its own `GET /risk-scores` call,
+ * merging both into the event feed. Use `SafetyTimelineSectionView`
+ * instead when a parent already holds both pieces of data.
+ */
+export function SafetyTimelineSection({ limit = 20, className }: SafetyTimelineSectionProps) {
+  const { alerts, loading: alertsLoading, error: alertsError, refresh: refreshAlerts } = useRecentAlerts({ limit });
+  const { riskScores, loading: riskScoresLoading, error: riskScoresError, refresh: refreshRiskScores } = useRecentRiskScores({ limit });
+
+  const loading = alertsLoading || riskScoresLoading;
+  const error = alertsError ?? riskScoresError;
+  const events = safetyTimelineService.mergeTimeline(alerts, riskScores, limit);
+
+  const refresh = () => {
+    refreshAlerts();
+    refreshRiskScores();
+  };
+
+  return (
+    <SafetyTimelineSectionView
+      events={events}
+      loading={loading}
+      error={error}
+      refresh={refresh}
+      className={className}
+    />
   );
 }

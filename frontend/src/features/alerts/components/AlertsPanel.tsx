@@ -1,12 +1,9 @@
-import { useEffect, useState } from 'react';
+import { capitalise, formatLabel, formatRelativeTime } from '@/utils/format';
+import { SEVERITY_BADGE_VARIANT, ALERT_STATUS_BADGE_VARIANT, SEVERITY_PRIORITY_LABEL } from '@/utils/severity';
 import { Bell, RotateCw } from 'lucide-react';
 import { Card, CardHeader, Badge, Table, EmptyState, Alert as AlertBanner, Button } from '@/components/ui';
 import type { TableColumn } from '@/components/ui';
-import { alertsService } from '@/services';
-import { ApiError } from '@/api/errors';
-import { createRequestController } from '@/api/client';
-import { capitalise, formatLabel, formatRelativeTime } from '@/utils/format';
-import { SEVERITY_BADGE_VARIANT, ALERT_STATUS_BADGE_VARIANT, SEVERITY_PRIORITY_LABEL } from '@/utils/severity';
+import { useRecentAlerts } from '@/features/alerts/hooks/useRecentAlerts';
 import type { AlertRecord } from '@/types';
 
 const columns: TableColumn<AlertRecord>[] = [
@@ -69,35 +66,21 @@ const columns: TableColumn<AlertRecord>[] = [
   },
 ];
 
-export function AlertsPanel() {
-  const [alerts, setAlerts] = useState<AlertRecord[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+export interface AlertsPanelViewProps {
+  alerts: AlertRecord[];
+  loading: boolean;
+  error: string | null;
+  refresh: () => void;
+}
 
-  const fetchAlerts = async (signal?: AbortSignal) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const { data } = await alertsService.getRecentAlerts({ skip: 0, limit: 100 }, { signal });
-      setAlerts(data);
-    } catch (err) {
-      const apiError = ApiError.from(err);
-      if (!apiError.isCancelledError) {
-        setError(apiError.toUserMessage());
-      }
-    } finally {
-      if (!signal?.aborted) {
-        setLoading(false);
-      }
-    }
-  };
-
-  useEffect(() => {
-    const { controller, signal } = createRequestController();
-    fetchAlerts(signal);
-    return () => controller.abort();
-  }, []);
-
+/**
+ * Presentational alerts table — accepts already-fetched data so a parent
+ * (e.g. `DashboardPage` via a shared `useRecentAlerts()` call) can avoid
+ * refetching the same `GET /alerts` endpoint this panel would otherwise
+ * call on its own. Use `AlertsPanel` below for standalone, self-fetching
+ * usage.
+ */
+export function AlertsPanelView({ alerts, loading, error, refresh }: AlertsPanelViewProps) {
   const criticalCount = alerts.filter((a) => a.severity === 'critical').length;
 
   return (
@@ -121,7 +104,7 @@ export function AlertsPanel() {
             variant="danger"
             title="Failed to load alerts"
             actions={
-              <Button size="sm" variant="outline" onClick={() => fetchAlerts()} leftIcon={<RotateCw className="w-3.5 h-3.5" />}>
+              <Button size="sm" variant="outline" onClick={refresh} leftIcon={<RotateCw className="w-3.5 h-3.5" />}>
                 Retry
               </Button>
             }
@@ -147,4 +130,10 @@ export function AlertsPanel() {
       </div>
     </Card>
   );
+}
+
+/** Standalone, self-fetching `AlertsPanel` — fetches its own `GET /alerts` data. Use `AlertsPanelView` instead when the data is already fetched elsewhere on the page. */
+export function AlertsPanel() {
+  const { alerts, loading, error, refresh } = useRecentAlerts({ limit: 100 });
+  return <AlertsPanelView alerts={alerts} loading={loading} error={error} refresh={refresh} />;
 }

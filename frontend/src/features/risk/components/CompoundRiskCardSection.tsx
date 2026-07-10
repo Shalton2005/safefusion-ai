@@ -9,49 +9,30 @@
  * <CompoundRiskCardSection />
  */
 
-import { useRef, useState } from 'react';
 import { RotateCw } from 'lucide-react';
 import { Alert, Button, Skeleton } from '@/components/ui';
 import { LastUpdated } from '@/components/common/LastUpdated';
-import { compoundRiskService } from '@/services';
-import { ApiError } from '@/api/errors';
-import { usePolling } from '@/hooks/usePolling';
+import { useCompoundRiskEngine } from '@/features/risk/hooks/useCompoundRiskEngine';
 import { cn } from '@/lib/cn';
-import { DASHBOARD_REFRESH_INTERVAL } from '@/constants';
 import type { CompoundRiskAssessment } from '@/types';
 import { CompoundRiskCard } from './CompoundRiskCard';
 
-export interface CompoundRiskCardSectionProps {
+export interface CompoundRiskCardSectionViewProps {
+  assessment: CompoundRiskAssessment | null;
+  loading: boolean;
+  error: string | null;
+  lastUpdated: Date | null;
+  refresh: () => void;
   className?: string;
 }
 
-export function CompoundRiskCardSection({ className }: CompoundRiskCardSectionProps) {
-  const [assessment, setAssessment] = useState<CompoundRiskAssessment | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const hasLoadedOnce = useRef(false);
-
-  const fetchAssessment = async (signal?: AbortSignal) => {
-    if (!hasLoadedOnce.current) setLoading(true);
-    setError(null);
-    try {
-      const data = await compoundRiskService.getAssessment({ signal });
-      setAssessment(data);
-      hasLoadedOnce.current = true;
-    } catch (err) {
-      const apiError = ApiError.from(err);
-      if (!apiError.isCancelledError) {
-        setError(apiError.toUserMessage());
-      }
-    } finally {
-      if (!signal?.aborted) {
-        setLoading(false);
-      }
-    }
-  };
-
-  const { lastUpdated, refresh } = usePolling(fetchAssessment, DASHBOARD_REFRESH_INTERVAL);
-
+/**
+ * Presentational compound-risk card — accepts an already-fetched
+ * assessment so a parent (e.g. `DashboardPage` via a shared
+ * `useCompoundRiskEngine()` call) can avoid running the compound risk
+ * engine twice in parallel (once here, once for `RiskExplanationPanel`).
+ */
+export function CompoundRiskCardSectionView({ assessment, loading, error, lastUpdated, refresh, className }: CompoundRiskCardSectionViewProps) {
   if (error) {
     return (
       <Alert
@@ -83,5 +64,24 @@ export function CompoundRiskCardSection({ className }: CompoundRiskCardSectionPr
       />
       <LastUpdated timestamp={lastUpdated} className="px-1" />
     </div>
+  );
+}
+
+export interface CompoundRiskCardSectionProps {
+  className?: string;
+}
+
+/** Standalone, self-fetching `CompoundRiskCardSection` — runs its own engine call. Use `CompoundRiskCardSectionView` instead when the result is already fetched elsewhere on the page. */
+export function CompoundRiskCardSection({ className }: CompoundRiskCardSectionProps) {
+  const { assessment, loading, error, lastUpdated, refresh } = useCompoundRiskEngine();
+  return (
+    <CompoundRiskCardSectionView
+      assessment={assessment}
+      loading={loading}
+      error={error}
+      lastUpdated={lastUpdated}
+      refresh={refresh}
+      className={className}
+    />
   );
 }

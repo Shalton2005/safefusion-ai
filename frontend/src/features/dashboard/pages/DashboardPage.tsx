@@ -1,5 +1,7 @@
-import { Card, CardHeader, Badge, Skeleton, PageHeader } from '@/components/ui';
+import { Badge, PageHeader } from '@/components/ui';
 import { KpiCardGrid } from '@/features/dashboard/components/KpiCardGrid';
+import { PlantSafetyOverviewSection } from '@/features/dashboard/components/PlantSafetyOverviewSection';
+import { SafetyTimelineSectionView } from '@/features/dashboard/components/SafetyTimelineSection';
 import { ChartCard, RiskTrendChart, SensorReadingsChart, AlertDistributionChart } from '@/components/charts';
 import {
   RISK_TREND_DATA,
@@ -8,12 +10,49 @@ import {
 } from '@/features/dashboard/data/chartDummyData';
 import { WorkerMonitoringPanel } from '@/features/workers/components/WorkerMonitoringPanel';
 import { SensorMonitoringPanel } from '@/features/sensors/components/SensorMonitoringPanel';
-import { AlertsPanel } from '@/features/alerts/components/AlertsPanel';
+import { AlertsPanelView } from '@/features/alerts/components/AlertsPanel';
+import { IncidentSummarySectionView } from '@/features/alerts/components/IncidentSummarySection';
 import { RecentIncidentsPanel } from '@/features/alerts/components/RecentIncidentsPanel';
 import { PermitDashboardPanel } from '@/features/permits/components/PermitDashboardPanel';
 import { SafetyHeatmapContainer } from '@/features/live-monitoring/components/SafetyHeatmapContainer';
+import { CompoundRiskCardSectionView } from '@/features/risk/components/CompoundRiskCardSection';
+import { RiskExplanationPanelSectionView } from '@/features/risk/components/RiskExplanationPanelSection';
+import { useRecentAlerts } from '@/features/alerts/hooks/useRecentAlerts';
+import { useRecentRiskScores } from '@/features/dashboard/hooks/useRecentRiskScores';
+import { useCompoundRiskEngine } from '@/features/risk/hooks/useCompoundRiskEngine';
+import { safetyTimelineService } from '@/services';
+
+/** How many recent alerts / risk-score records feed the timeline + incident summary. */
+const TIMELINE_LIMIT = 20;
 
 export function DashboardPage() {
+  // Shared fetches — each backend endpoint is called exactly once per
+  // interval here, and the results are passed down as props to every
+  // section that needs them, instead of each section fetching on its own.
+  const alertsData = useRecentAlerts({ limit: 100 });
+  const riskScoresData = useRecentRiskScores({ limit: TIMELINE_LIMIT });
+  const riskEngineData = useCompoundRiskEngine();
+
+  const timelineEvents = safetyTimelineService.mergeTimeline(alertsData.alerts, riskScoresData.riskScores, TIMELINE_LIMIT);
+  const timelineLoading = alertsData.loading || riskScoresData.loading;
+  const timelineError = alertsData.error ?? riskScoresData.error;
+  const refreshTimeline = () => {
+    alertsData.refresh();
+    riskScoresData.refresh();
+  };
+
+  const incidentSummaryItems = [...alertsData.alerts]
+    .sort((a, b) => new Date(b.generated_at).getTime() - new Date(a.generated_at).getTime())
+    .slice(0, 5)
+    .map((record) => ({
+      id: record.id,
+      message: record.message,
+      severity: record.severity,
+      status: record.status,
+      timestamp: record.generated_at,
+      zone: record.zone,
+    }));
+
   return (
     <div className="page-container">
       <PageHeader
@@ -25,6 +64,9 @@ export function DashboardPage() {
 
       {/* KPI cards */}
       <KpiCardGrid />
+
+      {/* Plant safety overview */}
+      <PlantSafetyOverviewSection />
 
       {/* Risk trend */}
       <ChartCard
@@ -51,22 +93,31 @@ export function DashboardPage() {
         </ChartCard>
       </div>
 
-      {/* Recent activity skeleton */}
-      <Card>
-        <CardHeader title="Recent Activity" />
-        <div className="space-y-3">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="flex items-center gap-3">
-              <Skeleton className="w-8 h-8 rounded-full" />
-              <div className="flex-1 space-y-1.5">
-                <Skeleton className="h-3 w-3/4 rounded" />
-                <Skeleton className="h-3 w-1/2 rounded" />
-              </div>
-              <Skeleton className="h-5 w-16 rounded-full" />
-            </div>
-          ))}
-        </div>
-      </Card>
+      {/* Compound risk */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <CompoundRiskCardSectionView
+          assessment={riskEngineData.assessment}
+          loading={riskEngineData.loading}
+          error={riskEngineData.error}
+          lastUpdated={riskEngineData.lastUpdated}
+          refresh={riskEngineData.refresh}
+        />
+        <RiskExplanationPanelSectionView
+          explanation={riskEngineData.explanation}
+          loading={riskEngineData.loading}
+          error={riskEngineData.error}
+          lastUpdated={riskEngineData.lastUpdated}
+          refresh={riskEngineData.refresh}
+        />
+      </div>
+
+      {/* Safety timeline */}
+      <SafetyTimelineSectionView
+        events={timelineEvents}
+        loading={timelineLoading}
+        error={timelineError}
+        refresh={refreshTimeline}
+      />
 
       {/* Safety heatmap */}
       <SafetyHeatmapContainer />
@@ -76,7 +127,18 @@ export function DashboardPage() {
       <SensorMonitoringPanel />
 
       {/* Alerts & incidents */}
-      <AlertsPanel />
+      <AlertsPanelView
+        alerts={alertsData.alerts}
+        loading={alertsData.loading}
+        error={alertsData.error}
+        refresh={alertsData.refresh}
+      />
+      <IncidentSummarySectionView
+        incidents={incidentSummaryItems}
+        loading={alertsData.loading}
+        error={alertsData.error}
+        refresh={alertsData.refresh}
+      />
       <RecentIncidentsPanel />
 
       {/* Permits */}

@@ -10,12 +10,9 @@
  * <IncidentSummarySection />
  */
 
-import { useEffect, useState } from 'react';
 import { Siren, RotateCw } from 'lucide-react';
 import { Card, CardHeader, Badge, EmptyState, Alert, Button, Skeleton } from '@/components/ui';
-import { alertsService } from '@/services';
-import { ApiError } from '@/api/errors';
-import { createRequestController } from '@/api/client';
+import { useRecentAlerts } from '@/features/alerts/hooks/useRecentAlerts';
 import type { AlertRecord } from '@/types';
 import { IncidentSummary } from './IncidentSummary';
 import type { IncidentSummaryItem } from './IncidentSummary';
@@ -37,39 +34,21 @@ function toSummaryItem(record: AlertRecord): IncidentSummaryItem {
   };
 }
 
-export function IncidentSummarySection({ limit = 5, className }: IncidentSummarySectionProps) {
-  const [incidents, setIncidents] = useState<IncidentSummaryItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+export interface IncidentSummarySectionViewProps {
+  incidents: IncidentSummaryItem[];
+  loading: boolean;
+  error: string | null;
+  refresh: () => void;
+  className?: string;
+}
 
-  const fetchIncidents = async (signal?: AbortSignal) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const { data } = await alertsService.getRecentAlerts({ skip: 0, limit }, { signal });
-      const sorted = [...data].sort(
-        (a, b) => new Date(b.generated_at).getTime() - new Date(a.generated_at).getTime(),
-      );
-      setIncidents(sorted.map(toSummaryItem));
-    } catch (err) {
-      const apiError = ApiError.from(err);
-      if (!apiError.isCancelledError) {
-        setError(apiError.toUserMessage());
-      }
-    } finally {
-      if (!signal?.aborted) {
-        setLoading(false);
-      }
-    }
-  };
-
-  useEffect(() => {
-    const { controller, signal } = createRequestController();
-    fetchIncidents(signal);
-    return () => controller.abort();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [limit]);
-
+/**
+ * Presentational recent-incidents card — accepts already-fetched alert
+ * data so a parent (e.g. `DashboardPage` via a shared `useRecentAlerts()`
+ * call) can avoid refetching the same `GET /alerts` endpoint this section
+ * would otherwise call on its own.
+ */
+export function IncidentSummarySectionView({ incidents, loading, error, refresh, className }: IncidentSummarySectionViewProps) {
   const criticalCount = incidents.filter((i) => i.severity === 'critical').length;
 
   return (
@@ -92,7 +71,7 @@ export function IncidentSummarySection({ limit = 5, className }: IncidentSummary
             variant="danger"
             title="Failed to load recent incidents"
             actions={
-              <Button size="sm" variant="outline" onClick={() => fetchIncidents()} leftIcon={<RotateCw className="w-3.5 h-3.5" />}>
+              <Button size="sm" variant="outline" onClick={refresh} leftIcon={<RotateCw className="w-3.5 h-3.5" />}>
                 Retry
               </Button>
             }
@@ -120,5 +99,23 @@ export function IncidentSummarySection({ limit = 5, className }: IncidentSummary
         )}
       </div>
     </Card>
+  );
+}
+
+/** Standalone, self-fetching `IncidentSummarySection` — fetches its own `GET /alerts` data. Use `IncidentSummarySectionView` instead when the data is already fetched elsewhere on the page. */
+export function IncidentSummarySection({ limit = 5, className }: IncidentSummarySectionProps) {
+  const { alerts, loading, error, refresh } = useRecentAlerts({ limit });
+  const incidents = [...alerts]
+    .sort((a, b) => new Date(b.generated_at).getTime() - new Date(a.generated_at).getTime())
+    .map(toSummaryItem);
+
+  return (
+    <IncidentSummarySectionView
+      incidents={incidents}
+      loading={loading}
+      error={error}
+      refresh={refresh}
+      className={className}
+    />
   );
 }

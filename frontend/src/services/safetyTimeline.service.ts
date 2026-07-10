@@ -44,8 +44,23 @@ function riskScoreToEvent(record: RiskScoreRecord): SafetyTimelineEvent {
   };
 }
 
+/** Merges already-fetched alerts and risk-score records into one chronological (newest-first) feed. Pure — takes no fetch of its own, so a caller that already holds alert data (e.g. from a shared `useRecentAlerts()`) can reuse it here instead of refetching. */
+function mergeTimeline(alerts: AlertRecord[], riskScores: RiskScoreRecord[], limit: number): SafetyTimelineEvent[] {
+  const events = [
+    ...alerts.map(alertToEvent).filter((e): e is SafetyTimelineEvent => e !== null),
+    ...riskScores.map(riskScoreToEvent),
+  ];
+
+  events.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+  return events.slice(0, limit);
+}
+
 export const safetyTimelineService = {
-  /** Chronological (newest-first) feed of real safety events, merged from `GET /alerts` and `GET /risk-scores`. */
+  /** Pure merge of pre-fetched alert + risk-score records — see `mergeTimeline`. */
+  mergeTimeline,
+
+  /** Chronological (newest-first) feed of real safety events, merged from `GET /alerts` and `GET /risk-scores`. Fetches both itself — prefer `mergeTimeline` when the caller already has alert data from elsewhere on the page. */
   getTimeline: async (
     params?: { limit?: number },
     options?: RequestOptions,
@@ -57,13 +72,6 @@ export const safetyTimelineService = {
       compoundRiskService.getRecent({ skip: 0, limit }, options),
     ]);
 
-    const events = [
-      ...alertsRes.data.map(alertToEvent).filter((e): e is SafetyTimelineEvent => e !== null),
-      ...riskScoresRes.data.map(riskScoreToEvent),
-    ];
-
-    events.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-
-    return events.slice(0, limit);
+    return mergeTimeline(alertsRes.data, riskScoresRes.data, limit);
   },
 };
