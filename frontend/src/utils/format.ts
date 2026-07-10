@@ -42,3 +42,14 @@ export function capitalise(str: string): string {
 export function truncate(str: string, maxLength: number): string {
   return str.length > maxLength ? `${str.slice(0, maxLength)}…` : str;
 }
+
+/**
+ * Format a snake_case backend enum value into a human-readable label,
+ * e.g. "restricted_zone" -> "Restricted Zone".
+ */
+export function formatLabel(value: string): string {
+  return value
+    .split('_')
+    .map((word) => capitalise(word))
+    .join(' ');
+}
