@@ -20,6 +20,7 @@ class ZoneRiskResultResponse(AppBaseModel):
     score: float
     risk_level: RiskLevel
     contributing_factors: list[RiskFactorContributionResponse]
+    bullet_explanations: list[str]
 
 
 class RiskScoreCalculationResultResponse(AppBaseModel):

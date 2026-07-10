@@ -213,6 +213,21 @@ class ZoneRiskResult:
             return "No contributing risk factors detected."
         return "; ".join(factor.describe() for factor in self.contributing_factors)
 
+    @property
+    def bullet_explanations(self) -> list[str]:
+        """Bullet-style explanation lines, one per contributing factor.
+
+        Delegates to :class:`src.services.risk_explanation.RiskExplanationGenerator`
+        so all engines produce explanations in a single, reusable format.
+        """
+        from src.services.risk_explanation import ExplainedRule, RiskExplanationGenerator
+
+        generator = RiskExplanationGenerator()
+        explained = [
+            ExplainedRule.from_factor_contribution(factor) for factor in self.contributing_factors
+        ]
+        return generator.explain(self.risk_level, explained)
+
 
 @dataclass(frozen=True)
 class RiskLevelBands:

@@ -1,6 +1,7 @@
 """Response schema for the combined monitoring summary endpoint."""
 
 from src.schemas.base import AppBaseModel
+from src.schemas.response.compound_risk import CompoundRiskDetectionResultResponse
 from src.schemas.response.permit_validation import PermitValidationSummaryResponse
 from src.schemas.response.risk_scoring import RiskScoreCalculationResultResponse
 from src.schemas.response.sensor_monitoring import SensorMonitoringSummaryResponse
@@ -8,9 +9,10 @@ from src.schemas.response.worker_monitoring import WorkerMonitoringSummaryRespon
 
 
 class MonitoringSummaryResponse(AppBaseModel):
-    """Combined sensor, worker, permit, and risk monitoring summary."""
+    """Combined sensor, worker, permit, risk, and compound risk monitoring summary."""
 
     sensors: SensorMonitoringSummaryResponse
     workers: WorkerMonitoringSummaryResponse
     permits: PermitValidationSummaryResponse
     risk: RiskScoreCalculationResultResponse
+    compound_risk: CompoundRiskDetectionResultResponse
