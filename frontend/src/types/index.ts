@@ -171,6 +171,41 @@ export interface RiskSummary {
   trend: 'up' | 'down' | 'stable';
 }
 
+// ─── Compound Risk (POST /risk-scores/calculate) ───────────────────
+export interface RiskFactorContribution {
+  name: string;
+  points: number;
+  weight: number;
+  detail: string;
+}
+
+export interface ZoneRiskResult {
+  zone: string;
+  score: number;
+  risk_level: SeverityLevel;
+  contributing_factors: RiskFactorContribution[];
+}
+
+export interface RiskScoreCalculationResult {
+  zone_count: number;
+  results: ZoneRiskResult[];
+}
+
+/** Overall risk status, derived client-side from `risk_level`. */
+export type RiskStatus = 'safe' | 'warning' | 'critical';
+
+/** Aggregated compound risk assessment for the `CompoundRiskCard`. */
+export interface CompoundRiskAssessment {
+  /** Highest zone risk score, 0-100. */
+  risk_score: number;
+  /** Bucketed risk level of the highest-scoring zone. */
+  risk_level: SeverityLevel;
+  /** Total number of contributing-factor rules triggered across all zones. */
+  triggered_rules_count: number;
+  /** Overall status derived from `risk_level`. */
+  status: RiskStatus;
+}
+
 // ─── Dashboard Summary (GET /dashboard/summary) ────────────────────
 export interface DashboardSummary {
   total_workers: number;
