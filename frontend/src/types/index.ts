@@ -206,6 +206,31 @@ export interface CompoundRiskAssessment {
   status: RiskStatus;
 }
 
+/** A single triggered rule, backed 1:1 by a `RiskFactorContribution` returned by the engine. */
+export interface TriggeredRule {
+  name: string;
+  detail: string;
+}
+
+/**
+ * Explanation payload for the `RiskExplanationPanel`, built entirely from the
+ * zone result the risk score engine returns — no text is generated client-side.
+ */
+export interface RiskExplanation {
+  zone: string;
+  risk_level: SeverityLevel;
+  /** One entry per contributing factor the engine reports as triggered for this zone. */
+  triggered_rules: TriggeredRule[];
+  /**
+   * Backend-authored free-text explanation for this assessment.
+   * `null` when the backend has not recorded one — the panel must show an
+   * empty state in that case rather than synthesising text.
+   */
+  explanation: string | null;
+  /** Full contributing-factor detail (name, points, weight, detail) for this zone. */
+  contributing_factors: RiskFactorContribution[];
+}
+
 // ─── Dashboard Summary (GET /dashboard/summary) ────────────────────
 export interface DashboardSummary {
   total_workers: number;
