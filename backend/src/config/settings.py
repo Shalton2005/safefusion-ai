@@ -85,6 +85,17 @@ class Settings(BaseSettings):
     COMPOUND_RISK_LEVEL_MEDIUM_MAX: float = 45.0
     COMPOUND_RISK_LEVEL_HIGH_MAX: float = 70.0
 
+    # ── Emergency response rule thresholds ───────────────────────────────────
+    # Minimum zone compound-risk score (0-100) required for each response
+    # rule to fire. A rule with a lower threshold triggers earlier/more
+    # often; raise it to make an action more conservative.
+    EMERGENCY_THRESHOLD_NOTIFY_SAFETY_OFFICER: float = 20.0
+    EMERGENCY_THRESHOLD_NOTIFY_CONTROL_ROOM: float = 45.0
+    EMERGENCY_THRESHOLD_STOP_WORK: float = 45.0
+    EMERGENCY_THRESHOLD_ISOLATE_EQUIPMENT: float = 70.0
+    EMERGENCY_THRESHOLD_EVACUATE_AREA: float = 70.0
+    EMERGENCY_THRESHOLD_GENERATE_INCIDENT: float = 70.0
+
     # ── CORS ──────────────────────────────────────────────────────────────────
     ALLOWED_ORIGINS: list[str] = [
         "http://localhost:3000",

@@ -30,7 +30,9 @@ from src.config.settings import settings
 from src.middleware.exception_handler import API_ERROR_RESPONSES, register_exception_handlers
 from src.middleware.logging_middleware import RequestLoggingMiddleware
 from src.routes import alerts as alerts_router
+from src.routes import compliance as compliance_router
 from src.routes import dashboard as dashboard_router
+from src.routes import emergency_response as emergency_response_router
 from src.routes import health as health_router
 from src.routes import incidents as incidents_router
 from src.routes import maintenance as maintenance_router
@@ -61,6 +63,8 @@ OPENAPI_TAGS_METADATA = [
     {"name": "Alerts", "description": "Safety alerts generated from operational monitoring and risk analysis."},
     {"name": "Risk Scores", "description": "Risk assessment records used to monitor zone-level exposure and safety posture."},
     {"name": "Monitoring", "description": "Unified sensor, worker, permit, and risk monitoring summaries."},
+    {"name": "Emergency Response", "description": "Maps compound risk conditions to predefined emergency actions and dispatches them."},
+    {"name": "Compliance", "description": "Evaluates detected incidents against Factory Act, OISD, and DGMS compliance rules."},
 ]
 
 
@@ -128,6 +132,8 @@ def create_application() -> FastAPI:
     application.include_router(alerts_router.router, prefix=settings.API_PREFIX)
     application.include_router(risk_scores_router.router, prefix=settings.API_PREFIX)
     application.include_router(monitoring_router.router, prefix=settings.API_PREFIX)
+    application.include_router(emergency_response_router.router, prefix=settings.API_PREFIX)
+    application.include_router(compliance_router.router, prefix=settings.API_PREFIX)
 
     return application
 
