@@ -20,9 +20,16 @@ To add a new rule:
     2. If an action is new, add it to ``EmergencyActionType`` in the same
        file.
     3. Add (or extend) an ``EmergencyRule`` entry in
-       ``EMERGENCY_RESPONSE_RULES`` below, keyed by the condition.
+       ``CONDITION_ACTION_RULES`` below, keyed by the condition.
 
 No other file should hardcode a condition-to-action mapping.
+
+Note: this registry is intentionally named differently from
+``src.config.risk_rules.EMERGENCY_RESPONSE_RULES`` (a differently-shaped,
+score-threshold-keyed registry actually wired into
+``src.routes.emergency_response``), to avoid two same-named registries
+existing in different modules — a collision risk for anyone importing
+the wrong one.
 """
 
 from __future__ import annotations
@@ -54,8 +61,8 @@ class EmergencyRule:
 # Emergency Response rule registry (src.services.emergency_response)
 # ─────────────────────────────────────────────────────────────────────────
 # Keyed by EmergencyCondition so callers look up actions with
-# ``EMERGENCY_RESPONSE_RULES[condition].actions`` rather than a raw string.
-EMERGENCY_RESPONSE_RULES: dict[EmergencyCondition, EmergencyRule] = {
+# ``CONDITION_ACTION_RULES[condition].actions`` rather than a raw string.
+CONDITION_ACTION_RULES: dict[EmergencyCondition, EmergencyRule] = {
     EmergencyCondition.CRITICAL_GAS: EmergencyRule(
         condition=EmergencyCondition.CRITICAL_GAS,
         actions=(
@@ -87,5 +94,5 @@ EMERGENCY_RESPONSE_RULES: dict[EmergencyCondition, EmergencyRule] = {
 
 def get_actions_for(condition: EmergencyCondition) -> tuple[EmergencyActionType, ...]:
     """Return the predefined actions for ``condition``, or an empty tuple if unmapped."""
-    rule = EMERGENCY_RESPONSE_RULES.get(condition)
+    rule = CONDITION_ACTION_RULES.get(condition)
     return rule.actions if rule else ()

@@ -66,7 +66,11 @@ class RecommendationService:
         if self._emergency_response is not None:
             emergency_response_results = self._emergency_response.respond(compound_risk_results)
 
-        compliance_results = self._compliance.evaluate_all_incidents() if self._compliance else []
+        # Match the 500-row ceiling exposed by GET /compliance/status and
+        # POST /compliance/evaluate — the repository-level default of 100
+        # would otherwise silently truncate compliance-derived
+        # recommendations with no way for the caller to detect or raise it.
+        compliance_results = self._compliance.evaluate_all_incidents(limit=500) if self._compliance else []
 
         return self.evaluate(
             compound_risk_results=compound_risk_results,

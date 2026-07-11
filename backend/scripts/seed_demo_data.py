@@ -8,16 +8,35 @@ Seeds deterministic, relationship-aware records for:
 - Alerts
 - Incidents
 
-Also seeds four coherent, independently-selectable demo scenarios, each
+Also seeds eight coherent, independently-selectable demo scenarios, each
 in its own zone so they never collide with each other or with the bulk
 data above:
 
-1. Normal Plant   (Zone-D)          — all sensors nominal, valid permit, worker present.
-2. Gas Leak       (Tank-Farm)       — critical gas reading, worker present, valid permit.
-3. Expired Permit (Zone-B)          — nominal sensors, expired permit, worker present.
-4. Compound Risk  (Boiler-Area)     — critical sensor + expired permit + worker present in
-                                       a restricted zone, deliberately triggering several
-                                       Compound Risk Engine rules at once.
+1. Normal Plant       (Zone-D)          — all sensors nominal, valid permit, worker present.
+2. Gas Leak           (Tank-Farm)       — critical gas reading, worker present, valid permit,
+                                           linked critical Incident record.
+3. Expired Permit     (Zone-B)          — nominal sensors, expired permit, worker present.
+4. Compound Risk      (Boiler-Area)     — critical sensor + expired permit + worker present in
+                                           a restricted zone, deliberately triggering several
+                                           Compound Risk Engine rules at once.
+5. Fire               (Zone-E)          — critical temperature/smoke readings consistent with
+                                           an active fire, worker in emergency status, linked
+                                           Incident record (triggers Factory Act / OISD fire
+                                           and major-hazard compliance rules).
+6. Permit Violation   (Zone-F)          — worker actively performing hot work under a permit
+                                           that was suspended mid-task (not merely expired),
+                                           a distinct violation from scenario 3, linked
+                                           PPE_VIOLATION Incident record for Factory Act review.
+7. Worker Collapse    (Zone-G)          — nominal sensors and a valid permit, but the assigned
+                                           worker is down/unresponsive: isolates a pure
+                                           worker-safety emergency with no sensor or permit
+                                           signal, linked Incident record (new
+                                           IncidentType.WORKER_COLLAPSE).
+8. Confined Space     (Confined-Space-1)— a configured restricted zone (see
+                                           ``settings.ALERT_RESTRICTED_ZONES``) with a critical
+                                           gas reading, a worker present, and no valid permit
+                                           for confined-space entry, triggering restricted-zone
+                                           and unauthorized-entry compound risk rules together.
 
 Design goals:
 - Uses SQLAlchemy ORM models and the project's configured session factory.
@@ -200,7 +219,28 @@ SCENARIO_EXPIRED_PERMIT_EMPLOYEE_ID = "EMP-DEMO-EXPIREDPERMIT"
 SCENARIO_COMPOUND_RISK_ZONE = "Boiler-Area"
 SCENARIO_COMPOUND_RISK_EMPLOYEE_ID = "EMP-DEMO-COMPOUNDRISK"
 
-ALL_SCENARIO_NAMES = ["normal", "gas_leak", "expired_permit", "compound_risk"]
+SCENARIO_FIRE_ZONE = "Zone-E"
+SCENARIO_FIRE_EMPLOYEE_ID = "EMP-DEMO-FIRE"
+
+SCENARIO_PERMIT_VIOLATION_ZONE = "Zone-F"
+SCENARIO_PERMIT_VIOLATION_EMPLOYEE_ID = "EMP-DEMO-PERMITVIOLATION"
+
+SCENARIO_WORKER_COLLAPSE_ZONE = "Zone-G"
+SCENARIO_WORKER_COLLAPSE_EMPLOYEE_ID = "EMP-DEMO-WORKERCOLLAPSE"
+
+SCENARIO_CONFINED_SPACE_ZONE = "Confined-Space-1"
+SCENARIO_CONFINED_SPACE_EMPLOYEE_ID = "EMP-DEMO-CONFINEDSPACE"
+
+ALL_SCENARIO_NAMES = [
+    "normal",
+    "gas_leak",
+    "expired_permit",
+    "compound_risk",
+    "fire",
+    "permit_violation",
+    "worker_collapse",
+    "confined_space",
+]
 
 
 @dataclass
@@ -650,6 +690,49 @@ def _seed_scenario_worker(
     return 1
 
 
+def _seed_scenario_incident(
+    db: Session,
+    zone: str,
+    severity: SeverityLevel,
+    incident_type: IncidentType,
+    description: str,
+    root_cause: str,
+    occurred_at: datetime,
+) -> int:
+    """Upsert one scenario incident, keyed by (zone, incident_type).
+
+    Mirrors the other scenario upsert helpers: a scenario represents "the
+    current incident for this zone", so re-running the seeder refreshes
+    the existing row's narrative/timestamp in place instead of inserting
+    a duplicate keyed on a wall-clock timestamp that changes on every run.
+    """
+    existing = db.execute(
+        select(Incident)
+        .where(Incident.zone == zone, Incident.incident_type == incident_type)
+        .order_by(Incident.occurred_at.desc())
+        .limit(1)
+    ).scalar_one_or_none()
+
+    if existing is not None:
+        existing.severity = severity
+        existing.description = description
+        existing.root_cause = root_cause
+        existing.occurred_at = occurred_at
+        return 0
+
+    db.add(
+        Incident(
+            zone=zone,
+            severity=severity,
+            incident_type=incident_type,
+            description=description,
+            root_cause=root_cause,
+            occurred_at=occurred_at,
+        )
+    )
+    return 1
+
+
 def seed_scenario_normal(db: Session) -> int:
     """Scenario 1: Normal Plant — all sensors nominal, valid permit, worker present.
 
@@ -745,6 +828,19 @@ def seed_scenario_gas_leak(db: Session) -> int:
         SCENARIO_GAS_LEAK_ZONE,
         "Morning",
         WorkerStatus.EMERGENCY,
+    )
+
+    created += _seed_scenario_incident(
+        db,
+        SCENARIO_GAS_LEAK_ZONE,
+        SeverityLevel.CRITICAL,
+        IncidentType.GAS_LEAK,
+        "Hydrocarbon vapor concentration spiked to 95 ppm near the Tank-Farm "
+        "transfer pump while a field operator remained on site under an "
+        "active confined-space permit.",
+        "Suspected seal failure on the transfer line following a recent "
+        "product changeover; vapor recovery unit unable to keep pace.",
+        now - timedelta(minutes=8),
     )
 
     return created
@@ -860,11 +956,278 @@ def seed_scenario_compound_risk(db: Session) -> int:
     return created
 
 
+def seed_scenario_fire(db: Session) -> int:
+    """Scenario 5: Fire — critical temperature/smoke readings, worker in emergency status.
+
+    Zone-E shows a critical temperature reading alongside elevated smoke,
+    consistent with an active fire near a process unit. The assigned
+    worker is flagged in emergency status and a matching Incident record
+    is seeded, so this scenario exercises the Factory Act fire-safety and
+    OISD major-hazard-escalation compliance rules
+    (``factory_act_fire_safety`` / ``oisd_major_hazard_severity``) end to
+    end, not just the risk engines.
+    """
+    created = 0
+    now = datetime.now(UTC)
+    timestamp = now - timedelta(minutes=3)
+
+    created += _seed_scenario_sensor(
+        db, SCENARIO_FIRE_ZONE, SensorType.TEMPERATURE, 62.0, "C", SensorStatus.CRITICAL, timestamp
+    )
+    created += _seed_scenario_sensor(
+        db, SCENARIO_FIRE_ZONE, SensorType.SMOKE, 9.5, "ppm", SensorStatus.CRITICAL, timestamp
+    )
+    created += _seed_scenario_sensor(
+        db, SCENARIO_FIRE_ZONE, SensorType.GAS, 48.0, "ppm", SensorStatus.NORMAL, timestamp
+    )
+
+    permit_start_time = now - timedelta(hours=3)
+    permit_end_time = now + timedelta(hours=5)
+    created += _seed_scenario_permit(
+        db,
+        PermitType.HOT_WORK,
+        SCENARIO_FIRE_ZONE,
+        "Safety Officer Sharma",
+        "Mechanical Team Bravo",
+        permit_start_time,
+        permit_end_time,
+        PermitStatus.ACTIVE,
+    )
+
+    created += _seed_scenario_worker(
+        db,
+        SCENARIO_FIRE_EMPLOYEE_ID,
+        "Rahul Mehta",
+        "Maintenance",
+        "Maintenance Engineer",
+        SCENARIO_FIRE_ZONE,
+        "Afternoon",
+        WorkerStatus.EMERGENCY,
+    )
+
+    created += _seed_scenario_incident(
+        db,
+        SCENARIO_FIRE_ZONE,
+        SeverityLevel.CRITICAL,
+        IncidentType.FIRE,
+        "Flames observed near a welding station in Zone-E during active "
+        "hot work; smoke and temperature sensors both crossed critical "
+        "thresholds within the same reporting cycle.",
+        "Spark from grinding operation ignited residual solvent-soaked "
+        "rags left near the work area; housekeeping checklist was not "
+        "completed before work began.",
+        now - timedelta(minutes=6),
+    )
+
+    return created
+
+
+def seed_scenario_permit_violation(db: Session) -> int:
+    """Scenario 6: Permit Violation — active work continues under a suspended permit.
+
+    Distinct from the Expired Permit scenario (3): here the hot-work
+    permit covering Zone-F has been actively ``SUSPENDED`` by a safety
+    officer (e.g. after a stop-work order) rather than simply lapsing on
+    schedule, yet the assigned worker remains on site performing the
+    work. Nominal sensors isolate the violation to permit/process
+    discipline rather than an environmental hazard. Seeds a
+    ``PPE_VIOLATION`` Incident (the closest Factory Act process-discipline
+    category) so ``factory_act_ppe_compliance`` has a matching record to
+    evaluate.
+    """
+    created = 0
+    now = datetime.now(UTC)
+    timestamp = now - timedelta(minutes=5)
+
+    created += _seed_scenario_sensor(
+        db, SCENARIO_PERMIT_VIOLATION_ZONE, SensorType.GAS, 37.0, "ppm", SensorStatus.NORMAL, timestamp
+    )
+    created += _seed_scenario_sensor(
+        db, SCENARIO_PERMIT_VIOLATION_ZONE, SensorType.TEMPERATURE, 29.0, "C", SensorStatus.NORMAL, timestamp
+    )
+    created += _seed_scenario_sensor(
+        db, SCENARIO_PERMIT_VIOLATION_ZONE, SensorType.PRESSURE, 5.6, "bar", SensorStatus.NORMAL, timestamp
+    )
+
+    permit_start_time = now - timedelta(hours=4)
+    permit_end_time = now + timedelta(hours=2)
+    created += _seed_scenario_permit(
+        db,
+        PermitType.HOT_WORK,
+        SCENARIO_PERMIT_VIOLATION_ZONE,
+        "Safety Officer Nair",
+        "Electrical Team Sigma",
+        permit_start_time,
+        permit_end_time,
+        PermitStatus.SUSPENDED,
+    )
+
+    created += _seed_scenario_worker(
+        db,
+        SCENARIO_PERMIT_VIOLATION_EMPLOYEE_ID,
+        "Tarun Reddy",
+        "Operations",
+        "Process Technician",
+        SCENARIO_PERMIT_VIOLATION_ZONE,
+        "Morning",
+        WorkerStatus.WORKING,
+        ppe_status=False,
+    )
+
+    created += _seed_scenario_incident(
+        db,
+        SCENARIO_PERMIT_VIOLATION_ZONE,
+        SeverityLevel.MEDIUM,
+        IncidentType.PPE_VIOLATION,
+        "Process technician continued hot work in Zone-F after the "
+        "covering permit was suspended by the safety officer; worker also "
+        "found without required respiratory protection.",
+        "Stop-work notification was not relayed to the on-site technician "
+        "before the next task segment began.",
+        now - timedelta(minutes=20),
+    )
+
+    return created
+
+
+def seed_scenario_worker_collapse(db: Session) -> int:
+    """Scenario 7: Worker Collapse — worker down/unresponsive with no sensor or permit signal.
+
+    Zone-G reads entirely nominal and its permit is valid — this scenario
+    isolates a pure worker-safety medical emergency from any
+    environmental or compliance driver, exercising the
+    ``EmergencyCondition.WORKER_DOWN`` -> ``notify_medical_team`` mapping
+    in ``src.config.emergency_rules`` on its own. Seeds a
+    ``WORKER_COLLAPSE`` Incident record.
+    """
+    created = 0
+    now = datetime.now(UTC)
+    timestamp = now - timedelta(minutes=4)
+
+    created += _seed_scenario_sensor(
+        db, SCENARIO_WORKER_COLLAPSE_ZONE, SensorType.GAS, 33.0, "ppm", SensorStatus.NORMAL, timestamp
+    )
+    created += _seed_scenario_sensor(
+        db, SCENARIO_WORKER_COLLAPSE_ZONE, SensorType.TEMPERATURE, 27.5, "C", SensorStatus.NORMAL, timestamp
+    )
+    created += _seed_scenario_sensor(
+        db, SCENARIO_WORKER_COLLAPSE_ZONE, SensorType.HUMIDITY, 50.0, "%", SensorStatus.NORMAL, timestamp
+    )
+
+    permit_start_time = now - timedelta(hours=1, minutes=30)
+    permit_end_time = now + timedelta(hours=6, minutes=30)
+    created += _seed_scenario_permit(
+        db,
+        PermitType.ELECTRICAL,
+        SCENARIO_WORKER_COLLAPSE_ZONE,
+        "Safety Officer Reddy",
+        "Electrical Team Sigma",
+        permit_start_time,
+        permit_end_time,
+        PermitStatus.ACTIVE,
+    )
+
+    created += _seed_scenario_worker(
+        db,
+        SCENARIO_WORKER_COLLAPSE_EMPLOYEE_ID,
+        "Isha Verma",
+        "Operations",
+        "Field Operator",
+        SCENARIO_WORKER_COLLAPSE_ZONE,
+        "Night",
+        WorkerStatus.EMERGENCY,
+    )
+
+    created += _seed_scenario_incident(
+        db,
+        SCENARIO_WORKER_COLLAPSE_ZONE,
+        SeverityLevel.CRITICAL,
+        IncidentType.WORKER_COLLAPSE,
+        "Field operator found collapsed and unresponsive near the "
+        "electrical panel in Zone-G during a routine round; no "
+        "environmental hazard indicated by surrounding sensors.",
+        "Suspected heat exhaustion following an extended shift without a "
+        "scheduled rest break; medical response dispatched immediately.",
+        now - timedelta(minutes=10),
+    )
+
+    return created
+
+
+def seed_scenario_confined_space(db: Session) -> int:
+    """Scenario 8: Confined Space Incident — restricted zone, critical gas, no valid permit.
+
+    ``Confined-Space-1`` is a configured restricted zone (see
+    ``settings.ALERT_RESTRICTED_ZONES``) that no other scenario uses. A
+    worker is present with a critical gas reading and no valid confined-
+    space entry permit (the existing permit expired before the worker
+    entered), stacking ``restricted_zone_without_active_permit`` with
+    ``critical_sensor_with_worker_present`` — a realistic unauthorized
+    confined-space entry during a gas excursion.
+    """
+    created = 0
+    now = datetime.now(UTC)
+    timestamp = now - timedelta(minutes=2)
+
+    created += _seed_scenario_sensor(
+        db, SCENARIO_CONFINED_SPACE_ZONE, SensorType.GAS, 88.0, "ppm", SensorStatus.CRITICAL, timestamp
+    )
+    created += _seed_scenario_sensor(
+        db, SCENARIO_CONFINED_SPACE_ZONE, SensorType.HUMIDITY, 74.0, "%", SensorStatus.CRITICAL, timestamp
+    )
+    created += _seed_scenario_sensor(
+        db, SCENARIO_CONFINED_SPACE_ZONE, SensorType.TEMPERATURE, 32.0, "C", SensorStatus.NORMAL, timestamp
+    )
+
+    permit_start_time = now - timedelta(hours=14)
+    permit_end_time = now - timedelta(hours=6)
+    created += _seed_scenario_permit(
+        db,
+        PermitType.CONFINED_SPACE,
+        SCENARIO_CONFINED_SPACE_ZONE,
+        "Safety Officer Sharma",
+        "Process Team Delta",
+        permit_start_time,
+        permit_end_time,
+        PermitStatus.ACTIVE,
+    )
+
+    created += _seed_scenario_worker(
+        db,
+        SCENARIO_CONFINED_SPACE_EMPLOYEE_ID,
+        "Dev Nair",
+        "Process",
+        "Shift Supervisor",
+        SCENARIO_CONFINED_SPACE_ZONE,
+        "Afternoon",
+        WorkerStatus.EMERGENCY,
+    )
+
+    created += _seed_scenario_incident(
+        db,
+        SCENARIO_CONFINED_SPACE_ZONE,
+        SeverityLevel.CRITICAL,
+        IncidentType.GAS_LEAK,
+        "Shift supervisor entered Confined-Space-1 after the covering "
+        "entry permit had already expired; gas and humidity readings both "
+        "reached critical levels shortly after entry.",
+        "Permit expiry was not re-verified against the entry log before "
+        "the supervisor proceeded into the vessel.",
+        now - timedelta(minutes=5),
+    )
+
+    return created
+
+
 SCENARIO_SEEDERS: dict[str, Callable[[Session], int]] = {
     "normal": seed_scenario_normal,
     "gas_leak": seed_scenario_gas_leak,
     "expired_permit": seed_scenario_expired_permit,
     "compound_risk": seed_scenario_compound_risk,
+    "fire": seed_scenario_fire,
+    "permit_violation": seed_scenario_permit_violation,
+    "worker_collapse": seed_scenario_worker_collapse,
+    "confined_space": seed_scenario_confined_space,
 }
 
 
@@ -898,7 +1261,7 @@ def run_seed(
 
     Args:
         scenario_names: Which of ``ALL_SCENARIO_NAMES`` to seed. Defaults to
-            all four when ``None``; pass ``[]`` to skip scenarios entirely.
+            all eight when ``None``; pass ``[]`` to skip scenarios entirely.
     """
     if scenario_names is None:
         scenario_names = ALL_SCENARIO_NAMES
@@ -937,14 +1300,14 @@ def parse_args() -> argparse.Namespace:
         choices=ALL_SCENARIO_NAMES,
         default=None,
         help=(
-            "Which named demo scenarios to seed (default: all four). "
+            "Which named demo scenarios to seed (default: all eight). "
             f"Choices: {', '.join(ALL_SCENARIO_NAMES)}."
         ),
     )
     parser.add_argument(
         "--no-demo-scenarios",
         action="store_true",
-        help="Skip seeding all four named demo scenarios (overrides --scenarios).",
+        help="Skip seeding all named demo scenarios (overrides --scenarios).",
     )
     return parser.parse_args()
 

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from src.config.emergency_rules import EMERGENCY_RESPONSE_RULES, get_actions_for
+from src.config.emergency_rules import CONDITION_ACTION_RULES, get_actions_for
 from src.models.enums import EmergencyActionType, EmergencyCondition
 
 
@@ -14,36 +14,36 @@ class TestEmergencyResponseRules:
             EmergencyCondition.EXPIRED_PERMIT,
             EmergencyCondition.WORKER_DOWN,
         }
-        assert set(EMERGENCY_RESPONSE_RULES) == expected
+        assert set(CONDITION_ACTION_RULES) == expected
 
     def test_every_rule_has_at_least_one_action(self) -> None:
-        for rule in EMERGENCY_RESPONSE_RULES.values():
+        for rule in CONDITION_ACTION_RULES.values():
             assert len(rule.actions) >= 1
 
     def test_every_rule_has_a_description(self) -> None:
-        for rule in EMERGENCY_RESPONSE_RULES.values():
+        for rule in CONDITION_ACTION_RULES.values():
             assert rule.description
 
     def test_rule_key_matches_its_own_condition(self) -> None:
-        for condition, rule in EMERGENCY_RESPONSE_RULES.items():
+        for condition, rule in CONDITION_ACTION_RULES.items():
             assert rule.condition == condition
 
     def test_critical_gas_maps_to_evacuate_and_stop_work(self) -> None:
-        actions = EMERGENCY_RESPONSE_RULES[EmergencyCondition.CRITICAL_GAS].actions
+        actions = CONDITION_ACTION_RULES[EmergencyCondition.CRITICAL_GAS].actions
         assert EmergencyActionType.EVACUATE_AREA in actions
         assert EmergencyActionType.STOP_WORK in actions
 
     def test_fire_maps_to_evacuate_and_notify_fire_team(self) -> None:
-        actions = EMERGENCY_RESPONSE_RULES[EmergencyCondition.FIRE].actions
+        actions = CONDITION_ACTION_RULES[EmergencyCondition.FIRE].actions
         assert EmergencyActionType.EVACUATE_AREA in actions
         assert EmergencyActionType.NOTIFY_FIRE_TEAM in actions
 
     def test_expired_permit_maps_to_suspend_permit(self) -> None:
-        actions = EMERGENCY_RESPONSE_RULES[EmergencyCondition.EXPIRED_PERMIT].actions
+        actions = CONDITION_ACTION_RULES[EmergencyCondition.EXPIRED_PERMIT].actions
         assert actions == (EmergencyActionType.SUSPEND_PERMIT,)
 
     def test_worker_down_maps_to_notify_medical_team(self) -> None:
-        actions = EMERGENCY_RESPONSE_RULES[EmergencyCondition.WORKER_DOWN].actions
+        actions = CONDITION_ACTION_RULES[EmergencyCondition.WORKER_DOWN].actions
         assert actions == (EmergencyActionType.NOTIFY_MEDICAL_TEAM,)
 
 
