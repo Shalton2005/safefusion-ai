@@ -32,12 +32,16 @@ from src.middleware.logging_middleware import RequestLoggingMiddleware
 from src.routes import alerts as alerts_router
 from src.routes import compliance as compliance_router
 from src.routes import dashboard as dashboard_router
+from src.routes import emergency as emergency_router
 from src.routes import emergency_response as emergency_response_router
 from src.routes import health as health_router
+from src.routes import incident as incident_router
+from src.routes import incident_reports as incident_reports_router
 from src.routes import incidents as incidents_router
 from src.routes import maintenance as maintenance_router
 from src.routes import monitoring as monitoring_router
 from src.routes import permits as permits_router
+from src.routes import recommendations as recommendations_router
 from src.routes import risk_scores as risk_scores_router
 from src.routes import root as root_router
 from src.routes import sensors as sensors_router
@@ -63,8 +67,11 @@ OPENAPI_TAGS_METADATA = [
     {"name": "Alerts", "description": "Safety alerts generated from operational monitoring and risk analysis."},
     {"name": "Risk Scores", "description": "Risk assessment records used to monitor zone-level exposure and safety posture."},
     {"name": "Monitoring", "description": "Unified sensor, worker, permit, and risk monitoring summaries."},
+    {"name": "Emergency", "description": "Read-only plant-wide emergency status and dispatched action snapshots."},
     {"name": "Emergency Response", "description": "Maps compound risk conditions to predefined emergency actions and dispatches them."},
     {"name": "Compliance", "description": "Evaluates detected incidents against Factory Act, OISD, and DGMS compliance rules."},
+    {"name": "Recommendations", "description": "Combines Compound Risk, Emergency Response, and Compliance output into ordered operator recommendations."},
+    {"name": "Incident Reports", "description": "Generates structured, six-section JSON incident reports from detected risk, emergency response, and compliance data."},
 ]
 
 
@@ -133,7 +140,11 @@ def create_application() -> FastAPI:
     application.include_router(risk_scores_router.router, prefix=settings.API_PREFIX)
     application.include_router(monitoring_router.router, prefix=settings.API_PREFIX)
     application.include_router(emergency_response_router.router, prefix=settings.API_PREFIX)
+    application.include_router(emergency_router.router, prefix=settings.API_PREFIX)
     application.include_router(compliance_router.router, prefix=settings.API_PREFIX)
+    application.include_router(recommendations_router.router, prefix=settings.API_PREFIX)
+    application.include_router(incident_reports_router.router, prefix=settings.API_PREFIX)
+    application.include_router(incident_router.router, prefix=settings.API_PREFIX)
 
     return application
 

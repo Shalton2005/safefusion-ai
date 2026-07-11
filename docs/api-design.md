@@ -21,6 +21,8 @@ The APIs are grouped by functional modules to ensure scalability, maintainabilit
 - Incident APIs
 - Emergency Response APIs
 - Compliance APIs
+- Recommendation APIs
+- Incident Report APIs
 
 ---
 
@@ -238,7 +240,40 @@ Returns:
 
 ---
 
-# 10. Emergency Response APIs
+# 10. Emergency APIs
+
+Thin, read-only GET endpoints over the Compound Risk and Emergency
+Response engines, for clients that just want current state without
+triggering the full `/emergency-response/*` action-dispatch endpoints
+directly.
+
+## GET /emergency/status
+
+Purpose:
+Get a plant-wide emergency status snapshot: a quick per-zone risk score/
+level and dispatched-action count, without the full action detail.
+
+Returns:
+- Zone Count
+- Whether the plant is currently in an emergency state
+- Per-Zone Risk Score, Risk Level, Action Count
+
+---
+
+## GET /emergency/actions
+
+Purpose:
+Get the full list of dispatched emergency actions per zone (Evacuate
+Area, Stop Work, Isolate Equipment, Notify Safety Officer, Notify Control
+Room, Generate Incident).
+
+Returns:
+- Zone Count
+- Per-Zone Risk Score, Risk Level, Dispatched Actions, Explanation
+
+---
+
+# 11. Emergency Response APIs
 
 ## POST /emergency-response/run
 
@@ -289,7 +324,22 @@ Notes:
 
 ---
 
-# 11. Compliance APIs
+# 12. Compliance APIs
+
+## GET /compliance/status
+
+Purpose:
+Get a plant-wide compliance status snapshot across every detected
+incident: whether the plant is currently compliant, how many incidents
+are non-compliant, and which frameworks are violated.
+
+Returns:
+- Compliance Status (Compliant / Non-Compliant)
+- Incident Count
+- Non-Compliant Count
+- Violated Frameworks
+
+---
 
 ## GET /compliance/incidents/{incident_id}
 
@@ -330,6 +380,84 @@ Notes:
   `docs/tech-stack.md` for OISD/Factory Act/DGMS/Incident Reports) is
   wired in, violations will be enriched with supporting citations without
   any change to the rule engine itself.
+
+---
+
+# 13. Recommendation APIs
+
+## GET /recommendations
+
+Purpose:
+Run the Compound Risk, Emergency Response, and Compliance engines and
+combine their output into a single, priority-ordered list of operator
+recommendations. Plain read endpoint, equivalent to
+`POST /recommendations/generate`.
+
+Returns:
+- Recommendation Count
+- Ordered Recommendations (source, zone, priority, message, reason)
+
+Notes:
+- Purely rule-based — no LLMs/AI involved. Ordering and message wording
+  are centrally configured in `backend/src/config/recommendation_rules.py`
+  (source priority + severity offsets + message templates); adding a rule
+  or a new source requires only registry/config changes, not engine
+  changes.
+- Ordering is life-safety-first: Emergency Response actions rank above
+  Compound Risk findings, which rank above Compliance follow-up; within a
+  source, more severe conditions rank first.
+
+---
+
+## POST /recommendations/generate
+
+Purpose:
+Same as `GET /recommendations`, provided as an action-style endpoint for
+clients that prefer POST for engine-triggering calls.
+
+Returns:
+- Recommendation Count
+- Ordered Recommendations (source, zone, priority, message, reason)
+
+---
+
+# 14. Incident Report APIs
+
+## GET /incident/report
+
+Purpose:
+Assemble a structured, six-section incident report for the most recently
+occurred incident. For a specific incident, use
+`GET /incident-reports/{incident_id}` instead.
+
+Returns:
+Same structure as `GET /incident-reports/{incident_id}` (see below).
+
+---
+
+## GET /incident-reports/{incident_id}
+
+Purpose:
+Assemble a structured, six-section incident report for a single incident
+by combining the incident record with the latest Compound Risk, Emergency
+Response, and Compliance engine output for its zone.
+
+Returns:
+- Summary (incident id, zone, type, severity, description, root cause)
+- Timeline (occurrence, logging, update, and dispatched-action events,
+  chronologically ordered)
+- Detected Risks (zone compound risk score/level/explanation)
+- Triggered Rules (compound risk rules that fired for the zone)
+- Emergency Actions (actions dispatched for the zone)
+- Compliance Notes (violated Factory Act / OISD / DGMS rules)
+
+Notes:
+- Purely rule-based — no LLMs/AI involved.
+- JSON output only; no PDF or document generation.
+- Compound Risk and Emergency Response sections are matched to the
+  incident by zone; Compliance is evaluated directly against the
+  incident. Sections are always present in the response, as empty lists,
+  when no matching engine data exists.
 
 ---
 
