@@ -80,6 +80,7 @@ from sqlalchemy.orm import Session
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from src.database.session import SessionLocal
+from src.graph_database.session import graph_session
 from src.models.alert import Alert
 from src.models.enums import (
     AlertStatus,
@@ -99,6 +100,14 @@ from src.models.maintenance import MaintenanceLog
 from src.models.permit import Permit
 from src.models.sensor import Sensor
 from src.models.worker import Worker
+from src.repositories.graph_base import GraphBaseRepository
+from src.repositories.incident import IncidentRepository
+from src.repositories.maintenance import MaintenanceLogRepository
+from src.repositories.permit import PermitRepository
+from src.repositories.risk_score import RiskScoreRepository
+from src.repositories.sensor import SensorRepository
+from src.repositories.worker import WorkerRepository
+from src.services.graph_ingestion import GraphIngestionService
 
 
 BASE_TIME = datetime(2026, 7, 8, 6, 0, tzinfo=UTC)
@@ -252,6 +261,7 @@ class SeedReport:
     alerts_created: int = 0
     incidents_created: int = 0
     scenario_records_created: dict[str, int] = field(default_factory=dict)
+    graph_synced: dict[str, int] = field(default_factory=dict)
 
 
 def seed_workers(db: Session, target_count: int) -> int:
@@ -1248,6 +1258,29 @@ def seed_scenarios(db: Session, scenario_names: list[str]) -> dict[str, int]:
     return results
 
 
+def sync_graph() -> dict[str, int]:
+    """Project the current PostgreSQL state into Neo4j via ``GraphIngestionService``.
+
+    Reads whatever is in PostgreSQL right now — bulk-seeded records plus
+    every named demo scenario — and ``MERGE``s it into the knowledge graph.
+    Because every write in ``GraphIngestionService`` is keyed on the source
+    row's stable PostgreSQL ``id`` (see ``src/repositories/graph_base.py``),
+    running the seed script (and therefore this sync) repeatedly updates
+    the same graph nodes/relationships in place instead of duplicating them.
+    """
+    with SessionLocal() as db, graph_session() as session:
+        service = GraphIngestionService(
+            graph_repository=GraphBaseRepository(session),
+            worker_repository=WorkerRepository(db),
+            sensor_repository=SensorRepository(db),
+            permit_repository=PermitRepository(db),
+            maintenance_repository=MaintenanceLogRepository(db),
+            incident_repository=IncidentRepository(db),
+            risk_score_repository=RiskScoreRepository(db),
+        )
+        return service.run()
+
+
 def run_seed(
     workers: int,
     sensors: int,
@@ -1256,12 +1289,17 @@ def run_seed(
     alerts: int,
     incidents: int,
     scenario_names: list[str] | None = None,
+    sync_to_graph: bool = True,
 ) -> SeedReport:
     """Run the full seed pipeline: bulk data plus the requested named scenarios.
 
     Args:
         scenario_names: Which of ``ALL_SCENARIO_NAMES`` to seed. Defaults to
             all eight when ``None``; pass ``[]`` to skip scenarios entirely.
+        sync_to_graph: When ``True`` (the default), project the resulting
+            PostgreSQL state into Neo4j after the commit so the knowledge
+            graph reflects the same demo data, including realistic
+            Zone/Worker/Sensor/Permit/Incident/Risk relationships.
     """
     if scenario_names is None:
         scenario_names = ALL_SCENARIO_NAMES
@@ -1277,6 +1315,9 @@ def run_seed(
         report.alerts_created = seed_alerts(db, alerts)
         report.scenario_records_created = seed_scenarios(db, scenario_names)
         db.commit()
+
+    if sync_to_graph:
+        report.graph_synced = sync_graph()
 
     return report
 
@@ -1309,6 +1350,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Skip seeding all named demo scenarios (overrides --scenarios).",
     )
+    parser.add_argument(
+        "--no-graph-sync",
+        action="store_true",
+        help="Skip projecting the seeded data into Neo4j after the PostgreSQL commit.",
+    )
     return parser.parse_args()
 
 
@@ -1323,6 +1369,7 @@ def main() -> None:
         alerts=args.alerts,
         incidents=args.incidents,
         scenario_names=scenario_names,
+        sync_to_graph=not args.no_graph_sync,
     )
 
     print("Demo seed completed.")
@@ -1338,6 +1385,13 @@ def main() -> None:
             print(f"  {name}: {count}")
     else:
         print("Scenario records created: none (scenarios skipped)")
+
+    if report.graph_synced:
+        print("Neo4j knowledge graph synced:")
+        for entity_type, count in report.graph_synced.items():
+            print(f"  {entity_type}: {count}")
+    else:
+        print("Neo4j knowledge graph synced: skipped (--no-graph-sync)")
 
 
 if __name__ == "__main__":

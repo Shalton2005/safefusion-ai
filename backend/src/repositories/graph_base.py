@@ -38,6 +38,19 @@ class GraphBaseRepository:
 
     # ── Generic write primitives ────────────────────────────────────────────
 
+    def list_nodes(self, label: str, limit: int = 1_000) -> list[dict[str, Any]]:
+        """Return every node with the given label, as plain property dicts.
+
+        Args:
+            label: Node label, e.g. ``"Worker"``.
+            limit: Maximum number of nodes to return.
+
+        Returns:
+            One ``dict`` per matched node, containing its stored properties.
+        """
+        result = self._session.run(f"MATCH (n:{label}) RETURN n AS node LIMIT $limit", limit=limit)
+        return [dict(record["node"]) for record in result]
+
     def merge_node(self, label: str, key: str, key_value: Any, properties: Mapping[str, Any]) -> None:
         """Create or update a single node, keyed by one uniquely-identifying property.
 

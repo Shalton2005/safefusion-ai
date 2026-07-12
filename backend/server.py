@@ -38,6 +38,7 @@ from src.routes import compliance as compliance_router
 from src.routes import dashboard as dashboard_router
 from src.routes import emergency as emergency_router
 from src.routes import emergency_response as emergency_response_router
+from src.routes import graph as graph_router
 from src.routes import health as health_router
 from src.routes import incident as incident_router
 from src.routes import incident_reports as incident_reports_router
@@ -76,6 +77,7 @@ OPENAPI_TAGS_METADATA = [
     {"name": "Compliance", "description": "Evaluates detected incidents against Factory Act, OISD, and DGMS compliance rules."},
     {"name": "Recommendations", "description": "Combines Compound Risk, Emergency Response, and Compliance output into ordered operator recommendations."},
     {"name": "Incident Reports", "description": "Generates structured, six-section JSON incident reports from detected risk, emergency response, and compliance data."},
+    {"name": "Knowledge Graph", "description": "Reusable Neo4j knowledge-graph lookups: workers by zone, permits by worker, incidents by equipment, sensors by zone, and risks by incident."},
 ]
 
 
@@ -163,6 +165,7 @@ def create_application() -> FastAPI:
     application.include_router(recommendations_router.router, prefix=settings.API_PREFIX)
     application.include_router(incident_reports_router.router, prefix=settings.API_PREFIX)
     application.include_router(incident_router.router, prefix=settings.API_PREFIX)
+    application.include_router(graph_router.router, prefix=settings.API_PREFIX)
 
     return application
 
