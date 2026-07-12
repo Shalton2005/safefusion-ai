@@ -118,3 +118,46 @@ COMPOUND_RISK_LEVEL_BANDS: dict[str, float] = {
     "medium_max": settings.COMPOUND_RISK_LEVEL_MEDIUM_MAX,
     "high_max": settings.COMPOUND_RISK_LEVEL_HIGH_MAX,
 }
+
+
+# ─────────────────────────────────────────────────────────────────────────
+# Emergency Response Engine rules (src.services.emergency_response)
+# ─────────────────────────────────────────────────────────────────────────
+# Each entry maps a zone compound-risk score (0-100) threshold to the
+# predefined emergency action it dispatches once a zone's score reaches
+# it. A zone can trigger several actions at once — thresholds are
+# independent, not mutually exclusive bands. To add a new action, add an
+# ``EMERGENCY_THRESHOLD_...`` field to ``Settings`` and a matching
+# ``RiskRuleConfig`` entry here; no other file needs to know the number.
+EMERGENCY_RESPONSE_RULES: dict[str, RiskRuleConfig] = {
+    "notify_safety_officer": RiskRuleConfig(
+        name="notify_safety_officer",
+        points=settings.EMERGENCY_THRESHOLD_NOTIFY_SAFETY_OFFICER,
+        description="Zone compound risk score has reached a level warranting safety officer awareness.",
+    ),
+    "notify_control_room": RiskRuleConfig(
+        name="notify_control_room",
+        points=settings.EMERGENCY_THRESHOLD_NOTIFY_CONTROL_ROOM,
+        description="Zone compound risk score requires control room situational awareness.",
+    ),
+    "stop_work": RiskRuleConfig(
+        name="stop_work",
+        points=settings.EMERGENCY_THRESHOLD_STOP_WORK,
+        description="Zone compound risk score requires halting active work in the zone.",
+    ),
+    "isolate_equipment": RiskRuleConfig(
+        name="isolate_equipment",
+        points=settings.EMERGENCY_THRESHOLD_ISOLATE_EQUIPMENT,
+        description="Zone compound risk score requires isolating equipment to prevent escalation.",
+    ),
+    "evacuate_area": RiskRuleConfig(
+        name="evacuate_area",
+        points=settings.EMERGENCY_THRESHOLD_EVACUATE_AREA,
+        description="Zone compound risk score requires evacuating all personnel from the zone.",
+    ),
+    "generate_incident": RiskRuleConfig(
+        name="generate_incident",
+        points=settings.EMERGENCY_THRESHOLD_GENERATE_INCIDENT,
+        description="Zone compound risk score requires an incident record to be opened automatically.",
+    ),
+}

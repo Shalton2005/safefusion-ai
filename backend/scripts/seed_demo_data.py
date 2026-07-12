@@ -8,16 +8,35 @@ Seeds deterministic, relationship-aware records for:
 - Alerts
 - Incidents
 
-Also seeds four coherent, independently-selectable demo scenarios, each
+Also seeds eight coherent, independently-selectable demo scenarios, each
 in its own zone so they never collide with each other or with the bulk
 data above:
 
-1. Normal Plant   (Zone-D)          — all sensors nominal, valid permit, worker present.
-2. Gas Leak       (Tank-Farm)       — critical gas reading, worker present, valid permit.
-3. Expired Permit (Zone-B)          — nominal sensors, expired permit, worker present.
-4. Compound Risk  (Boiler-Area)     — critical sensor + expired permit + worker present in
-                                       a restricted zone, deliberately triggering several
-                                       Compound Risk Engine rules at once.
+1. Normal Plant       (Zone-D)          — all sensors nominal, valid permit, worker present.
+2. Gas Leak           (Tank-Farm)       — critical gas reading, worker present, valid permit,
+                                           linked critical Incident record.
+3. Expired Permit     (Zone-B)          — nominal sensors, expired permit, worker present.
+4. Compound Risk      (Boiler-Area)     — critical sensor + expired permit + worker present in
+                                           a restricted zone, deliberately triggering several
+                                           Compound Risk Engine rules at once.
+5. Fire               (Zone-E)          — critical temperature/smoke readings consistent with
+                                           an active fire, worker in emergency status, linked
+                                           Incident record (triggers Factory Act / OISD fire
+                                           and major-hazard compliance rules).
+6. Permit Violation   (Zone-F)          — worker actively performing hot work under a permit
+                                           that was suspended mid-task (not merely expired),
+                                           a distinct violation from scenario 3, linked
+                                           PPE_VIOLATION Incident record for Factory Act review.
+7. Worker Collapse    (Zone-G)          — nominal sensors and a valid permit, but the assigned
+                                           worker is down/unresponsive: isolates a pure
+                                           worker-safety emergency with no sensor or permit
+                                           signal, linked Incident record (new
+                                           IncidentType.WORKER_COLLAPSE).
+8. Confined Space     (Confined-Space-1)— a configured restricted zone (see
+                                           ``settings.ALERT_RESTRICTED_ZONES``) with a critical
+                                           gas reading, a worker present, and no valid permit
+                                           for confined-space entry, triggering restricted-zone
+                                           and unauthorized-entry compound risk rules together.
 
 Design goals:
 - Uses SQLAlchemy ORM models and the project's configured session factory.
@@ -61,6 +80,8 @@ from sqlalchemy.orm import Session
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from src.database.session import SessionLocal
+from src.graph_database.driver import ensure_constraints
+from src.graph_database.session import graph_session
 from src.models.alert import Alert
 from src.models.enums import (
     AlertStatus,
@@ -80,6 +101,14 @@ from src.models.maintenance import MaintenanceLog
 from src.models.permit import Permit
 from src.models.sensor import Sensor
 from src.models.worker import Worker
+from src.repositories.graph_base import GraphBaseRepository
+from src.repositories.incident import IncidentRepository
+from src.repositories.maintenance import MaintenanceLogRepository
+from src.repositories.permit import PermitRepository
+from src.repositories.risk_score import RiskScoreRepository
+from src.repositories.sensor import SensorRepository
+from src.repositories.worker import WorkerRepository
+from src.services.graph_ingestion import GraphIngestionService
 
 
 BASE_TIME = datetime(2026, 7, 8, 6, 0, tzinfo=UTC)
@@ -200,7 +229,28 @@ SCENARIO_EXPIRED_PERMIT_EMPLOYEE_ID = "EMP-DEMO-EXPIREDPERMIT"
 SCENARIO_COMPOUND_RISK_ZONE = "Boiler-Area"
 SCENARIO_COMPOUND_RISK_EMPLOYEE_ID = "EMP-DEMO-COMPOUNDRISK"
 
-ALL_SCENARIO_NAMES = ["normal", "gas_leak", "expired_permit", "compound_risk"]
+SCENARIO_FIRE_ZONE = "Zone-E"
+SCENARIO_FIRE_EMPLOYEE_ID = "EMP-DEMO-FIRE"
+
+SCENARIO_PERMIT_VIOLATION_ZONE = "Zone-F"
+SCENARIO_PERMIT_VIOLATION_EMPLOYEE_ID = "EMP-DEMO-PERMITVIOLATION"
+
+SCENARIO_WORKER_COLLAPSE_ZONE = "Zone-G"
+SCENARIO_WORKER_COLLAPSE_EMPLOYEE_ID = "EMP-DEMO-WORKERCOLLAPSE"
+
+SCENARIO_CONFINED_SPACE_ZONE = "Confined-Space-1"
+SCENARIO_CONFINED_SPACE_EMPLOYEE_ID = "EMP-DEMO-CONFINEDSPACE"
+
+ALL_SCENARIO_NAMES = [
+    "normal",
+    "gas_leak",
+    "expired_permit",
+    "compound_risk",
+    "fire",
+    "permit_violation",
+    "worker_collapse",
+    "confined_space",
+]
 
 
 @dataclass
@@ -212,6 +262,8 @@ class SeedReport:
     alerts_created: int = 0
     incidents_created: int = 0
     scenario_records_created: dict[str, int] = field(default_factory=dict)
+    graph_synced: dict[str, int] = field(default_factory=dict)
+    graph_sync_error: str | None = None
 
 
 def seed_workers(db: Session, target_count: int) -> int:
@@ -650,6 +702,49 @@ def _seed_scenario_worker(
     return 1
 
 
+def _seed_scenario_incident(
+    db: Session,
+    zone: str,
+    severity: SeverityLevel,
+    incident_type: IncidentType,
+    description: str,
+    root_cause: str,
+    occurred_at: datetime,
+) -> int:
+    """Upsert one scenario incident, keyed by (zone, incident_type).
+
+    Mirrors the other scenario upsert helpers: a scenario represents "the
+    current incident for this zone", so re-running the seeder refreshes
+    the existing row's narrative/timestamp in place instead of inserting
+    a duplicate keyed on a wall-clock timestamp that changes on every run.
+    """
+    existing = db.execute(
+        select(Incident)
+        .where(Incident.zone == zone, Incident.incident_type == incident_type)
+        .order_by(Incident.occurred_at.desc())
+        .limit(1)
+    ).scalar_one_or_none()
+
+    if existing is not None:
+        existing.severity = severity
+        existing.description = description
+        existing.root_cause = root_cause
+        existing.occurred_at = occurred_at
+        return 0
+
+    db.add(
+        Incident(
+            zone=zone,
+            severity=severity,
+            incident_type=incident_type,
+            description=description,
+            root_cause=root_cause,
+            occurred_at=occurred_at,
+        )
+    )
+    return 1
+
+
 def seed_scenario_normal(db: Session) -> int:
     """Scenario 1: Normal Plant — all sensors nominal, valid permit, worker present.
 
@@ -745,6 +840,19 @@ def seed_scenario_gas_leak(db: Session) -> int:
         SCENARIO_GAS_LEAK_ZONE,
         "Morning",
         WorkerStatus.EMERGENCY,
+    )
+
+    created += _seed_scenario_incident(
+        db,
+        SCENARIO_GAS_LEAK_ZONE,
+        SeverityLevel.CRITICAL,
+        IncidentType.GAS_LEAK,
+        "Hydrocarbon vapor concentration spiked to 95 ppm near the Tank-Farm "
+        "transfer pump while a field operator remained on site under an "
+        "active confined-space permit.",
+        "Suspected seal failure on the transfer line following a recent "
+        "product changeover; vapor recovery unit unable to keep pace.",
+        now - timedelta(minutes=8),
     )
 
     return created
@@ -860,11 +968,278 @@ def seed_scenario_compound_risk(db: Session) -> int:
     return created
 
 
+def seed_scenario_fire(db: Session) -> int:
+    """Scenario 5: Fire — critical temperature/smoke readings, worker in emergency status.
+
+    Zone-E shows a critical temperature reading alongside elevated smoke,
+    consistent with an active fire near a process unit. The assigned
+    worker is flagged in emergency status and a matching Incident record
+    is seeded, so this scenario exercises the Factory Act fire-safety and
+    OISD major-hazard-escalation compliance rules
+    (``factory_act_fire_safety`` / ``oisd_major_hazard_severity``) end to
+    end, not just the risk engines.
+    """
+    created = 0
+    now = datetime.now(UTC)
+    timestamp = now - timedelta(minutes=3)
+
+    created += _seed_scenario_sensor(
+        db, SCENARIO_FIRE_ZONE, SensorType.TEMPERATURE, 62.0, "C", SensorStatus.CRITICAL, timestamp
+    )
+    created += _seed_scenario_sensor(
+        db, SCENARIO_FIRE_ZONE, SensorType.SMOKE, 9.5, "ppm", SensorStatus.CRITICAL, timestamp
+    )
+    created += _seed_scenario_sensor(
+        db, SCENARIO_FIRE_ZONE, SensorType.GAS, 48.0, "ppm", SensorStatus.NORMAL, timestamp
+    )
+
+    permit_start_time = now - timedelta(hours=3)
+    permit_end_time = now + timedelta(hours=5)
+    created += _seed_scenario_permit(
+        db,
+        PermitType.HOT_WORK,
+        SCENARIO_FIRE_ZONE,
+        "Safety Officer Sharma",
+        "Mechanical Team Bravo",
+        permit_start_time,
+        permit_end_time,
+        PermitStatus.ACTIVE,
+    )
+
+    created += _seed_scenario_worker(
+        db,
+        SCENARIO_FIRE_EMPLOYEE_ID,
+        "Rahul Mehta",
+        "Maintenance",
+        "Maintenance Engineer",
+        SCENARIO_FIRE_ZONE,
+        "Afternoon",
+        WorkerStatus.EMERGENCY,
+    )
+
+    created += _seed_scenario_incident(
+        db,
+        SCENARIO_FIRE_ZONE,
+        SeverityLevel.CRITICAL,
+        IncidentType.FIRE,
+        "Flames observed near a welding station in Zone-E during active "
+        "hot work; smoke and temperature sensors both crossed critical "
+        "thresholds within the same reporting cycle.",
+        "Spark from grinding operation ignited residual solvent-soaked "
+        "rags left near the work area; housekeeping checklist was not "
+        "completed before work began.",
+        now - timedelta(minutes=6),
+    )
+
+    return created
+
+
+def seed_scenario_permit_violation(db: Session) -> int:
+    """Scenario 6: Permit Violation — active work continues under a suspended permit.
+
+    Distinct from the Expired Permit scenario (3): here the hot-work
+    permit covering Zone-F has been actively ``SUSPENDED`` by a safety
+    officer (e.g. after a stop-work order) rather than simply lapsing on
+    schedule, yet the assigned worker remains on site performing the
+    work. Nominal sensors isolate the violation to permit/process
+    discipline rather than an environmental hazard. Seeds a
+    ``PPE_VIOLATION`` Incident (the closest Factory Act process-discipline
+    category) so ``factory_act_ppe_compliance`` has a matching record to
+    evaluate.
+    """
+    created = 0
+    now = datetime.now(UTC)
+    timestamp = now - timedelta(minutes=5)
+
+    created += _seed_scenario_sensor(
+        db, SCENARIO_PERMIT_VIOLATION_ZONE, SensorType.GAS, 37.0, "ppm", SensorStatus.NORMAL, timestamp
+    )
+    created += _seed_scenario_sensor(
+        db, SCENARIO_PERMIT_VIOLATION_ZONE, SensorType.TEMPERATURE, 29.0, "C", SensorStatus.NORMAL, timestamp
+    )
+    created += _seed_scenario_sensor(
+        db, SCENARIO_PERMIT_VIOLATION_ZONE, SensorType.PRESSURE, 5.6, "bar", SensorStatus.NORMAL, timestamp
+    )
+
+    permit_start_time = now - timedelta(hours=4)
+    permit_end_time = now + timedelta(hours=2)
+    created += _seed_scenario_permit(
+        db,
+        PermitType.HOT_WORK,
+        SCENARIO_PERMIT_VIOLATION_ZONE,
+        "Safety Officer Nair",
+        "Electrical Team Sigma",
+        permit_start_time,
+        permit_end_time,
+        PermitStatus.SUSPENDED,
+    )
+
+    created += _seed_scenario_worker(
+        db,
+        SCENARIO_PERMIT_VIOLATION_EMPLOYEE_ID,
+        "Tarun Reddy",
+        "Operations",
+        "Process Technician",
+        SCENARIO_PERMIT_VIOLATION_ZONE,
+        "Morning",
+        WorkerStatus.WORKING,
+        ppe_status=False,
+    )
+
+    created += _seed_scenario_incident(
+        db,
+        SCENARIO_PERMIT_VIOLATION_ZONE,
+        SeverityLevel.MEDIUM,
+        IncidentType.PPE_VIOLATION,
+        "Process technician continued hot work in Zone-F after the "
+        "covering permit was suspended by the safety officer; worker also "
+        "found without required respiratory protection.",
+        "Stop-work notification was not relayed to the on-site technician "
+        "before the next task segment began.",
+        now - timedelta(minutes=20),
+    )
+
+    return created
+
+
+def seed_scenario_worker_collapse(db: Session) -> int:
+    """Scenario 7: Worker Collapse — worker down/unresponsive with no sensor or permit signal.
+
+    Zone-G reads entirely nominal and its permit is valid — this scenario
+    isolates a pure worker-safety medical emergency from any
+    environmental or compliance driver, exercising the
+    ``EmergencyCondition.WORKER_DOWN`` -> ``notify_medical_team`` mapping
+    in ``src.config.emergency_rules`` on its own. Seeds a
+    ``WORKER_COLLAPSE`` Incident record.
+    """
+    created = 0
+    now = datetime.now(UTC)
+    timestamp = now - timedelta(minutes=4)
+
+    created += _seed_scenario_sensor(
+        db, SCENARIO_WORKER_COLLAPSE_ZONE, SensorType.GAS, 33.0, "ppm", SensorStatus.NORMAL, timestamp
+    )
+    created += _seed_scenario_sensor(
+        db, SCENARIO_WORKER_COLLAPSE_ZONE, SensorType.TEMPERATURE, 27.5, "C", SensorStatus.NORMAL, timestamp
+    )
+    created += _seed_scenario_sensor(
+        db, SCENARIO_WORKER_COLLAPSE_ZONE, SensorType.HUMIDITY, 50.0, "%", SensorStatus.NORMAL, timestamp
+    )
+
+    permit_start_time = now - timedelta(hours=1, minutes=30)
+    permit_end_time = now + timedelta(hours=6, minutes=30)
+    created += _seed_scenario_permit(
+        db,
+        PermitType.ELECTRICAL,
+        SCENARIO_WORKER_COLLAPSE_ZONE,
+        "Safety Officer Reddy",
+        "Electrical Team Sigma",
+        permit_start_time,
+        permit_end_time,
+        PermitStatus.ACTIVE,
+    )
+
+    created += _seed_scenario_worker(
+        db,
+        SCENARIO_WORKER_COLLAPSE_EMPLOYEE_ID,
+        "Isha Verma",
+        "Operations",
+        "Field Operator",
+        SCENARIO_WORKER_COLLAPSE_ZONE,
+        "Night",
+        WorkerStatus.EMERGENCY,
+    )
+
+    created += _seed_scenario_incident(
+        db,
+        SCENARIO_WORKER_COLLAPSE_ZONE,
+        SeverityLevel.CRITICAL,
+        IncidentType.WORKER_COLLAPSE,
+        "Field operator found collapsed and unresponsive near the "
+        "electrical panel in Zone-G during a routine round; no "
+        "environmental hazard indicated by surrounding sensors.",
+        "Suspected heat exhaustion following an extended shift without a "
+        "scheduled rest break; medical response dispatched immediately.",
+        now - timedelta(minutes=10),
+    )
+
+    return created
+
+
+def seed_scenario_confined_space(db: Session) -> int:
+    """Scenario 8: Confined Space Incident — restricted zone, critical gas, no valid permit.
+
+    ``Confined-Space-1`` is a configured restricted zone (see
+    ``settings.ALERT_RESTRICTED_ZONES``) that no other scenario uses. A
+    worker is present with a critical gas reading and no valid confined-
+    space entry permit (the existing permit expired before the worker
+    entered), stacking ``restricted_zone_without_active_permit`` with
+    ``critical_sensor_with_worker_present`` — a realistic unauthorized
+    confined-space entry during a gas excursion.
+    """
+    created = 0
+    now = datetime.now(UTC)
+    timestamp = now - timedelta(minutes=2)
+
+    created += _seed_scenario_sensor(
+        db, SCENARIO_CONFINED_SPACE_ZONE, SensorType.GAS, 88.0, "ppm", SensorStatus.CRITICAL, timestamp
+    )
+    created += _seed_scenario_sensor(
+        db, SCENARIO_CONFINED_SPACE_ZONE, SensorType.HUMIDITY, 74.0, "%", SensorStatus.CRITICAL, timestamp
+    )
+    created += _seed_scenario_sensor(
+        db, SCENARIO_CONFINED_SPACE_ZONE, SensorType.TEMPERATURE, 32.0, "C", SensorStatus.NORMAL, timestamp
+    )
+
+    permit_start_time = now - timedelta(hours=14)
+    permit_end_time = now - timedelta(hours=6)
+    created += _seed_scenario_permit(
+        db,
+        PermitType.CONFINED_SPACE,
+        SCENARIO_CONFINED_SPACE_ZONE,
+        "Safety Officer Sharma",
+        "Process Team Delta",
+        permit_start_time,
+        permit_end_time,
+        PermitStatus.ACTIVE,
+    )
+
+    created += _seed_scenario_worker(
+        db,
+        SCENARIO_CONFINED_SPACE_EMPLOYEE_ID,
+        "Dev Nair",
+        "Process",
+        "Shift Supervisor",
+        SCENARIO_CONFINED_SPACE_ZONE,
+        "Afternoon",
+        WorkerStatus.EMERGENCY,
+    )
+
+    created += _seed_scenario_incident(
+        db,
+        SCENARIO_CONFINED_SPACE_ZONE,
+        SeverityLevel.CRITICAL,
+        IncidentType.GAS_LEAK,
+        "Shift supervisor entered Confined-Space-1 after the covering "
+        "entry permit had already expired; gas and humidity readings both "
+        "reached critical levels shortly after entry.",
+        "Permit expiry was not re-verified against the entry log before "
+        "the supervisor proceeded into the vessel.",
+        now - timedelta(minutes=5),
+    )
+
+    return created
+
+
 SCENARIO_SEEDERS: dict[str, Callable[[Session], int]] = {
     "normal": seed_scenario_normal,
     "gas_leak": seed_scenario_gas_leak,
     "expired_permit": seed_scenario_expired_permit,
     "compound_risk": seed_scenario_compound_risk,
+    "fire": seed_scenario_fire,
+    "permit_violation": seed_scenario_permit_violation,
+    "worker_collapse": seed_scenario_worker_collapse,
+    "confined_space": seed_scenario_confined_space,
 }
 
 
@@ -885,6 +1260,29 @@ def seed_scenarios(db: Session, scenario_names: list[str]) -> dict[str, int]:
     return results
 
 
+def sync_graph() -> dict[str, int]:
+    """Project the current PostgreSQL state into Neo4j via ``GraphIngestionService``.
+
+    Reads whatever is in PostgreSQL right now — bulk-seeded records plus
+    every named demo scenario — and ``MERGE``s it into the knowledge graph.
+    Because every write in ``GraphIngestionService`` is keyed on the source
+    row's stable PostgreSQL ``id`` (see ``src/repositories/graph_base.py``),
+    running the seed script (and therefore this sync) repeatedly updates
+    the same graph nodes/relationships in place instead of duplicating them.
+    """
+    with SessionLocal() as db, graph_session() as session:
+        service = GraphIngestionService(
+            graph_repository=GraphBaseRepository(session),
+            worker_repository=WorkerRepository(db),
+            sensor_repository=SensorRepository(db),
+            permit_repository=PermitRepository(db),
+            maintenance_repository=MaintenanceLogRepository(db),
+            incident_repository=IncidentRepository(db),
+            risk_score_repository=RiskScoreRepository(db),
+        )
+        return service.run()
+
+
 def run_seed(
     workers: int,
     sensors: int,
@@ -893,12 +1291,17 @@ def run_seed(
     alerts: int,
     incidents: int,
     scenario_names: list[str] | None = None,
+    sync_to_graph: bool = True,
 ) -> SeedReport:
     """Run the full seed pipeline: bulk data plus the requested named scenarios.
 
     Args:
         scenario_names: Which of ``ALL_SCENARIO_NAMES`` to seed. Defaults to
-            all four when ``None``; pass ``[]`` to skip scenarios entirely.
+            all eight when ``None``; pass ``[]`` to skip scenarios entirely.
+        sync_to_graph: When ``True`` (the default), project the resulting
+            PostgreSQL state into Neo4j after the commit so the knowledge
+            graph reflects the same demo data, including realistic
+            Zone/Worker/Sensor/Permit/Incident/Risk relationships.
     """
     if scenario_names is None:
         scenario_names = ALL_SCENARIO_NAMES
@@ -914,6 +1317,17 @@ def run_seed(
         report.alerts_created = seed_alerts(db, alerts)
         report.scenario_records_created = seed_scenarios(db, scenario_names)
         db.commit()
+
+    if sync_to_graph:
+        # PostgreSQL seeding has already committed at this point — a Neo4j
+        # failure here (e.g. Neo4j not running on a dev machine) must not
+        # discard the seed report or crash the process, since seeding
+        # already succeeded independently of the graph sync.
+        try:
+            ensure_constraints()
+            report.graph_synced = sync_graph()
+        except Exception as exc:  # noqa: BLE001 - reported to the caller, not swallowed
+            report.graph_sync_error = str(exc)
 
     return report
 
@@ -937,14 +1351,19 @@ def parse_args() -> argparse.Namespace:
         choices=ALL_SCENARIO_NAMES,
         default=None,
         help=(
-            "Which named demo scenarios to seed (default: all four). "
+            "Which named demo scenarios to seed (default: all eight). "
             f"Choices: {', '.join(ALL_SCENARIO_NAMES)}."
         ),
     )
     parser.add_argument(
         "--no-demo-scenarios",
         action="store_true",
-        help="Skip seeding all four named demo scenarios (overrides --scenarios).",
+        help="Skip seeding all named demo scenarios (overrides --scenarios).",
+    )
+    parser.add_argument(
+        "--no-graph-sync",
+        action="store_true",
+        help="Skip projecting the seeded data into Neo4j after the PostgreSQL commit.",
     )
     return parser.parse_args()
 
@@ -960,6 +1379,7 @@ def main() -> None:
         alerts=args.alerts,
         incidents=args.incidents,
         scenario_names=scenario_names,
+        sync_to_graph=not args.no_graph_sync,
     )
 
     print("Demo seed completed.")
@@ -975,6 +1395,16 @@ def main() -> None:
             print(f"  {name}: {count}")
     else:
         print("Scenario records created: none (scenarios skipped)")
+
+    if report.graph_sync_error:
+        print(f"Neo4j knowledge graph synced: FAILED ({report.graph_sync_error})")
+        print("  PostgreSQL seed data above was still committed successfully.")
+    elif report.graph_synced:
+        print("Neo4j knowledge graph synced:")
+        for entity_type, count in report.graph_synced.items():
+            print(f"  {entity_type}: {count}")
+    else:
+        print("Neo4j knowledge graph synced: skipped (--no-graph-sync)")
 
 
 if __name__ == "__main__":

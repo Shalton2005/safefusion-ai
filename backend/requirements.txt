@@ -8,3 +8,4 @@ python-dotenv==1.0.1
 psycopg2-binary==2.9.12
 # asyncpg (async PostgreSQL driver) — requires MSVC on Windows; pre-installed in Docker.
 # Uncomment when running inside the container: asyncpg==0.29.0
+neo4j==5.24.0

@@ -43,3 +43,9 @@ class IncidentRepository(BaseRepository[Incident]):
                 select(Incident).where(Incident.incident_type == incident_type)
             ).scalars().all()
         )
+
+    def get_most_recent(self) -> Incident | None:
+        """Return the incident with the latest ``occurred_at``, or ``None`` if there are none."""
+        return self._db.execute(
+            select(Incident).order_by(Incident.occurred_at.desc()).limit(1)
+        ).scalar_one_or_none()

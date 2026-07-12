@@ -23,6 +23,14 @@ class Settings(BaseSettings):
     # ── Database ──────────────────────────────────────────────────────────────
     DATABASE_URL: str = "postgresql://postgres:password@localhost:5432/safefusion_db"
 
+    # ── Neo4j (Knowledge Graph) ──────────────────────────────────────────────
+    # Independent of the PostgreSQL connection above — used for future
+    # knowledge-graph queries (e.g. zone/asset/hazard relationship modeling).
+    NEO4J_URI: str = "bolt://localhost:7687"
+    NEO4J_USERNAME: str = "neo4j"
+    NEO4J_PASSWORD: str = "change-this-password-in-production"
+    NEO4J_DATABASE: str = "neo4j"
+
     # ── Security ──────────────────────────────────────────────────────────────
     SECRET_KEY: str = "change-this-secret-key-in-production"
 
@@ -84,6 +92,17 @@ class Settings(BaseSettings):
     COMPOUND_RISK_LEVEL_LOW_MAX: float = 20.0
     COMPOUND_RISK_LEVEL_MEDIUM_MAX: float = 45.0
     COMPOUND_RISK_LEVEL_HIGH_MAX: float = 70.0
+
+    # ── Emergency response rule thresholds ───────────────────────────────────
+    # Minimum zone compound-risk score (0-100) required for each response
+    # rule to fire. A rule with a lower threshold triggers earlier/more
+    # often; raise it to make an action more conservative.
+    EMERGENCY_THRESHOLD_NOTIFY_SAFETY_OFFICER: float = 20.0
+    EMERGENCY_THRESHOLD_NOTIFY_CONTROL_ROOM: float = 45.0
+    EMERGENCY_THRESHOLD_STOP_WORK: float = 45.0
+    EMERGENCY_THRESHOLD_ISOLATE_EQUIPMENT: float = 70.0
+    EMERGENCY_THRESHOLD_EVACUATE_AREA: float = 70.0
+    EMERGENCY_THRESHOLD_GENERATE_INCIDENT: float = 70.0
 
     # ── CORS ──────────────────────────────────────────────────────────────────
     ALLOWED_ORIGINS: list[str] = [
