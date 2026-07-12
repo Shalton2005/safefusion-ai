@@ -21,6 +21,7 @@ import {
   Bell,
   FileBarChart2,
   BarChart3,
+  Waypoints,
   Settings,
 } from 'lucide-react';
 import { ROUTES } from '@/constants/routes';
@@ -137,6 +138,22 @@ export const appRouteDefinitions: AppRouteDefinition[] = [
     component: lazy(() =>
       import('@/features/analytics/pages/AnalyticsPage').then((m) => ({
         default: m.AnalyticsPage,
+      })),
+    ),
+  },
+
+  // ── Knowledge Graph ─────────────────────────────────────────────
+  {
+    id:          'knowledge-graph',
+    path:        ROUTES.KNOWLEDGE_GRAPH,
+    label:       'Knowledge Graph',
+    description: 'Explore relationships between workers, sensors, zones, permits, and incidents.',
+    icon:        Waypoints,
+    showInNav:   true,
+    isProtected: true,
+    component: lazy(() =>
+      import('@/features/knowledge-graph/pages/KnowledgeGraphPage').then((m) => ({
+        default: m.KnowledgeGraphPage,
       })),
     ),
   },

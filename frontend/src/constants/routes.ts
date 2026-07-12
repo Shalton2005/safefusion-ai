@@ -14,6 +14,7 @@ export const ROUTES = {
   PERMITS:         '/permits',
   ALERTS:          '/alerts',
   ANALYTICS:       '/analytics',
+  KNOWLEDGE_GRAPH: '/knowledge-graph',
   REPORTS:         '/reports',
   SETTINGS:        '/settings',
 
