@@ -364,6 +364,38 @@ export interface PlantSafetyOverview {
   risk_level: SeverityLevel | null;
 }
 
+// ─── Compliance (GET /compliance/status) ───────────────────────────
+export const COMPLIANCE_FRAMEWORKS = ['factory_act', 'oisd', 'dgms'] as const;
+export type ComplianceFramework = (typeof COMPLIANCE_FRAMEWORKS)[number];
+
+export const COMPLIANCE_STATUSES = ['compliant', 'non_compliant'] as const;
+export type ComplianceStatus = (typeof COMPLIANCE_STATUSES)[number];
+
+export interface ComplianceStatusSnapshot {
+  status: ComplianceStatus;
+  incident_count: number;
+  non_compliant_count: number;
+  violated_frameworks: ComplianceFramework[];
+}
+
+// ─── Compliance Evaluation (POST /compliance/evaluate, GET /compliance/incidents/{id}) ───
+export interface ComplianceViolation {
+  rule_code: string;
+  framework: ComplianceFramework;
+  title: string;
+  description: string;
+  recommendation: string;
+  citations: string[];
+}
+
+export interface IncidentComplianceResult {
+  incident_id: string;
+  status: ComplianceStatus;
+  violated_frameworks: ComplianceFramework[];
+  violations: ComplianceViolation[];
+  recommendations: string[];
+}
+
 // ─── Navigation ────────────────────────────────────────────────────
 export interface NavItem {
   label: string;

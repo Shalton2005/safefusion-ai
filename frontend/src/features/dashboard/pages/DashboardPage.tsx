@@ -18,6 +18,7 @@ import { SafetyHeatmapContainer } from '@/features/live-monitoring/components/Sa
 import { CompoundRiskCardSectionView } from '@/features/risk/components/CompoundRiskCardSection';
 import { RiskExplanationPanelSectionView } from '@/features/risk/components/RiskExplanationPanelSection';
 import { EmergencyResponsePanelSection } from '@/features/emergency/components/EmergencyResponsePanelSection';
+import { ComplianceDashboardSection } from '@/features/compliance/components/ComplianceDashboardSection';
 import { useRecentAlerts } from '@/features/alerts/hooks/useRecentAlerts';
 import { useRecentRiskScores } from '@/features/dashboard/hooks/useRecentRiskScores';
 import { useCompoundRiskEngine } from '@/features/risk/hooks/useCompoundRiskEngine';
@@ -122,6 +123,9 @@ export function DashboardPage() {
 
       {/* Emergency response */}
       <EmergencyResponsePanelSection />
+
+      {/* Compliance */}
+      <ComplianceDashboardSection />
 
       {/* Safety timeline */}
       <SafetyTimelineSectionView
