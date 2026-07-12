@@ -19,17 +19,10 @@
 
 import { HardHat, Radio, FileCheck2, Bell, Gauge } from 'lucide-react';
 import { StatCard } from '@/components/ui';
-import type { StatCardIconVariant } from '@/components/ui';
 import { cn } from '@/lib/cn';
 import { capitalise } from '@/utils/format';
+import { SEVERITY_BADGE_VARIANT } from '@/utils/severity';
 import type { SeverityLevel } from '@/constants';
-
-const RISK_ICON_VARIANT: Record<SeverityLevel, StatCardIconVariant> = {
-  low:      'success',
-  medium:   'primary',
-  high:     'warning',
-  critical: 'danger',
-};
 
 export interface PlantSafetyOverviewProps {
   totalWorkers: number;
@@ -65,7 +58,7 @@ export function PlantSafetyOverview({
         label="Current Risk Level"
         value={riskLevel ? capitalise(riskLevel) : 'Unknown'}
         icon={Gauge}
-        iconVariant={riskLevel ? RISK_ICON_VARIANT[riskLevel] : 'neutral'}
+        iconVariant={riskLevel ? SEVERITY_BADGE_VARIANT[riskLevel] : 'neutral'}
       />
     </div>
   );

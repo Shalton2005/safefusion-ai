@@ -21,6 +21,7 @@ import { useRecentAlerts } from '@/features/alerts/hooks/useRecentAlerts';
 import { useRecentRiskScores } from '@/features/dashboard/hooks/useRecentRiskScores';
 import { useCompoundRiskEngine } from '@/features/risk/hooks/useCompoundRiskEngine';
 import { safetyTimelineService } from '@/services';
+import { useMemo } from 'react';
 
 /** How many recent alerts / risk-score records feed the timeline + incident summary. */
 const TIMELINE_LIMIT = 20;
@@ -33,7 +34,10 @@ export function DashboardPage() {
   const riskScoresData = useRecentRiskScores({ limit: TIMELINE_LIMIT });
   const riskEngineData = useCompoundRiskEngine();
 
-  const timelineEvents = safetyTimelineService.mergeTimeline(alertsData.alerts, riskScoresData.riskScores, TIMELINE_LIMIT);
+  const timelineEvents = useMemo(
+    () => safetyTimelineService.mergeTimeline(alertsData.alerts, riskScoresData.riskScores, TIMELINE_LIMIT),
+    [alertsData.alerts, riskScoresData.riskScores],
+  );
   const timelineLoading = alertsData.loading || riskScoresData.loading;
   const timelineError = alertsData.error ?? riskScoresData.error;
   const refreshTimeline = () => {
@@ -41,17 +45,21 @@ export function DashboardPage() {
     riskScoresData.refresh();
   };
 
-  const incidentSummaryItems = [...alertsData.alerts]
-    .sort((a, b) => new Date(b.generated_at).getTime() - new Date(a.generated_at).getTime())
-    .slice(0, 5)
-    .map((record) => ({
-      id: record.id,
-      message: record.message,
-      severity: record.severity,
-      status: record.status,
-      timestamp: record.generated_at,
-      zone: record.zone,
-    }));
+  const incidentSummaryItems = useMemo(
+    () =>
+      [...alertsData.alerts]
+        .sort((a, b) => new Date(b.generated_at).getTime() - new Date(a.generated_at).getTime())
+        .slice(0, 5)
+        .map((record) => ({
+          id: record.id,
+          message: record.message,
+          severity: record.severity,
+          status: record.status,
+          timestamp: record.generated_at,
+          zone: record.zone,
+        })),
+    [alertsData.alerts],
+  );
 
   return (
     <div className="page-container">
