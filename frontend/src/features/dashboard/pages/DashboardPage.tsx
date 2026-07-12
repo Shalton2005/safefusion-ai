@@ -18,13 +18,14 @@ import { SafetyHeatmapContainer } from '@/features/live-monitoring/components/Sa
 import { CompoundRiskCardSectionView } from '@/features/risk/components/CompoundRiskCardSection';
 import { RiskExplanationPanelSectionView } from '@/features/risk/components/RiskExplanationPanelSection';
 import { EmergencyResponsePanelSectionView } from '@/features/emergency/components/EmergencyResponsePanelSection';
-import { ComplianceDashboardSection } from '@/features/compliance/components/ComplianceDashboardSection';
+import { ComplianceDashboardSectionView } from '@/features/compliance/components/ComplianceDashboardSection';
 import { RecommendationPanelSectionView } from '@/features/recommendations/components/RecommendationPanelSection';
 import { useRecentAlerts } from '@/features/alerts/hooks/useRecentAlerts';
 import { useRecentRiskScores } from '@/features/dashboard/hooks/useRecentRiskScores';
 import { useCompoundRiskEngine } from '@/features/risk/hooks/useCompoundRiskEngine';
 import { useEmergencyResponse } from '@/features/emergency/hooks/useEmergencyResponse';
 import { useRecommendations } from '@/features/recommendations/hooks/useRecommendations';
+import { useComplianceStatus } from '@/features/compliance/hooks/useComplianceStatus';
 import { usePlantStatusStore } from '@/store';
 import { safetyTimelineService } from '@/services';
 import { useEffect, useMemo } from 'react';
@@ -41,6 +42,7 @@ export function DashboardPage() {
   const riskEngineData = useCompoundRiskEngine();
   const emergencyData = useEmergencyResponse();
   const recommendationsData = useRecommendations();
+  const complianceData = useComplianceStatus();
 
   // Publishes the already-fetched compound risk assessment for the
   // globally-mounted EmergencyStatusBannerContainer (in DashboardLayout,
@@ -163,7 +165,13 @@ export function DashboardPage() {
       />
 
       {/* Compliance */}
-      <ComplianceDashboardSection />
+      <ComplianceDashboardSectionView
+        snapshot={complianceData.snapshot}
+        loading={complianceData.loading}
+        error={complianceData.error}
+        lastUpdated={complianceData.lastUpdated}
+        refresh={complianceData.refresh}
+      />
 
       {/* Recommendations */}
       <RecommendationPanelSectionView
