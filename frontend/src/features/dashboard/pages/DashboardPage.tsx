@@ -17,6 +17,7 @@ import { PermitDashboardPanel } from '@/features/permits/components/PermitDashbo
 import { SafetyHeatmapContainer } from '@/features/live-monitoring/components/SafetyHeatmapContainer';
 import { CompoundRiskCardSectionView } from '@/features/risk/components/CompoundRiskCardSection';
 import { RiskExplanationPanelSectionView } from '@/features/risk/components/RiskExplanationPanelSection';
+import { EmergencyResponsePanelSection } from '@/features/emergency/components/EmergencyResponsePanelSection';
 import { useRecentAlerts } from '@/features/alerts/hooks/useRecentAlerts';
 import { useRecentRiskScores } from '@/features/dashboard/hooks/useRecentRiskScores';
 import { useCompoundRiskEngine } from '@/features/risk/hooks/useCompoundRiskEngine';
@@ -118,6 +119,9 @@ export function DashboardPage() {
           refresh={riskEngineData.refresh}
         />
       </div>
+
+      {/* Emergency response */}
+      <EmergencyResponsePanelSection />
 
       {/* Safety timeline */}
       <SafetyTimelineSectionView

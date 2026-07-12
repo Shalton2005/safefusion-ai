@@ -1,5 +1,5 @@
 import type { SeverityLevel, AlertStatus } from '@/constants';
-import type { IncidentType } from '@/types';
+import type { IncidentType, EmergencyActionType } from '@/types';
 
 /** Badge colour variant for each severity level. Single source of truth — reuse instead of redefining per component. */
 export const SEVERITY_BADGE_VARIANT: Record<SeverityLevel, 'success' | 'primary' | 'warning' | 'danger'> = {
@@ -34,4 +34,14 @@ export const INCIDENT_TYPE_LABEL: Record<IncidentType, string> = {
   fire:          'Fire',
   explosion:     'Explosion',
   ppe_violation: 'PPE Violation',
+};
+
+/** Human-readable label for each emergency action type. Single source of truth — reuse instead of redefining per component. */
+export const EMERGENCY_ACTION_LABEL: Record<EmergencyActionType, string> = {
+  notify_safety_officer: 'Notify Safety Officer',
+  notify_control_room:   'Notify Control Room',
+  stop_work:             'Stop Work',
+  isolate_equipment:     'Isolate Equipment',
+  evacuate_area:         'Evacuate Area',
+  generate_incident:     'Generate Incident',
 };

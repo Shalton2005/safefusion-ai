@@ -212,6 +212,47 @@ export interface RiskScoreCalculationResult {
 /** Overall risk status, derived client-side from `risk_level`. */
 export type RiskStatus = 'safe' | 'warning' | 'critical';
 
+// ─── Emergency Response (GET /emergency/actions) ───────────────────
+export const EMERGENCY_ACTION_TYPES = [
+  'notify_safety_officer',
+  'notify_control_room',
+  'stop_work',
+  'isolate_equipment',
+  'evacuate_area',
+  'generate_incident',
+] as const;
+export type EmergencyActionType = (typeof EMERGENCY_ACTION_TYPES)[number];
+
+export interface EmergencyActionMatch {
+  action: EmergencyActionType;
+  triggered_by_rule: string;
+  explanation: string;
+}
+
+export interface ZoneEmergencyResponseResult {
+  zone: string;
+  risk_score: number;
+  risk_level: SeverityLevel;
+  actions: EmergencyActionMatch[];
+  explanation: string;
+}
+
+export interface EmergencyResponseResult {
+  zone_count: number;
+  results: ZoneEmergencyResponseResult[];
+}
+
+/** A single dispatched action flattened for display, with its recommended dispatch order within its zone. */
+export interface EmergencyActionItem {
+  zone: string;
+  risk_level: SeverityLevel;
+  action: EmergencyActionType;
+  triggered_by_rule: string;
+  explanation: string;
+  /** 1-based position in the recommended dispatch order for this zone, most urgent first. */
+  order: number;
+}
+
 /** Aggregated compound risk assessment for the `CompoundRiskCard`. */
 export interface CompoundRiskAssessment {
   /** Highest zone risk score, 0-100. */
