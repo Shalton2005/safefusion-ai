@@ -51,6 +51,56 @@ class GraphBaseRepository:
         result = self._session.run(f"MATCH (n:{label}) RETURN n AS node LIMIT $limit", limit=limit)
         return [dict(record["node"]) for record in result]
 
+    def list_all_nodes(self, limit: int = 1_000) -> list[dict[str, Any]]:
+        """Return every node in the graph, across all labels.
+
+        Args:
+            limit: Maximum number of nodes to return.
+
+        Returns:
+            One ``dict`` per node with keys ``id`` (Neo4j internal element
+            id, as ``str``), ``labels`` (list of label strings), and
+            ``properties`` (the node's stored property dict).
+        """
+        result = self._session.run(
+            "MATCH (n) RETURN elementId(n) AS id, labels(n) AS labels, properties(n) AS properties LIMIT $limit",
+            limit=limit,
+        )
+        return [
+            {"id": record["id"], "labels": record["labels"], "properties": dict(record["properties"])}
+            for record in result
+        ]
+
+    def list_all_relationships(self, limit: int = 5_000) -> list[dict[str, Any]]:
+        """Return every relationship in the graph, across all types.
+
+        Args:
+            limit: Maximum number of relationships to return.
+
+        Returns:
+            One ``dict`` per relationship with keys ``id`` (Neo4j internal
+            element id), ``type``, ``start_node_id``, ``end_node_id``
+            (element ids of the endpoint nodes), and ``properties``.
+        """
+        result = self._session.run(
+            "MATCH (a)-[r]->(b) "
+            "RETURN elementId(r) AS id, type(r) AS type, "
+            "elementId(a) AS start_node_id, elementId(b) AS end_node_id, "
+            "properties(r) AS properties "
+            "LIMIT $limit",
+            limit=limit,
+        )
+        return [
+            {
+                "id": record["id"],
+                "type": record["type"],
+                "start_node_id": record["start_node_id"],
+                "end_node_id": record["end_node_id"],
+                "properties": dict(record["properties"]),
+            }
+            for record in result
+        ]
+
     def merge_node(self, label: str, key: str, key_value: Any, properties: Mapping[str, Any]) -> None:
         """Create or update a single node, keyed by one uniquely-identifying property.
 

@@ -30,7 +30,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.config.settings import settings
-from src.graph_database.driver import close_driver
+from src.graph_database.driver import close_driver, ensure_constraints
 from src.middleware.exception_handler import API_ERROR_RESPONSES, register_exception_handlers
 from src.middleware.logging_middleware import RequestLoggingMiddleware
 from src.routes import alerts as alerts_router
@@ -85,11 +85,18 @@ OPENAPI_TAGS_METADATA = [
 async def _lifespan(_application: FastAPI) -> AsyncIterator[None]:
     """Release process-level resources on shutdown.
 
-    The Neo4j driver (see :mod:`src.graph_database.driver`) opens its
-    connection pool at import time and must be closed explicitly when the
-    process exits, mirroring how the PostgreSQL engine's pool is torn down
-    implicitly by process exit.
+    On startup, ensures Neo4j uniqueness constraints exist (see
+    :func:`~src.graph_database.driver.ensure_constraints`) so every
+    ``MERGE``-based write in :mod:`src.repositories.graph_base` is
+    duplicate-safe under concurrent writers. Non-fatal if Neo4j is
+    unreachable at startup — constraints are re-checked on every restart.
+
+    On shutdown, the Neo4j driver (see :mod:`src.graph_database.driver`)
+    opens its connection pool at import time and must be closed explicitly
+    when the process exits, mirroring how the PostgreSQL engine's pool is
+    torn down implicitly by process exit.
     """
+    ensure_constraints()
     yield
     close_driver()
 

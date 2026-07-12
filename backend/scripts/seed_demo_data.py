@@ -80,6 +80,7 @@ from sqlalchemy.orm import Session
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from src.database.session import SessionLocal
+from src.graph_database.driver import ensure_constraints
 from src.graph_database.session import graph_session
 from src.models.alert import Alert
 from src.models.enums import (
@@ -262,6 +263,7 @@ class SeedReport:
     incidents_created: int = 0
     scenario_records_created: dict[str, int] = field(default_factory=dict)
     graph_synced: dict[str, int] = field(default_factory=dict)
+    graph_sync_error: str | None = None
 
 
 def seed_workers(db: Session, target_count: int) -> int:
@@ -1317,7 +1319,15 @@ def run_seed(
         db.commit()
 
     if sync_to_graph:
-        report.graph_synced = sync_graph()
+        # PostgreSQL seeding has already committed at this point — a Neo4j
+        # failure here (e.g. Neo4j not running on a dev machine) must not
+        # discard the seed report or crash the process, since seeding
+        # already succeeded independently of the graph sync.
+        try:
+            ensure_constraints()
+            report.graph_synced = sync_graph()
+        except Exception as exc:  # noqa: BLE001 - reported to the caller, not swallowed
+            report.graph_sync_error = str(exc)
 
     return report
 
@@ -1386,7 +1396,10 @@ def main() -> None:
     else:
         print("Scenario records created: none (scenarios skipped)")
 
-    if report.graph_synced:
+    if report.graph_sync_error:
+        print(f"Neo4j knowledge graph synced: FAILED ({report.graph_sync_error})")
+        print("  PostgreSQL seed data above was still committed successfully.")
+    elif report.graph_synced:
         print("Neo4j knowledge graph synced:")
         for entity_type, count in report.graph_synced.items():
             print(f"  {entity_type}: {count}")

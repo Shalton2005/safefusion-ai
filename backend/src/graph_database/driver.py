@@ -26,6 +26,26 @@ from src.utils.logger import get_logger
 logger = get_logger(__name__)
 
 
+# ── Node labels requiring a uniqueness constraint on ``id`` ────────────────────
+# Every label this application MERGEs on via GraphBaseRepository.merge_node.
+# Neo4j does not auto-index arbitrary properties, so without a uniqueness
+# constraint each MERGE performs a full label scan, and — because the
+# match-then-create in MERGE is only atomic when backed by a constraint's
+# index — concurrent ingestion runs could otherwise create duplicate nodes
+# for the same id. Keep this list in sync with the labels used across
+# src/services/graph_ingestion.py.
+_CONSTRAINED_NODE_LABELS: tuple[str, ...] = (
+    "Zone",
+    "Worker",
+    "Sensor",
+    "Permit",
+    "Equipment",
+    "Maintenance",
+    "Incident",
+    "Risk",
+)
+
+
 # ── Driver factory ────────────────────────────────────────────────────────────
 
 def _build_driver() -> Driver:
@@ -69,6 +89,41 @@ def verify_connectivity() -> bool:
         return True
     except Exception:
         logger.exception("Neo4j connectivity check failed")
+        return False
+
+
+def ensure_constraints() -> bool:
+    """Create the uniqueness constraint on ``id`` for every graph node label.
+
+    Idempotent — uses ``IF NOT EXISTS``, so safe to call on every process
+    startup. Intended to be called once during application startup (and
+    before any ingestion run) so every :meth:`~src.repositories.graph_base.GraphBaseRepository.merge_node`
+    call is backed by an index: without a constraint, Neo4j has nothing to
+    lock on for a ``MERGE``'s match-then-create, so concurrent writers can
+    race and create duplicate nodes for the same ``id`` — the constraint is
+    what actually guarantees the "no duplicate nodes" behaviour the ingestion
+    layer otherwise only achieves under non-concurrent access.
+
+    Never called implicitly at import time (mirrors :func:`verify_connectivity`)
+    since Neo4j may not yet be reachable when this module is first imported.
+
+    Returns:
+        ``True`` if every constraint was created/confirmed, ``False`` if
+        Neo4j was unreachable or a constraint statement failed.
+    """
+    try:
+        with driver.session(database=settings.NEO4J_DATABASE) as session:
+            for label in _CONSTRAINED_NODE_LABELS:
+                session.run(
+                    f"CREATE CONSTRAINT IF NOT EXISTS FOR (n:{label}) REQUIRE n.id IS UNIQUE"
+                )
+        logger.info("Neo4j uniqueness constraints ensured for labels=%s", _CONSTRAINED_NODE_LABELS)
+        return True
+    except Exception as exc:
+        # Neo4j being unreachable at startup is an expected condition (e.g.
+        # local dev without Neo4j running) — log a concise warning, not a
+        # full traceback, and never let this block application startup.
+        logger.warning("Skipping Neo4j uniqueness constraints: %s", exc)
         return False
 
 

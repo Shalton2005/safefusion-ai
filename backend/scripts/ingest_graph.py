@@ -8,7 +8,9 @@ row from PostgreSQL and projects them into the Neo4j knowledge graph via
 Every write is a Cypher ``MERGE`` keyed on the PostgreSQL row's ``id``, so
 this script is idempotent: running it repeatedly (e.g. on a schedule) only
 creates nodes/relationships for new rows and refreshes properties on
-existing ones — it never produces duplicates.
+existing ones. Duplicate-free ``MERGE`` behaviour depends on the
+uniqueness constraints ensured below — without them, Neo4j has nothing to
+lock on and concurrent ingestion runs could race and create duplicates.
 
 Usage:
     cd backend
@@ -24,6 +26,7 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from src.database.session import SessionLocal
+from src.graph_database.driver import ensure_constraints
 from src.graph_database.session import graph_session
 from src.repositories.graph_base import GraphBaseRepository
 from src.repositories.incident import IncidentRepository
@@ -36,6 +39,8 @@ from src.services.graph_ingestion import GraphIngestionService
 
 
 def main() -> None:
+    ensure_constraints()
+
     db = SessionLocal()
     try:
         with graph_session() as session:

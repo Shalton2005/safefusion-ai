@@ -6,19 +6,30 @@ Read-only Cypher traversals over the knowledge graph defined in
 method combines more than one traversal, so each stays easy to reason
 about and reuse independently (modular per method, not one big query).
 
-Two of the five queries below traverse through ``Zone`` rather than a
-direct edge, because the current ``GraphIngestionService``
-(``src/services/graph_ingestion.py``) only ever writes zone-mediated
-relationships — PostgreSQL has no ``worker_id`` foreign key on permits
-and no direct equipment/incident link, so ``HAS_PERMIT`` and a direct
-``Equipment``-``Incident`` edge (both shown in the schema doc) are not
-actually present in the ingested graph yet:
+Three of the five queries below depend on relationships that
+``GraphIngestionService`` (``src/services/graph_ingestion.py``) does not
+currently write, because the underlying PostgreSQL data has no path to
+derive them from. These are **known, currently-broken/degraded query
+paths**, not stylistic choices — read each method's docstring before
+relying on it:
 
-- **Permits by Worker** uses ``Worker-[:LOCATED_IN]->Zone<-[:ISSUED_FOR]-Permit``
-  (permits issued for the worker's current zone) as an approximation of
-  "permits related to a worker" until a direct relationship is ingested.
-- **Incidents by Equipment** uses ``Equipment-[:LOCATED_IN]->Zone<-[:OCCURRED_IN]-Incident``
-  (incidents in the equipment's zone) for the same reason.
+- **Permits by Worker** (:meth:`get_permits_by_worker`) — degrades to a
+  zone-level approximation (returns non-empty results, but over-broad:
+  every permit in the worker's zone, not permits specific to that worker).
+- **Incidents by Equipment** (:meth:`get_incidents_by_equipment`) —
+  **always returns an empty list**. ``MaintenanceLog`` has no ``zone``
+  column in PostgreSQL, so ``Equipment`` nodes are never given a
+  ``LOCATED_IN`` edge to any ``Zone`` at all; the query's own zone-mediated
+  ``MATCH`` can never bind. Fixing this requires a PostgreSQL schema
+  change (adding a zone/location reference to ``maintenance_logs``) —
+  out of scope for the graph layer alone.
+- **Risks by Incident** (:meth:`get_risks_by_incident`) — **always
+  returns an empty list**. ``GraphIngestionService`` never writes an
+  ``Incident-[:TRIGGERED_BY]->Risk`` edge (only ``Risk-[:ASSESSES]->Zone``
+  exists); PostgreSQL's ``Incident``/``RiskScore`` tables have no foreign
+  key linking a specific incident to the risk assessment that preceded it,
+  only a shared ``zone``. Fixing this requires either that FK or an
+  explicit zone-and-time-window join at ingestion time.
 
 Every method returns plain ``dict``/``list[dict]`` structures built from
 Neo4j ``Record`` objects — never a driver-native ``Node``/``Relationship``
@@ -75,9 +86,11 @@ class GraphQueryRepository(GraphBaseRepository):
     def get_permits_by_worker(self, worker_id: str) -> list[dict[str, Any]]:
         """Return permits issued for the worker's current zone.
 
-        See module docstring — this is a zone-mediated approximation of
-        "permits related to a worker" until a direct ``HAS_PERMIT`` edge
-        is ingested.
+        Zone-mediated approximation, not a worker-specific relationship —
+        see module docstring. Returns every permit in the worker's zone,
+        which may include permits unrelated to this worker's actual task
+        or team. Returns an empty list if the worker has no ``current_zone``
+        set.
         """
         result = self._session.run(
             "MATCH (w:Worker {id: $worker_id})-[:LOCATED_IN]->(z:Zone) "
@@ -93,9 +106,11 @@ class GraphQueryRepository(GraphBaseRepository):
     def get_incidents_by_equipment(self, equipment_id: str) -> list[dict[str, Any]]:
         """Return incidents that occurred in the equipment's zone.
 
-        See module docstring — this is a zone-mediated approximation of
-        "incidents affecting equipment" until a direct equipment/incident
-        edge is ingested.
+        ALWAYS RETURNS AN EMPTY LIST today — see module docstring.
+        ``Equipment`` nodes have no ``LOCATED_IN`` edge to any ``Zone`` in
+        the current ingested graph (``MaintenanceLog`` has no PostgreSQL
+        ``zone`` column), so this query's first ``MATCH`` clause can never
+        bind. Requires a PostgreSQL schema change to fix.
         """
         result = self._session.run(
             "MATCH (e:Equipment {id: $equipment_id})-[:LOCATED_IN]->(z:Zone) "
@@ -121,7 +136,15 @@ class GraphQueryRepository(GraphBaseRepository):
     # ── Risks by Incident ────────────────────────────────────────────────────
 
     def get_risks_by_incident(self, incident_id: str) -> list[dict[str, Any]]:
-        """Return the risk assessment(s) that triggered the given incident."""
+        """Return the risk assessment(s) that triggered the given incident.
+
+        ALWAYS RETURNS AN EMPTY LIST today — see module docstring.
+        ``GraphIngestionService`` never writes an ``Incident-[:TRIGGERED_BY]->Risk``
+        edge; ``Incident`` and ``Risk`` are only ever linked indirectly, via
+        their shared ``Zone``. Requires either a PostgreSQL foreign key from
+        incident to the risk assessment that preceded it, or an explicit
+        zone-and-time-window join at ingestion time.
+        """
         result = self._session.run(
             "MATCH (i:Incident {id: $incident_id})-[:TRIGGERED_BY]->(r:Risk) "
             "RETURN r AS risk "
