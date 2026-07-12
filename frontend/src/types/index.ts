@@ -396,6 +396,24 @@ export interface IncidentComplianceResult {
   recommendations: string[];
 }
 
+// ─── Recommendations (GET /recommendations) ────────────────────────
+export const RECOMMENDATION_SOURCES = ['compound_risk', 'emergency_response', 'compliance'] as const;
+export type RecommendationSource = (typeof RECOMMENDATION_SOURCES)[number];
+
+export interface Recommendation {
+  source: RecommendationSource;
+  zone: string | null;
+  /** Sort key from the backend — lower sorts first (higher priority). Never re-sorted client-side. */
+  priority: number;
+  message: string;
+  reason: string;
+}
+
+export interface RecommendationResult {
+  recommendation_count: number;
+  recommendations: Recommendation[];
+}
+
 // ─── Navigation ────────────────────────────────────────────────────
 export interface NavItem {
   label: string;

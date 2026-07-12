@@ -14,6 +14,7 @@ export { emergencyResponseService } from './emergencyResponse.service';
 export { incidentsService } from './incidents.service';
 export { monitoringService }from './monitoring.service';
 export { permitsService }   from './permits.service';
+export { recommendationService } from './recommendation.service';
 export { reportsService }   from './reports.service';
 export { safetyTimelineService } from './safetyTimeline.service';
 export { sensorsService }  from './sensors.service';

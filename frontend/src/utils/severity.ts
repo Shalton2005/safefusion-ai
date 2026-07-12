@@ -1,5 +1,5 @@
 import type { SeverityLevel, AlertStatus } from '@/constants';
-import type { IncidentType, EmergencyActionType, ComplianceFramework, ComplianceStatus } from '@/types';
+import type { IncidentType, EmergencyActionType, ComplianceFramework, ComplianceStatus, RecommendationSource } from '@/types';
 
 /** Badge colour variant for each severity level. Single source of truth — reuse instead of redefining per component. */
 export const SEVERITY_BADGE_VARIANT: Record<SeverityLevel, 'success' | 'primary' | 'warning' | 'danger'> = {
@@ -70,4 +70,23 @@ export const COMPLIANCE_STATUS_BADGE_VARIANT: Record<ComplianceStatus, 'success'
 export const COMPLIANCE_STATUS_LABEL: Record<ComplianceStatus, string> = {
   compliant:     'Compliant',
   non_compliant: 'Non-Compliant',
+};
+
+/**
+ * Human-readable label for each recommendation source — the backend has no
+ * separate per-recommendation status field, so this (the engine that
+ * generated the recommendation) is displayed as its "Status" column.
+ * Single source of truth — reuse instead of redefining per component.
+ */
+export const RECOMMENDATION_SOURCE_LABEL: Record<RecommendationSource, string> = {
+  compound_risk:      'Compound Risk',
+  emergency_response: 'Emergency Response',
+  compliance:         'Compliance',
+};
+
+/** Badge colour variant for each recommendation source. Single source of truth — reuse instead of redefining per component. */
+export const RECOMMENDATION_SOURCE_BADGE_VARIANT: Record<RecommendationSource, 'warning' | 'danger' | 'primary'> = {
+  compound_risk:      'warning',
+  emergency_response: 'danger',
+  compliance:         'primary',
 };
