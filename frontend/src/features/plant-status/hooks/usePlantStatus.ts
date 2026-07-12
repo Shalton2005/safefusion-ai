@@ -1,13 +1,19 @@
 /**
  * usePlantStatus
  *
- * Polls two real backend signals and combines them into the four-state
- * plant status banner (Normal / Warning / Critical / Emergency):
+ * Combines two real backend signals into the four-state plant status
+ * banner (Normal / Warning / Critical / Emergency):
  *   - `GET /emergency/status` → `in_emergency` (an emergency action has
- *     actually been dispatched somewhere) — takes precedence.
- *   - `POST /risk-scores/calculate` (Compound Risk engine, via
- *     `compoundRiskService`) → the highest-risk zone's `risk_level`,
- *     bucketed into Normal/Warning/Critical when not in emergency.
+ *     actually been dispatched somewhere) — takes precedence. Always
+ *     polled here; nothing else on the page fetches it.
+ *   - The highest-risk zone's `risk_level`, bucketed into
+ *     Normal/Warning/Critical when not in emergency — read from
+ *     `usePlantStatusStore` if a page (e.g. `DashboardPage`, via its own
+ *     `useCompoundRiskEngine`) has already published a fresh one, since
+ *     `POST /risk-scores/calculate` is non-idempotent and shouldn't be
+ *     called twice in parallel. Only self-fetches via
+ *     `compoundRiskService.getAssessment()` when nothing has been
+ *     published — the common case for pages other than the dashboard.
  *
  * Never fabricates a status the backend didn't produce — Emergency Mode
  * and Risk Level are both surfaced verbatim alongside the derived status.
@@ -20,6 +26,7 @@ import { useRef, useState } from 'react';
 import { compoundRiskService, emergencyResponseService } from '@/services';
 import { ApiError } from '@/api/errors';
 import { usePolling } from '@/hooks/usePolling';
+import { usePlantStatusStore } from '@/store';
 import { DASHBOARD_REFRESH_INTERVAL } from '@/constants';
 import { RISK_LEVEL_TO_PLANT_STATUS } from '@/utils/severity';
 import type { SeverityLevel } from '@/constants';
@@ -43,18 +50,27 @@ export function usePlantStatus(): UsePlantStatusResult {
   const [error, setError] = useState<string | null>(null);
   const hasLoadedOnce = useRef(false);
 
+  // Subscribes so a later publish (e.g. the dashboard's risk card finishing
+  // its own fetch after this hook's first tick) re-renders the banner with
+  // the shared value instead of waiting for this hook's own next interval.
+  const publishedRiskLevel = usePlantStatusStore((s) => s.riskLevel);
+  const publishedLastUpdated = usePlantStatusStore((s) => s.lastUpdated);
+
   const fetchStatus = async (signal?: AbortSignal) => {
     if (!hasLoadedOnce.current) setLoading(true);
     setError(null);
     try {
-      const [emergencyStatus, assessment] = await Promise.all([
+      const published = usePlantStatusStore.getState();
+      const [emergencyStatus, resolvedRiskLevel] = await Promise.all([
         emergencyResponseService.getStatus({ signal }),
-        compoundRiskService.getAssessment({ signal }),
+        published.riskLevel !== null
+          ? Promise.resolve(published.riskLevel)
+          : compoundRiskService.getAssessment({ signal }).then((a) => a.risk_level),
       ]);
 
       setInEmergency(emergencyStatus.in_emergency);
-      setRiskLevel(assessment.risk_level);
-      setStatus(emergencyStatus.in_emergency ? 'emergency' : RISK_LEVEL_TO_PLANT_STATUS[assessment.risk_level]);
+      setRiskLevel(resolvedRiskLevel);
+      setStatus(emergencyStatus.in_emergency ? 'emergency' : RISK_LEVEL_TO_PLANT_STATUS[resolvedRiskLevel]);
       hasLoadedOnce.current = true;
     } catch (err) {
       const apiError = ApiError.from(err);
@@ -70,5 +86,24 @@ export function usePlantStatus(): UsePlantStatusResult {
 
   const { lastUpdated, refresh } = usePolling(fetchStatus, DASHBOARD_REFRESH_INTERVAL);
 
-  return { status, riskLevel, inEmergency, loading, error, lastUpdated, refresh };
+  // A fresher publish arriving between this hook's own polls should win.
+  const effectiveRiskLevel = publishedRiskLevel ?? riskLevel;
+  const effectiveLastUpdated =
+    publishedLastUpdated && (!lastUpdated || publishedLastUpdated > lastUpdated) ? publishedLastUpdated : lastUpdated;
+  const effectiveStatus =
+    inEmergency === null || effectiveRiskLevel === null
+      ? status
+      : inEmergency
+        ? 'emergency'
+        : RISK_LEVEL_TO_PLANT_STATUS[effectiveRiskLevel];
+
+  return {
+    status: effectiveStatus,
+    riskLevel: effectiveRiskLevel,
+    inEmergency,
+    loading,
+    error,
+    lastUpdated: effectiveLastUpdated,
+    refresh,
+  };
 }

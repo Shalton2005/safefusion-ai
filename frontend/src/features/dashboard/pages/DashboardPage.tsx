@@ -25,8 +25,9 @@ import { useRecentRiskScores } from '@/features/dashboard/hooks/useRecentRiskSco
 import { useCompoundRiskEngine } from '@/features/risk/hooks/useCompoundRiskEngine';
 import { useEmergencyResponse } from '@/features/emergency/hooks/useEmergencyResponse';
 import { useRecommendations } from '@/features/recommendations/hooks/useRecommendations';
+import { usePlantStatusStore } from '@/store';
 import { safetyTimelineService } from '@/services';
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 
 /** How many recent alerts / risk-score records feed the timeline + incident summary. */
 const TIMELINE_LIMIT = 20;
@@ -40,6 +41,22 @@ export function DashboardPage() {
   const riskEngineData = useCompoundRiskEngine();
   const emergencyData = useEmergencyResponse();
   const recommendationsData = useRecommendations();
+
+  // Publishes the already-fetched compound risk assessment for the
+  // globally-mounted EmergencyStatusBannerContainer (in DashboardLayout,
+  // above this page's <Outlet />) to reuse via usePlantStatusStore,
+  // instead of it independently re-calling the same non-idempotent
+  // POST /risk-scores/calculate endpoint. Cleared on unmount so a stale
+  // value doesn't leak to other pages after navigating away.
+  useEffect(() => {
+    if (riskEngineData.assessment) {
+      usePlantStatusStore.getState().publish({
+        riskLevel: riskEngineData.assessment.risk_level,
+        lastUpdated: riskEngineData.lastUpdated,
+      });
+    }
+    return () => usePlantStatusStore.getState().clear();
+  }, [riskEngineData.assessment, riskEngineData.lastUpdated]);
 
   const timelineEvents = useMemo(
     () =>

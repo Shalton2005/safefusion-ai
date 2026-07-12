@@ -5,6 +5,9 @@ export { useThemeStore }                     from './useThemeStore';
 export { useSidebarStore }                   from './useSidebarStore';
 export { useRightPanelStore }                from './useRightPanelStore';
 
+// ─── Cross-tree data bridges ──────────────────────────────────────
+export { usePlantStatusStore }               from './usePlantStatusStore';
+
 // ─── Notifications ────────────────────────────────────────────────
 export { useNotificationStore, toast }       from './useNotificationStore';
 export type { Notification, NotificationType } from './useNotificationStore';

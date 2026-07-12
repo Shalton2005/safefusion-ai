@@ -17,6 +17,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createRequestController } from '@/api/client';
+import { useAppStore } from '@/store';
 
 export interface UsePollingResult {
   /** Timestamp of the most recently completed fetch, or `null` before the first one resolves. */
@@ -35,7 +36,13 @@ export function usePolling(
 
   const runTick = useCallback((signal?: AbortSignal) => {
     fetcherRef.current(signal).then(() => {
-      if (!signal?.aborted) setLastUpdated(new Date());
+      if (!signal?.aborted) {
+        setLastUpdated(new Date());
+        // Every polling panel funnels through here, so this is the single
+        // choke point for the app-wide "last synced" indicator in
+        // useAppStore — no per-panel wiring needed.
+        useAppStore.getState().recordSync();
+      }
     });
   }, []);
 
