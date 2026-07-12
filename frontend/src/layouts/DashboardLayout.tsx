@@ -3,6 +3,7 @@ import { Sidebar }    from '@/components/common/Sidebar';
 import { TopNav }     from '@/components/common/TopNav';
 import { Footer }     from '@/components/common/Footer';
 import { RightPanel } from '@/components/common/RightPanel';
+import { EmergencyStatusBannerContainer } from '@/features/plant-status/components/EmergencyStatusBannerContainer';
 
 export function DashboardLayout() {
   return (
@@ -16,6 +17,10 @@ export function DashboardLayout() {
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden transition-all duration-300 ease-in-out print:overflow-visible">
         <div className="print:hidden">
           <TopNav />
+        </div>
+
+        <div className="px-4 pt-3 print:hidden">
+          <EmergencyStatusBannerContainer />
         </div>
 
         <main className="flex-1 overflow-y-auto focus:outline-none print:overflow-visible" id="main-content">

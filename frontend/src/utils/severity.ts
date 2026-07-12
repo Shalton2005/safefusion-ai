@@ -1,5 +1,5 @@
 import type { SeverityLevel, AlertStatus } from '@/constants';
-import type { IncidentType, EmergencyActionType, ComplianceFramework, ComplianceStatus, RecommendationSource } from '@/types';
+import type { IncidentType, EmergencyActionType, ComplianceFramework, ComplianceStatus, RecommendationSource, PlantStatus } from '@/types';
 
 /** Badge colour variant for each severity level. Single source of truth — reuse instead of redefining per component. */
 export const SEVERITY_BADGE_VARIANT: Record<SeverityLevel, 'success' | 'primary' | 'warning' | 'danger'> = {
@@ -89,4 +89,40 @@ export const RECOMMENDATION_SOURCE_BADGE_VARIANT: Record<RecommendationSource, '
   compound_risk:      'warning',
   emergency_response: 'danger',
   compliance:         'primary',
+};
+
+/** Bucket a Compound Risk `SeverityLevel` into the plant status vocabulary used outside of emergency mode. */
+export const RISK_LEVEL_TO_PLANT_STATUS: Record<SeverityLevel, Exclude<PlantStatus, 'emergency'>> = {
+  low:      'normal',
+  medium:   'warning',
+  high:     'critical',
+  critical: 'critical',
+};
+
+/** Human-readable label for each plant status. Single source of truth — reuse instead of redefining per component. */
+export const PLANT_STATUS_LABEL: Record<PlantStatus, string> = {
+  normal:    'Normal',
+  warning:   'Warning',
+  critical:  'Critical',
+  emergency: 'Emergency',
+};
+
+/** Badge colour variant for each plant status. Single source of truth — reuse instead of redefining per component. */
+export const PLANT_STATUS_BADGE_VARIANT: Record<PlantStatus, 'success' | 'warning' | 'danger'> = {
+  normal:    'success',
+  warning:   'warning',
+  critical:  'danger',
+  emergency: 'danger',
+};
+
+/**
+ * Banner surface classes for each plant status — a stronger, full-width
+ * treatment than a `Badge`, so this is defined here rather than reusing
+ * `PLANT_STATUS_BADGE_VARIANT`'s palette directly.
+ */
+export const PLANT_STATUS_BANNER_CLASSES: Record<PlantStatus, string> = {
+  normal:    'bg-safe-500/10 border-safe-500/30 text-safe-700 dark:text-safe-400',
+  warning:   'bg-caution-500/10 border-caution-500/30 text-caution-700 dark:text-caution-400',
+  critical:  'bg-danger-500/10 border-danger-500/30 text-danger-700 dark:text-danger-400',
+  emergency: 'bg-danger-600/20 border-danger-600/50 text-danger-800 dark:text-danger-300',
 };

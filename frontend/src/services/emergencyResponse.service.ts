@@ -1,5 +1,5 @@
 import { createService } from './base.service';
-import type { EmergencyActionItem, EmergencyResponseResult } from '@/types';
+import type { EmergencyActionItem, EmergencyResponseResult, EmergencyStatus } from '@/types';
 import type { RequestOptions } from '@/api/types';
 
 const base = createService<EmergencyResponseResult>('/emergency');
@@ -27,6 +27,12 @@ export const emergencyResponseService = {
   /** Dispatched emergency actions for each affected zone (`GET /emergency/actions`). */
   getActions: async (options?: RequestOptions): Promise<EmergencyResponseResult> => {
     const { data } = await base.get<EmergencyResponseResult>('actions', undefined, options);
+    return data;
+  },
+
+  /** Plant-wide emergency risk snapshot (`GET /emergency/status`). */
+  getStatus: async (options?: RequestOptions): Promise<EmergencyStatus> => {
+    const { data } = await base.get<EmergencyStatus>('status', undefined, options);
     return data;
   },
 

@@ -253,6 +253,30 @@ export interface EmergencyActionItem {
   order: number;
 }
 
+// ─── Emergency Status (GET /emergency/status) ───────────────────────
+export interface ZoneEmergencyStatus {
+  zone: string;
+  risk_score: number;
+  risk_level: SeverityLevel;
+  action_count: number;
+}
+
+export interface EmergencyStatus {
+  zone_count: number;
+  in_emergency: boolean;
+  zones: ZoneEmergencyStatus[];
+}
+
+/**
+ * Plant-wide status banner state — derived client-side from two real
+ * backend signals (never fabricated): `EmergencyStatus.in_emergency`
+ * (an emergency action has actually been dispatched somewhere) takes
+ * precedence; otherwise it buckets the Compound Risk engine's overall
+ * `risk_level` for the highest-risk zone.
+ */
+export const PLANT_STATUSES = ['normal', 'warning', 'critical', 'emergency'] as const;
+export type PlantStatus = (typeof PLANT_STATUSES)[number];
+
 /** Aggregated compound risk assessment for the `CompoundRiskCard`. */
 export interface CompoundRiskAssessment {
   /** Highest zone risk score, 0-100. */
