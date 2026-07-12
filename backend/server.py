@@ -22,11 +22,15 @@ Once running, the interactive API documentation is available at:
     - OpenAPI    : http://localhost:8000/openapi.json
 """
 
+from contextlib import asynccontextmanager
+from typing import AsyncIterator
+
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.config.settings import settings
+from src.graph_database.driver import close_driver
 from src.middleware.exception_handler import API_ERROR_RESPONSES, register_exception_handlers
 from src.middleware.logging_middleware import RequestLoggingMiddleware
 from src.routes import alerts as alerts_router
@@ -75,6 +79,19 @@ OPENAPI_TAGS_METADATA = [
 ]
 
 
+@asynccontextmanager
+async def _lifespan(_application: FastAPI) -> AsyncIterator[None]:
+    """Release process-level resources on shutdown.
+
+    The Neo4j driver (see :mod:`src.graph_database.driver`) opens its
+    connection pool at import time and must be closed explicitly when the
+    process exits, mirroring how the PostgreSQL engine's pool is torn down
+    implicitly by process exit.
+    """
+    yield
+    close_driver()
+
+
 def create_application() -> FastAPI:
     """Construct and configure the FastAPI application instance.
 
@@ -109,6 +126,7 @@ def create_application() -> FastAPI:
         openapi_tags=OPENAPI_TAGS_METADATA,
         contact={"name": "SafeFusion AI Backend Team"},
         license_info={"name": "MIT"},
+        lifespan=_lifespan,
     )
 
     # ── CORS ──────────────────────────────────────────────────────────────────

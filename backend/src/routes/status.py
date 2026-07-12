@@ -21,14 +21,19 @@ class StatusResponse(BaseModel):
     Attributes:
         backend:  Operational state of the FastAPI process.
             Value is ``"running"`` when the process can handle requests.
-        database: Configuration state of the database layer.
+        database: Configuration state of the PostgreSQL database layer.
             Value is ``"configured"`` when the engine and session factory
             have been initialised from the environment. Does **not** imply
             a successful live connection — use a readiness probe for that.
+        graph_database: Configuration state of the Neo4j knowledge-graph
+            layer. Value is ``"configured"`` when the driver has been
+            initialised from the environment. Does **not** imply a
+            successful live connection — use a readiness probe for that.
     """
 
     backend: str
     database: str
+    graph_database: str
 
 
 # ── Endpoint ──────────────────────────────────────────────────────────────────
@@ -46,17 +51,19 @@ class StatusResponse(BaseModel):
     response_model_exclude_none=True,
 )
 async def api_status() -> StatusResponse:
-    """Return the operational status of the backend and database layer.
+    """Return the operational status of the backend and database layers.
 
-    The ``database`` field reflects whether the database engine and session
-    factory have been successfully initialised from the application settings.
-    It does **not** probe the live database connection; a separate readiness
-    check should be used for that purpose.
+    The ``database`` and ``graph_database`` fields reflect whether their
+    respective connection layers have been successfully initialised from
+    the application settings. Neither field probes a live connection; a
+    separate readiness check should be used for that purpose.
 
     Returns:
-        A :class:`StatusResponse` with ``backend`` and ``database`` fields.
+        A :class:`StatusResponse` with ``backend``, ``database``, and
+        ``graph_database`` fields.
     """
     return StatusResponse(
         backend="running",
         database="configured",
+        graph_database="configured",
     )

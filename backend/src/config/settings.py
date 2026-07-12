@@ -23,6 +23,14 @@ class Settings(BaseSettings):
     # ── Database ──────────────────────────────────────────────────────────────
     DATABASE_URL: str = "postgresql://postgres:password@localhost:5432/safefusion_db"
 
+    # ── Neo4j (Knowledge Graph) ──────────────────────────────────────────────
+    # Independent of the PostgreSQL connection above — used for future
+    # knowledge-graph queries (e.g. zone/asset/hazard relationship modeling).
+    NEO4J_URI: str = "bolt://localhost:7687"
+    NEO4J_USERNAME: str = "neo4j"
+    NEO4J_PASSWORD: str = "change-this-password-in-production"
+    NEO4J_DATABASE: str = "neo4j"
+
     # ── Security ──────────────────────────────────────────────────────────────
     SECRET_KEY: str = "change-this-secret-key-in-production"
 
