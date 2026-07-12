@@ -1,7 +1,9 @@
+import { Link } from 'react-router-dom';
 import { Flame, Bomb, HardHat, MapPin, Clock } from 'lucide-react';
 import { Card, Badge } from '@/components/ui';
 import { capitalise, formatRelativeTime } from '@/utils/format';
 import { SEVERITY_BADGE_VARIANT, INCIDENT_TYPE_LABEL } from '@/utils/severity';
+import { incidentReportPath } from '@/constants/routes';
 import type { Incident, IncidentType } from '@/types';
 
 const incidentTypeIcon: Record<IncidentType, React.ElementType> = {
@@ -20,37 +22,39 @@ export function IncidentCard({ incident }: IncidentCardProps) {
   const Icon = incidentTypeIcon[incident.incident_type];
 
   return (
-    <Card padding="sm" className="flex flex-col gap-3">
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-2 min-w-0">
-          <Icon className="w-4 h-4 flex-shrink-0 text-[var(--sf-text-tertiary)]" aria-hidden="true" />
-          <p className="text-sm font-semibold text-[var(--sf-text-primary)] truncate">{label}</p>
+    <Link to={incidentReportPath(incident.id)} className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded-xl">
+      <Card padding="sm" className="flex flex-col gap-3 hover:border-[var(--sf-border-strong)] transition-colors">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <Icon className="w-4 h-4 flex-shrink-0 text-[var(--sf-text-tertiary)]" aria-hidden="true" />
+            <p className="text-sm font-semibold text-[var(--sf-text-primary)] truncate">{label}</p>
+          </div>
+          <Badge variant={SEVERITY_BADGE_VARIANT[incident.severity]} size="sm" dot pulsing={incident.severity === 'critical'}>
+            {capitalise(incident.severity)}
+          </Badge>
         </div>
-        <Badge variant={SEVERITY_BADGE_VARIANT[incident.severity]} size="sm" dot pulsing={incident.severity === 'critical'}>
-          {capitalise(incident.severity)}
+
+        <p className="text-xs text-[var(--sf-text-secondary)] leading-relaxed line-clamp-2">
+          {incident.description}
+        </p>
+
+        <div className="flex items-center gap-1.5 text-xs text-[var(--sf-text-tertiary)]">
+          <MapPin className="w-3.5 h-3.5 flex-shrink-0" aria-hidden="true" />
+          {incident.zone}
+        </div>
+
+        <div className="flex items-center justify-between gap-2 pt-2 border-t border-[var(--sf-border-default)]">
+          <div className="flex items-center gap-1.5 text-2xs text-[var(--sf-text-tertiary)]">
+            <Clock className="w-3 h-3 flex-shrink-0" aria-hidden="true" />
+            {formatRelativeTime(incident.occurred_at)}
+          </div>
+          <span className="text-2xs text-[var(--sf-text-tertiary)]">Workers Involved: —</span>
+        </div>
+
+        <Badge variant="outline" size="sm" className="self-start">
+          Reported
         </Badge>
-      </div>
-
-      <p className="text-xs text-[var(--sf-text-secondary)] leading-relaxed line-clamp-2">
-        {incident.description}
-      </p>
-
-      <div className="flex items-center gap-1.5 text-xs text-[var(--sf-text-tertiary)]">
-        <MapPin className="w-3.5 h-3.5 flex-shrink-0" aria-hidden="true" />
-        {incident.zone}
-      </div>
-
-      <div className="flex items-center justify-between gap-2 pt-2 border-t border-[var(--sf-border-default)]">
-        <div className="flex items-center gap-1.5 text-2xs text-[var(--sf-text-tertiary)]">
-          <Clock className="w-3 h-3 flex-shrink-0" aria-hidden="true" />
-          {formatRelativeTime(incident.occurred_at)}
-        </div>
-        <span className="text-2xs text-[var(--sf-text-tertiary)]">Workers Involved: —</span>
-      </div>
-
-      <Badge variant="outline" size="sm" className="self-start">
-        Reported
-      </Badge>
-    </Card>
+      </Card>
+    </Link>
   );
 }

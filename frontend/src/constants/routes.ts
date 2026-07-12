@@ -17,8 +17,16 @@ export const ROUTES = {
   REPORTS:         '/reports',
   SETTINGS:        '/settings',
 
+  // Detail routes (not shown in sidebar nav)
+  INCIDENT_REPORT: '/incidents/:incidentId/report',
+
   // 404
   NOT_FOUND: '*',
 } as const;
+
+/** Builds a concrete `/incidents/{id}/report` path from an incident ID. */
+export function incidentReportPath(incidentId: string): string {
+  return `/incidents/${incidentId}/report`;
+}
 
 export type AppRoute = (typeof ROUTES)[keyof typeof ROUTES];

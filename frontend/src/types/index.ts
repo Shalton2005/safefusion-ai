@@ -414,6 +414,59 @@ export interface RecommendationResult {
   recommendations: Recommendation[];
 }
 
+// ─── Incident Report (GET /incident-reports/{incident_id}) ─────────
+export interface ReportSummary {
+  incident_id: string;
+  zone: string;
+  incident_type: IncidentType;
+  severity: SeverityLevel;
+  description: string;
+  root_cause: string | null;
+}
+
+export interface TimelineEvent {
+  timestamp: string;
+  label: string;
+  description: string;
+}
+
+export interface DetectedRisk {
+  zone: string;
+  risk_score: number;
+  risk_level: SeverityLevel;
+  explanation: string;
+}
+
+export interface TriggeredRule {
+  rule_name: string;
+  points: number;
+  explanation: string;
+}
+
+export interface EmergencyActionEntry {
+  action: EmergencyActionType;
+  triggered_by_rule: string;
+  explanation: string;
+}
+
+export interface ComplianceNote {
+  rule_code: string;
+  framework: ComplianceFramework;
+  title: string;
+  description: string;
+  recommendation: string;
+}
+
+export interface IncidentReportData {
+  summary: ReportSummary;
+  timeline: TimelineEvent[];
+  detected_risks: DetectedRisk[];
+  triggered_rules: TriggeredRule[];
+  emergency_actions: EmergencyActionEntry[];
+  compliance_notes: ComplianceNote[];
+  compliance_status: ComplianceStatus | null;
+}
+
 // ─── Navigation ────────────────────────────────────────────────────
 export interface NavItem {
   label: string;

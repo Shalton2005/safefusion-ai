@@ -1329,6 +1329,31 @@
    PRINT STYLES
    ═══════════════════════════════════════════════════════════════════ */
 @media print {
+  /* Force light-theme surface/text tokens regardless of the active
+     on-screen theme — every component reads colour from these
+     variables, so overriding them here (rather than just `body`)
+     keeps printed pages legible even when the app is in dark mode.
+     Targets both `:root` and `html.dark` explicitly (rather than
+     relying on source-order cascade against the `.dark` block) so
+     this wins under Vite dev's per-module style injection order,
+     which does not always match the production bundle's. */
+  :root,
+  html.dark {
+    --sf-surface-base:    #ffffff;
+    --sf-surface-raised:  #ffffff;
+    --sf-surface-card:    #ffffff;
+    --sf-surface-overlay: #ffffff;
+    --sf-surface-sunken:  #f8fafc;
+
+    --sf-border-subtle:   #e2e8f0;
+    --sf-border-default:  #cbd5e1;
+    --sf-border-strong:   #94a3b8;
+
+    --sf-text-primary:    #0f172a;
+    --sf-text-secondary:  #334155;
+    --sf-text-tertiary:   #64748b;
+  }
+
   body {
     background: #fff !important;
     color:      #000 !important;

@@ -35,3 +35,6 @@ export { StatCard }                                     from './StatCard';
 export type { StatCardProps, TrendDirection,
               StatCardIconVariant }                     from './StatCard';
 
+export { Collapsible }                                  from './Collapsible';
+export type { CollapsibleProps }                        from './Collapsible';
+

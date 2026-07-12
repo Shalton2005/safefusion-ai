@@ -157,6 +157,21 @@ export const appRouteDefinitions: AppRouteDefinition[] = [
     ),
   },
 
+  // ── Incident Report (detail route, not shown in sidebar nav) ────
+  {
+    id:          'incident-report',
+    path:        ROUTES.INCIDENT_REPORT,
+    label:       'Incident Report',
+    description: 'Structured incident report.',
+    showInNav:   false,
+    isProtected: true,
+    component: lazy(() =>
+      import('@/features/incidents/pages/IncidentReportPage').then((m) => ({
+        default: m.IncidentReportPage,
+      })),
+    ),
+  },
+
   // ── Settings ──────────────────────────────────────────────────
   {
     id:          'settings',
