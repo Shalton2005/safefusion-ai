@@ -22,7 +22,7 @@ The APIs are grouped by functional modules to ensure scalability, maintainabilit
 - Emergency Response APIs
 - Compliance APIs
 - Recommendation APIs
-- Incident Report APIs
+- Incident Report API
 
 ---
 
