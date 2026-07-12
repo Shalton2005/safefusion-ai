@@ -17,12 +17,14 @@ import { PermitDashboardPanel } from '@/features/permits/components/PermitDashbo
 import { SafetyHeatmapContainer } from '@/features/live-monitoring/components/SafetyHeatmapContainer';
 import { CompoundRiskCardSectionView } from '@/features/risk/components/CompoundRiskCardSection';
 import { RiskExplanationPanelSectionView } from '@/features/risk/components/RiskExplanationPanelSection';
-import { EmergencyResponsePanelSection } from '@/features/emergency/components/EmergencyResponsePanelSection';
+import { EmergencyResponsePanelSectionView } from '@/features/emergency/components/EmergencyResponsePanelSection';
 import { ComplianceDashboardSection } from '@/features/compliance/components/ComplianceDashboardSection';
-import { RecommendationPanelSection } from '@/features/recommendations/components/RecommendationPanelSection';
+import { RecommendationPanelSectionView } from '@/features/recommendations/components/RecommendationPanelSection';
 import { useRecentAlerts } from '@/features/alerts/hooks/useRecentAlerts';
 import { useRecentRiskScores } from '@/features/dashboard/hooks/useRecentRiskScores';
 import { useCompoundRiskEngine } from '@/features/risk/hooks/useCompoundRiskEngine';
+import { useEmergencyResponse } from '@/features/emergency/hooks/useEmergencyResponse';
+import { useRecommendations } from '@/features/recommendations/hooks/useRecommendations';
 import { safetyTimelineService } from '@/services';
 import { useMemo } from 'react';
 
@@ -36,16 +38,28 @@ export function DashboardPage() {
   const alertsData = useRecentAlerts({ limit: 100 });
   const riskScoresData = useRecentRiskScores({ limit: TIMELINE_LIMIT });
   const riskEngineData = useCompoundRiskEngine();
+  const emergencyData = useEmergencyResponse();
+  const recommendationsData = useRecommendations();
 
   const timelineEvents = useMemo(
-    () => safetyTimelineService.mergeTimeline(alertsData.alerts, riskScoresData.riskScores, TIMELINE_LIMIT),
-    [alertsData.alerts, riskScoresData.riskScores],
+    () =>
+      safetyTimelineService.mergeTimeline(
+        alertsData.alerts,
+        riskScoresData.riskScores,
+        emergencyData.actions,
+        recommendationsData.recommendations,
+        TIMELINE_LIMIT,
+        (emergencyData.lastUpdated ?? recommendationsData.lastUpdated ?? new Date()).toISOString(),
+      ),
+    [alertsData.alerts, riskScoresData.riskScores, emergencyData.actions, emergencyData.lastUpdated, recommendationsData.recommendations, recommendationsData.lastUpdated],
   );
-  const timelineLoading = alertsData.loading || riskScoresData.loading;
-  const timelineError = alertsData.error ?? riskScoresData.error;
+  const timelineLoading = alertsData.loading || riskScoresData.loading || emergencyData.loading || recommendationsData.loading;
+  const timelineError = alertsData.error ?? riskScoresData.error ?? emergencyData.error ?? recommendationsData.error;
   const refreshTimeline = () => {
     alertsData.refresh();
     riskScoresData.refresh();
+    emergencyData.refresh();
+    recommendationsData.refresh();
   };
 
   const incidentSummaryItems = useMemo(
@@ -123,13 +137,25 @@ export function DashboardPage() {
       </div>
 
       {/* Emergency response */}
-      <EmergencyResponsePanelSection />
+      <EmergencyResponsePanelSectionView
+        actions={emergencyData.actions}
+        loading={emergencyData.loading}
+        error={emergencyData.error}
+        lastUpdated={emergencyData.lastUpdated}
+        refresh={emergencyData.refresh}
+      />
 
       {/* Compliance */}
       <ComplianceDashboardSection />
 
       {/* Recommendations */}
-      <RecommendationPanelSection />
+      <RecommendationPanelSectionView
+        recommendations={recommendationsData.recommendations}
+        loading={recommendationsData.loading}
+        error={recommendationsData.error}
+        lastUpdated={recommendationsData.lastUpdated}
+        refresh={recommendationsData.refresh}
+      />
 
       {/* Safety timeline */}
       <SafetyTimelineSectionView

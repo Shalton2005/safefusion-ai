@@ -332,12 +332,21 @@ export type SafetyTimelineEventType =
   | 'sensor_threshold_crossed'
   | 'permit_expired'
   | 'worker_entered_zone'
-  | 'compound_risk_generated';
+  | 'compound_risk_generated'
+  | 'emergency_action_dispatched'
+  | 'recommendation_issued';
 
 /**
  * A single chronological entry for the `SafetyTimeline`. Built from real
  * backend records only — `GET /alerts` (grouped by `source`) for the first
  * three event types, `GET /risk-scores` for compound-risk entries.
+ *
+ * `emergency_action_dispatched`/`recommendation_issued` entries come from
+ * `GET /emergency/actions` / `GET /recommendations`, both live-computed
+ * on every call with no persisted timestamp of their own — `timestamp`
+ * for these is the moment the frontend fetched them, and `isTimeApproximate`
+ * is `true` so the UI can render it as "as of {time}" rather than implying
+ * a backend-recorded event time.
  */
 export interface SafetyTimelineEvent {
   id: string;
@@ -347,9 +356,11 @@ export interface SafetyTimelineEvent {
   /** Backend-authored message/description for this event. */
   description: string;
   severity: SeverityLevel;
-  /** ISO timestamp the backend recorded for this event. */
+  /** ISO timestamp. Backend-recorded unless `isTimeApproximate` is true. */
   timestamp: string;
   zone: string;
+  /** True when `timestamp` is the client fetch time, not a backend-recorded event time (see type doc above). */
+  isTimeApproximate?: boolean;
 }
 
 // ─── Dashboard Summary (GET /dashboard/summary) ────────────────────

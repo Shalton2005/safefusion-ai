@@ -1,6 +1,17 @@
 import { alertsService } from './alerts.service';
 import { compoundRiskService } from './compoundRisk.service';
-import type { AlertRecord, RiskScoreRecord, SafetyTimelineEvent, SafetyTimelineEventType } from '@/types';
+import { emergencyResponseService } from './emergencyResponse.service';
+import { recommendationService } from './recommendation.service';
+import { EMERGENCY_ACTION_LABEL, RECOMMENDATION_SOURCE_LABEL } from '@/utils/severity';
+import type {
+  AlertRecord,
+  RiskScoreRecord,
+  SafetyTimelineEvent,
+  SafetyTimelineEventType,
+  EmergencyActionItem,
+  Recommendation,
+} from '@/types';
+import type { SeverityLevel } from '@/constants';
 import type { RequestOptions } from '@/api/types';
 
 /** Maps an alert's real `source` field to the timeline event type it represents. No alert_type/category field is fine-grained enough to distinguish these — `source` is the real discriminator. */
@@ -15,7 +26,17 @@ const EVENT_LABEL: Record<SafetyTimelineEventType, string> = {
   permit_expired: 'Permit Expired',
   worker_entered_zone: 'Worker Entered Zone',
   compound_risk_generated: 'Compound Risk Generated',
+  emergency_action_dispatched: 'Emergency Action Dispatched',
+  recommendation_issued: 'Recommendation Issued',
 };
+
+/** Recommendation priority (lower = more urgent) has no severity of its own — this buckets it onto the shared severity scale for consistent timeline colour-coding. */
+function recommendationPriorityToSeverity(priority: number): SeverityLevel {
+  if (priority < 50) return 'critical';
+  if (priority < 150) return 'high';
+  if (priority < 250) return 'medium';
+  return 'low';
+}
 
 function alertToEvent(alert: AlertRecord): SafetyTimelineEvent | null {
   const type = EVENT_TYPE_BY_SOURCE[alert.source];
@@ -44,11 +65,58 @@ function riskScoreToEvent(record: RiskScoreRecord): SafetyTimelineEvent {
   };
 }
 
-/** Merges already-fetched alerts and risk-score records into one chronological (newest-first) feed. Pure — takes no fetch of its own, so a caller that already holds alert data (e.g. from a shared `useRecentAlerts()`) can reuse it here instead of refetching. */
-function mergeTimeline(alerts: AlertRecord[], riskScores: RiskScoreRecord[], limit: number): SafetyTimelineEvent[] {
+/**
+ * `GET /emergency/actions` is live-computed with no persisted timestamp,
+ * so `fetchedAt` (the moment the frontend called it) stands in — flagged
+ * via `isTimeApproximate` so the UI renders it as "as of", not an exact
+ * backend-recorded time.
+ */
+function emergencyActionToEvent(action: EmergencyActionItem, fetchedAt: string): SafetyTimelineEvent {
+  return {
+    id: `emergency-${action.zone}-${action.action}-${action.order}`,
+    type: 'emergency_action_dispatched',
+    label: EMERGENCY_ACTION_LABEL[action.action],
+    description: action.explanation,
+    severity: action.risk_level,
+    timestamp: fetchedAt,
+    zone: action.zone,
+    isTimeApproximate: true,
+  };
+}
+
+/** `GET /recommendations` is live-computed with no persisted timestamp — see `emergencyActionToEvent` doc. */
+function recommendationToEvent(recommendation: Recommendation, index: number, fetchedAt: string): SafetyTimelineEvent {
+  return {
+    id: `recommendation-${recommendation.source}-${index}`,
+    type: 'recommendation_issued',
+    label: `${RECOMMENDATION_SOURCE_LABEL[recommendation.source]} Recommendation`,
+    description: recommendation.message,
+    severity: recommendationPriorityToSeverity(recommendation.priority),
+    timestamp: fetchedAt,
+    zone: recommendation.zone ?? 'Plant-wide',
+    isTimeApproximate: true,
+  };
+}
+
+/**
+ * Merges already-fetched records from all six event sources into one
+ * chronological (newest-first) feed. Pure — takes no fetch of its own, so
+ * a caller that already holds this data elsewhere on the page (e.g. via
+ * shared hooks) can reuse it here instead of refetching.
+ */
+function mergeTimeline(
+  alerts: AlertRecord[],
+  riskScores: RiskScoreRecord[],
+  emergencyActions: EmergencyActionItem[],
+  recommendations: Recommendation[],
+  limit: number,
+  fetchedAt: string = new Date().toISOString(),
+): SafetyTimelineEvent[] {
   const events = [
     ...alerts.map(alertToEvent).filter((e): e is SafetyTimelineEvent => e !== null),
     ...riskScores.map(riskScoreToEvent),
+    ...emergencyActions.map((action) => emergencyActionToEvent(action, fetchedAt)),
+    ...recommendations.map((rec, i) => recommendationToEvent(rec, i, fetchedAt)),
   ];
 
   events.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
@@ -57,21 +125,37 @@ function mergeTimeline(alerts: AlertRecord[], riskScores: RiskScoreRecord[], lim
 }
 
 export const safetyTimelineService = {
-  /** Pure merge of pre-fetched alert + risk-score records — see `mergeTimeline`. */
+  /** Pure merge of pre-fetched records from all six event sources — see `mergeTimeline`. */
   mergeTimeline,
 
-  /** Chronological (newest-first) feed of real safety events, merged from `GET /alerts` and `GET /risk-scores`. Fetches both itself — prefer `mergeTimeline` when the caller already has alert data from elsewhere on the page. */
+  /**
+   * Chronological (newest-first) feed of real safety events, merged from
+   * `GET /alerts`, `GET /risk-scores`, `GET /emergency/actions`, and
+   * `GET /recommendations`. Fetches all four itself — prefer
+   * `mergeTimeline` when the caller already has some of this data from
+   * elsewhere on the page.
+   */
   getTimeline: async (
     params?: { limit?: number },
     options?: RequestOptions,
   ): Promise<SafetyTimelineEvent[]> => {
     const limit = params?.limit ?? 50;
+    const fetchedAt = new Date().toISOString();
 
-    const [alertsRes, riskScoresRes] = await Promise.all([
+    const [alertsRes, riskScoresRes, emergencyResult, recommendationResult] = await Promise.all([
       alertsService.getRecentAlerts({ skip: 0, limit }, options),
       compoundRiskService.getRecent({ skip: 0, limit }, options),
+      emergencyResponseService.getActions(options),
+      recommendationService.getRecommendations(options),
     ]);
 
-    return mergeTimeline(alertsRes.data, riskScoresRes.data, limit);
+    return mergeTimeline(
+      alertsRes.data,
+      riskScoresRes.data,
+      emergencyResponseService.toActionItems(emergencyResult),
+      recommendationResult.recommendations,
+      limit,
+      fetchedAt,
+    );
   },
 };

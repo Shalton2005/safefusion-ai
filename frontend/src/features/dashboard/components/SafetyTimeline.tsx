@@ -2,11 +2,11 @@
  * SafetyTimeline
  *
  * Reusable, presentational vertical timeline of chronological safety
- * events (sensor threshold crossings, permit expirations, worker zone
- * detections, compound risk assessments). Purely props-driven — no
- * data fetching, no charts — so it can be reused in dashboards, audit
- * views, or detail panels. Pair with `SafetyTimelineSection` for the
- * fetching wrapper.
+ * events — sensor triggers, permit changes, worker movement, compound
+ * risk assessments, dispatched emergency actions, and issued
+ * recommendations. Purely props-driven — no data fetching, no charts —
+ * so it can be reused in dashboards, audit views, or detail panels.
+ * Pair with `SafetyTimelineSection` for the fetching wrapper.
  *
  * Severity is colour-coded via the shared `SEVERITY_BADGE_VARIANT` map.
  *
@@ -18,7 +18,7 @@
  * />
  */
 
-import { Radio, FileWarning, HardHat, Gauge } from 'lucide-react';
+import { Radio, FileWarning, HardHat, Gauge, Siren, ClipboardList } from 'lucide-react';
 import type { ElementType } from 'react';
 import { Badge } from '@/components/ui';
 import { capitalise, formatRelativeTime, formatDateTime } from '@/utils/format';
@@ -31,6 +31,8 @@ const EVENT_ICON: Record<SafetyTimelineEventType, ElementType> = {
   permit_expired: FileWarning,
   worker_entered_zone: HardHat,
   compound_risk_generated: Gauge,
+  emergency_action_dispatched: Siren,
+  recommendation_issued: ClipboardList,
 };
 
 const EVENT_ICON_VARIANT_BY_SEVERITY: Record<SafetyTimelineEvent['severity'], string> = {
@@ -87,7 +89,10 @@ export function SafetyTimeline({ events, className }: SafetyTimelineProps) {
 
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[var(--sf-text-tertiary)]">
                 <span className="truncate">{event.zone}</span>
-                <span title={formatDateTime(event.timestamp)}>{formatRelativeTime(event.timestamp)}</span>
+                <span title={formatDateTime(event.timestamp)}>
+                  {event.isTimeApproximate ? 'As of ' : ''}
+                  {formatRelativeTime(event.timestamp)}
+                </span>
               </div>
             </div>
           </li>
