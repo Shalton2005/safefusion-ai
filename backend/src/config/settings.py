@@ -31,6 +31,19 @@ class Settings(BaseSettings):
     NEO4J_PASSWORD: str = "change-this-password-in-production"
     NEO4J_DATABASE: str = "neo4j"
 
+    # ── Ollama (Local LLM / Embeddings) ──────────────────────────────────────
+    # Used by src/services/embedding for RAG document-chunk embeddings, and
+    # earmarked for local LLM inference (Llama 3) per docs/tech-stack.md.
+    OLLAMA_BASE_URL: str = "http://localhost:11434"
+    OLLAMA_EMBEDDING_MODEL: str = "nomic-embed-text"
+
+    # ── pgvector (RAG document embeddings) ───────────────────────────────────
+    # Must match the output width of OLLAMA_EMBEDDING_MODEL — nomic-embed-text
+    # produces 768-dimensional vectors. Changing embedding models to one with
+    # a different width requires a migration to resize the vector column
+    # (see src/repositories/document_embedding.py module docstring).
+    EMBEDDING_DIMENSIONS: int = 768
+
     # ── Security ──────────────────────────────────────────────────────────────
     SECRET_KEY: str = "change-this-secret-key-in-production"
 

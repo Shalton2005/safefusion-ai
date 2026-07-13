@@ -9,3 +9,17 @@ psycopg2-binary==2.9.12
 # asyncpg (async PostgreSQL driver) — requires MSVC on Windows; pre-installed in Docker.
 # Uncomment when running inside the container: asyncpg==0.29.0
 neo4j==5.24.0
+
+# Document ingestion (RAG) — see src/services/document_ingestion
+langchain-core==1.4.9
+langchain-community==0.4.2
+pypdf==6.14.2
+
+# Text chunking (RAG) — see src/services/chunking
+langchain-text-splitters==1.1.2
+
+# Embeddings (RAG) — see src/services/embedding
+langchain-ollama==1.1.0
+
+# Vector storage (RAG) — see src/models/document_embedding.py
+pgvector==0.5.0

@@ -93,12 +93,16 @@ backend/.mypy_cache/
 backend/.ruff_cache/
 
 # AI and ML artifacts
-artifacts/
-checkpoints/
-models/
-weights/
-wandb/
-mlruns/
+# Anchored to the repo root (leading `/`) so these only match top-level
+# artifact directories — an unanchored `models/` also matched
+# backend/src/models/ (the ORM models package), silently excluding it
+# from version control.
+/artifacts/
+/checkpoints/
+/models/
+/weights/
+/wandb/
+/mlruns/
 
 # Data outputs
 datasets/raw/

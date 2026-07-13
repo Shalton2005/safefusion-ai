@@ -461,6 +461,77 @@ Notes:
 
 ---
 
+# 15. RAG APIs
+
+Retrieval over ingested OISD/Factory Act/DGMS/incident-report document
+chunks (`backend/src/services/document_ingestion`, `chunking`,
+`embedding`, and the pgvector-backed `document_embeddings` table). All
+three endpoints are retrieval-only — **no LLM call happens anywhere in
+this API**. Answer generation is a deliberately separate, not-yet-built
+step.
+
+## GET /rag/documents
+
+Purpose:
+Return every stored chunk ingested from a given source document, in
+chunk order. Plain metadata lookup — no embedding model is invoked, so
+this endpoint works even when Ollama is unreachable.
+
+Input:
+- `source` (query parameter, required) — path/URI of the source document.
+
+Returns:
+- Source
+- Chunk Count
+- Chunks (id, content, source, title, file type, chunk index; `similarity` always `null`)
+
+---
+
+## POST /rag/search
+
+Purpose:
+Embed a free-text query with the configured Ollama embedding model
+(`nomic-embed-text` by default) and return the most similar stored
+chunks, ranked by cosine similarity.
+
+Input:
+- Query (required)
+- Limit (optional, default 5)
+- Minimum Similarity (optional threshold)
+
+Returns:
+- Query
+- Result Count
+- Results (id, content, source, title, file type, chunk index, similarity — most relevant first)
+
+---
+
+## POST /rag/query
+
+Purpose:
+Retrieve the chunks most relevant to a natural-language question, as
+supporting context for a future answer-generation step.
+
+Input:
+- Question (required)
+- Limit (optional, default 5)
+- Minimum Similarity (optional threshold)
+
+Returns:
+- Question
+- Context Chunks (same shape as `/rag/search` results)
+
+Notes:
+- Identical retrieval behavior to `POST /rag/search` today — kept as a
+  separate endpoint because it's the intended integration point for
+  answer generation later; the request/response shape won't need to
+  change when that's added, only a new `answer` field will appear
+  alongside `context_chunks`.
+- No `answer` field is present in the response. Do not confuse this with
+  a question-answering endpoint yet.
+
+---
+
 # Future APIs
 
 These endpoints are planned for future versions:

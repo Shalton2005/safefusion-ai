@@ -9,6 +9,7 @@ the package root::
 
 from src.repositories.alert import AlertRepository
 from src.repositories.base import BaseRepository
+from src.repositories.document_embedding import DocumentEmbeddingRepository, SimilarityMatch
 from src.repositories.incident import IncidentRepository
 from src.repositories.maintenance import MaintenanceLogRepository
 from src.repositories.permit import PermitRepository
@@ -25,4 +26,6 @@ __all__: list[str] = [
     "IncidentRepository",
     "AlertRepository",
     "RiskScoreRepository",
+    "DocumentEmbeddingRepository",
+    "SimilarityMatch",
 ]

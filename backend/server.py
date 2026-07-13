@@ -46,6 +46,7 @@ from src.routes import incidents as incidents_router
 from src.routes import maintenance as maintenance_router
 from src.routes import monitoring as monitoring_router
 from src.routes import permits as permits_router
+from src.routes import rag as rag_router
 from src.routes import recommendations as recommendations_router
 from src.routes import risk_scores as risk_scores_router
 from src.routes import root as root_router
@@ -78,6 +79,7 @@ OPENAPI_TAGS_METADATA = [
     {"name": "Recommendations", "description": "Combines Compound Risk, Emergency Response, and Compliance output into ordered operator recommendations."},
     {"name": "Incident Reports", "description": "Generates structured, six-section JSON incident reports from detected risk, emergency response, and compliance data."},
     {"name": "Knowledge Graph", "description": "Reusable Neo4j knowledge-graph lookups: workers by zone, permits by worker, incidents by equipment, sensors by zone, and risks by incident."},
+    {"name": "RAG", "description": "Retrieval over ingested OISD/Factory Act/DGMS/incident-report document chunks: document search, semantic search, and question-context retrieval. Retrieval only — no LLM call."},
 ]
 
 
@@ -173,6 +175,7 @@ def create_application() -> FastAPI:
     application.include_router(incident_reports_router.router, prefix=settings.API_PREFIX)
     application.include_router(incident_router.router, prefix=settings.API_PREFIX)
     application.include_router(graph_router.router, prefix=settings.API_PREFIX)
+    application.include_router(rag_router.router, prefix=settings.API_PREFIX)
 
     return application
 
