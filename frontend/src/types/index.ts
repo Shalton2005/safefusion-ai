@@ -399,6 +399,17 @@ export interface PlantSafetyOverview {
   risk_level: SeverityLevel | null;
 }
 
+// ─── Zone Overview (GET /dashboard/zones) ──────────────────────────
+/** Per-zone snapshot exactly as returned by `GET /dashboard/zones` — every value is computed server-side. */
+export interface ZoneOverview {
+  zone: string;
+  workers_present: number;
+  active_sensors: number;
+  active_permits: number;
+  /** Bucketed risk level from the zone's most recent persisted risk score, or `null` when none has been recorded yet. */
+  risk_level: SeverityLevel | null;
+}
+
 // ─── Compliance (GET /compliance/status) ───────────────────────────
 export const COMPLIANCE_FRAMEWORKS = ['factory_act', 'oisd', 'dgms'] as const;
 export type ComplianceFramework = (typeof COMPLIANCE_FRAMEWORKS)[number];

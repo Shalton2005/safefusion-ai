@@ -1,5 +1,5 @@
 import { createService } from './base.service';
-import type { AnalyticsSummary, DashboardPayload, DashboardSummary, PlantSafetyOverview } from '@/types';
+import type { AnalyticsSummary, DashboardPayload, DashboardSummary, PlantSafetyOverview, ZoneOverview } from '@/types';
 import type { ApiResponse } from '@/types';
 import type { SeverityLevel } from '@/constants';
 import { SEVERITY_LEVELS } from '@/constants';
@@ -41,4 +41,8 @@ export const dashboardService = {
     const { data } = await base.get<ApiResponse<DashboardPayload>>('', undefined, options);
     return toPlantSafetyOverview(data.data);
   },
+
+  /** Per-zone overview (worker/sensor/permit counts + risk level) for the `ZoneOverview` component. */
+  getZoneOverview: (options?: RequestOptions) =>
+    base.get<ApiResponse<{ zones: ZoneOverview[] }>>('zones', undefined, options),
 };

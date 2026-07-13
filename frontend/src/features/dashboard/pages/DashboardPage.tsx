@@ -1,6 +1,7 @@
 import { Badge, PageHeader } from '@/components/ui';
 import { KpiCardGrid } from '@/features/dashboard/components/KpiCardGrid';
 import { PlantSafetyOverviewSection } from '@/features/dashboard/components/PlantSafetyOverviewSection';
+import { ZoneOverviewSection } from '@/features/dashboard/components/ZoneOverviewSection';
 import { SafetyTimelineSectionView } from '@/features/dashboard/components/SafetyTimelineSection';
 import { ChartCard, RiskTrendChart, SensorReadingsChart, AlertDistributionChart } from '@/components/charts';
 import {
@@ -111,6 +112,9 @@ export function DashboardPage() {
 
       {/* Plant safety overview */}
       <PlantSafetyOverviewSection />
+
+      {/* Zone overview */}
+      <ZoneOverviewSection />
 
       {/* Risk trend */}
       <ChartCard
