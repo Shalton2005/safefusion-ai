@@ -14,7 +14,7 @@
  * />
  */
 
-import { useCallback, useMemo, type CSSProperties } from 'react';
+import { forwardRef, useCallback, useImperativeHandle, useMemo, type CSSProperties } from 'react';
 import {
   ReactFlow,
   Background,
@@ -22,24 +22,20 @@ import {
   MiniMap,
   ReactFlowProvider,
   BackgroundVariant,
+  useReactFlow,
   type Node,
   type Edge,
   type NodeMouseHandler,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { cn } from '@/lib/cn';
+import { GRAPH_TYPE_META, type GraphNodeKind } from '@/features/knowledge-graph/utils/graphTaxonomy';
 
 // ─── Public domain types ──────────────────────────────────────────
 // Kept independent of React Flow's own Node/Edge types so consumers
 // don't need to depend on (or know about) the rendering library.
 
-export type GraphNodeKind =
-  | 'worker'
-  | 'sensor'
-  | 'zone'
-  | 'permit'
-  | 'incident'
-  | 'default';
+export type { GraphNodeKind };
 
 export interface GraphNode {
   id: string;
@@ -59,6 +55,18 @@ export interface GraphEdge {
   animated?: boolean;
 }
 
+/**
+ * Imperative zoom/pan controls exposed via ref, so an external toolbar
+ * (e.g. GraphControls) can drive the canvas without GraphVisualization
+ * needing to know anything about the toolbar itself.
+ */
+export interface GraphVisualizationHandle {
+  zoomIn: () => void;
+  zoomOut: () => void;
+  /** Resets pan/zoom back to fit all nodes in view. */
+  resetView: () => void;
+}
+
 export interface GraphVisualizationProps {
   nodes: GraphNode[];
   edges: GraphEdge[];
@@ -72,16 +80,12 @@ export interface GraphVisualizationProps {
 }
 
 // ─── Node kind → colour mapping ───────────────────────────────────
-// Mirrors GraphLegend's swatch colours so node fills stay in sync.
+// Sourced from the shared taxonomy so GraphLegend / RelationshipDetailsPanel
+// and the graph canvas never fall out of sync.
 
-const kindColorMap: Record<GraphNodeKind, string> = {
-  worker:   '#3b82f6', // primary-500
-  sensor:   '#0ea5e9', // sky-500
-  zone:     '#22c55e', // safe-500
-  permit:   '#f59e0b', // amber-500
-  incident: '#ef4444', // danger-500
-  default:  '#64748b', // slate-500
-};
+const kindColorMap: Record<GraphNodeKind, string> = Object.fromEntries(
+  Object.entries(GRAPH_TYPE_META).map(([kind, meta]) => [kind, meta.color]),
+) as Record<GraphNodeKind, string>;
 
 const GRID_COLUMNS = 4;
 const GRID_SPACING_X = 220;
@@ -126,6 +130,10 @@ function toFlowEdge(edge: GraphEdge): Edge {
 
 // ─── Component ────────────────────────────────────────────────────
 
+interface GraphVisualizationInnerProps extends GraphVisualizationProps {
+  handleRef?: React.Ref<GraphVisualizationHandle>;
+}
+
 function GraphVisualizationInner({
   nodes,
   edges,
@@ -133,7 +141,16 @@ function GraphVisualizationInner({
   selectedNodeId,
   showMiniMap = true,
   className,
-}: GraphVisualizationProps) {
+  handleRef,
+}: GraphVisualizationInnerProps) {
+  const { zoomIn, zoomOut, fitView } = useReactFlow();
+
+  useImperativeHandle(handleRef, () => ({
+    zoomIn: () => zoomIn({ duration: 200 }),
+    zoomOut: () => zoomOut({ duration: 200 }),
+    resetView: () => fitView({ duration: 300 }),
+  }), [zoomIn, zoomOut, fitView]);
+
   const nodeLookup = useMemo(
     () => new Map(nodes.map((n) => [n.id, n])),
     [nodes],
@@ -200,11 +217,16 @@ function GraphVisualizationInner({
  * Wraps GraphVisualizationInner in ReactFlowProvider so the component
  * is self-contained and can be dropped anywhere without callers having
  * to set up React Flow context themselves.
+ *
+ * Pass a ref to drive zoom/reset imperatively from an external toolbar
+ * (see GraphVisualizationHandle) — e.g. from GraphControls.
  */
-export function GraphVisualization(props: GraphVisualizationProps) {
-  return (
-    <ReactFlowProvider>
-      <GraphVisualizationInner {...props} />
-    </ReactFlowProvider>
-  );
-}
+export const GraphVisualization = forwardRef<GraphVisualizationHandle, GraphVisualizationProps>(
+  function GraphVisualization(props, ref) {
+    return (
+      <ReactFlowProvider>
+        <GraphVisualizationInner {...props} handleRef={ref} />
+      </ReactFlowProvider>
+    );
+  },
+);

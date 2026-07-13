@@ -5,15 +5,8 @@
  */
 
 import type { KnowledgeGraphNode, KnowledgeGraphRelationship } from '@/types';
-import type { GraphNode, GraphEdge, GraphNodeKind } from '@/features/knowledge-graph/components/GraphVisualization';
-
-const LABEL_TO_KIND: Record<string, GraphNodeKind> = {
-  Worker: 'worker',
-  Sensor: 'sensor',
-  Zone: 'zone',
-  Permit: 'permit',
-  Incident: 'incident',
-};
+import type { GraphNode, GraphEdge } from '@/features/knowledge-graph/components/GraphVisualization';
+import { graphLabelToKind } from '@/features/knowledge-graph/utils/graphTaxonomy';
 
 /** Picks a human-readable label for a node from its properties, falling back to the graph label + id. */
 function deriveNodeLabel(node: KnowledgeGraphNode): string {
@@ -26,7 +19,7 @@ export function adaptGraphNode(node: KnowledgeGraphNode): GraphNode {
   return {
     id: node.id,
     label: deriveNodeLabel(node),
-    kind: LABEL_TO_KIND[node.label] ?? 'default',
+    kind: graphLabelToKind(node.label),
     data: { type: node.label, ...node.properties },
   };
 }

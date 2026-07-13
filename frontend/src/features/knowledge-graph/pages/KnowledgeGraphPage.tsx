@@ -1,8 +1,11 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Waypoints, RotateCw } from 'lucide-react';
 import { PageHeader, Badge, Alert, Button, EmptyState, Loader } from '@/components/ui';
 import { GraphControls } from '@/features/knowledge-graph/components/GraphControls';
-import { GraphVisualization } from '@/features/knowledge-graph/components/GraphVisualization';
+import {
+  GraphVisualization,
+  type GraphVisualizationHandle,
+} from '@/features/knowledge-graph/components/GraphVisualization';
 import { GraphDetailsPanel } from '@/features/knowledge-graph/components/GraphDetailsPanel';
 import { GraphLegend } from '@/features/knowledge-graph/components/GraphLegend';
 import { useKnowledgeGraph } from '@/features/knowledge-graph/hooks/useKnowledgeGraph';
@@ -14,6 +17,8 @@ export function KnowledgeGraphPage() {
   const selectedNode = useGraphSelectionStore((s) => s.selectedNode);
   const select = useGraphSelectionStore((s) => s.select);
   const publishGraph = useGraphSelectionStore((s) => s.publishGraph);
+  const graphRef = useRef<GraphVisualizationHandle>(null);
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     publishGraph({ nodes, relationships });
@@ -21,6 +26,19 @@ export function KnowledgeGraphPage() {
 
   const graphNodes = useMemo(() => nodes.map(adaptGraphNode), [nodes]);
   const graphEdges = useMemo(() => relationships.map(adaptGraphEdge), [relationships]);
+
+  const visibleNodes = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    if (!query) return graphNodes;
+    return graphNodes.filter((node) => node.label.toLowerCase().includes(query));
+  }, [graphNodes, search]);
+
+  const visibleEdges = useMemo(() => {
+    if (visibleNodes.length === graphNodes.length) return graphEdges;
+    const visibleIds = new Set(visibleNodes.map((n) => n.id));
+    return graphEdges.filter((edge) => visibleIds.has(edge.source) && visibleIds.has(edge.target));
+  }, [graphEdges, graphNodes.length, visibleNodes]);
+
   const isEmpty = !loading && !error && nodes.length === 0;
 
   return (
@@ -39,7 +57,13 @@ export function KnowledgeGraphPage() {
       />
 
       {/* Controls */}
-      <GraphControls />
+      <GraphControls
+        searchValue={search}
+        onSearchChange={setSearch}
+        onZoomIn={() => graphRef.current?.zoomIn()}
+        onZoomOut={() => graphRef.current?.zoomOut()}
+        onResetView={() => graphRef.current?.resetView()}
+      />
 
       {error && (
         <Alert
@@ -73,9 +97,10 @@ export function KnowledgeGraphPage() {
             </div>
           ) : !error ? (
             <GraphVisualization
+              ref={graphRef}
               className="h-full border-0 rounded-none"
-              nodes={graphNodes}
-              edges={graphEdges}
+              nodes={visibleNodes}
+              edges={visibleEdges}
               selectedNodeId={selectedNode?.id ?? null}
               onNodeSelect={select}
             />

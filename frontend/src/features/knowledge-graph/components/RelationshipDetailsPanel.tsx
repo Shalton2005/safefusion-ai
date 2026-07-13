@@ -19,24 +19,14 @@
  * />
  */
 
-import type { ElementType } from 'react';
-import {
-  HardHat,
-  MapPin,
-  FileCheck2,
-  Wrench,
-  TriangleAlert,
-  ShieldAlert,
-  Circle,
-  ArrowRight,
-  MousePointerClick,
-} from 'lucide-react';
+import { ArrowRight, MousePointerClick, Circle } from 'lucide-react';
 import { Card, CardHeader, EmptyState, Badge } from '@/components/ui';
 import { SEVERITY_BADGE_VARIANT } from '@/utils/severity';
 import { formatLabel, formatDateTime } from '@/utils/format';
 import type { SeverityLevel } from '@/constants';
 import type { KnowledgeGraphNode, KnowledgeGraphRelationship } from '@/types';
 import type { GraphNode } from '@/features/knowledge-graph/components/GraphVisualization';
+import { GRAPH_TYPE_META, graphLabelToKind } from '@/features/knowledge-graph/utils/graphTaxonomy';
 
 // ─── Props ────────────────────────────────────────────────────────
 
@@ -124,15 +114,6 @@ const TYPE_FIELDS: Record<string, { key: string; label: string }[]> = {
   ],
 };
 
-const TYPE_ICON: Record<string, ElementType> = {
-  Worker:    HardHat,
-  Zone:      MapPin,
-  Permit:    FileCheck2,
-  Equipment: Wrench,
-  Incident:  TriangleAlert,
-  Risk:      ShieldAlert,
-};
-
 // ─── Component ────────────────────────────────────────────────────
 
 export function RelationshipDetailsPanel({
@@ -158,7 +139,8 @@ export function RelationshipDetailsPanel({
   }
 
   const nodeType = typeof node.data?.type === 'string' ? (node.data.type as string) : node.kind ?? 'default';
-  const TypeIcon = TYPE_ICON[nodeType] ?? Circle;
+  const typeMeta = GRAPH_TYPE_META[graphLabelToKind(nodeType)];
+  const TypeIcon = typeMeta.kind === 'default' ? Circle : typeMeta.icon;
   const fields = TYPE_FIELDS[nodeType] ?? [];
   const severityValue = node.data?.severity ?? node.data?.risk_level;
 
