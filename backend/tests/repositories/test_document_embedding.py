@@ -181,6 +181,31 @@ class TestDocumentEmbeddingRepositorySearchByCosineSimilarity:
         # confirm the call happened without raising.
         db.execute.assert_called_once()
 
+    def test_min_similarity_filter_does_not_starve_limit(self) -> None:
+        """A qualifying match ranked below the top-`limit` rows must still surface.
+
+        Regression test: `min_similarity` used to be applied to only the
+        top-`limit` rows fetched from the database, so a caller asking for
+        `limit=2` with a threshold could get back fewer than 2 matches even
+        though enough qualifying rows existed further down the ranking.
+        """
+        db = MagicMock()
+        # Only the first two rows meet the 0.5 threshold; a third
+        # qualifying row (similarity 0.55) sits just past the requested
+        # limit=2 in rank order.
+        db.execute.return_value.all.return_value = [
+            self._mock_row(0.05),  # similarity 0.95 — passes
+            self._mock_row(0.3),  # similarity 0.70 — passes
+            self._mock_row(0.45),  # similarity 0.55 — passes, would be dropped without over-fetch
+            self._mock_row(0.9),  # similarity 0.10 — fails threshold
+        ]
+        repo = DocumentEmbeddingRepository(db)
+
+        matches = repo.search_by_cosine_similarity([0.1] * 768, limit=2, min_similarity=0.5)
+
+        assert len(matches) == 2
+        assert [round(m.similarity, 2) for m in matches] == [0.95, 0.70]
+
 
 class TestDocumentEmbeddingRepositoryStoreEmbeddedChunks:
     def test_returns_empty_list_for_empty_input(self) -> None:

@@ -163,17 +163,28 @@ class DocumentEmbeddingRepository(BaseRepository[DocumentEmbedding]):
                 once more than one model has ever been used.
             min_similarity: If given, drop matches below this cosine
                 similarity threshold (post-query filter, since pgvector's
-                ORDER BY/LIMIT already ranks by distance).
+                ORDER BY/LIMIT already ranks by distance). The database
+                fetch over-fetches when this is set so the threshold
+                filter doesn't starve the result below ``limit`` when
+                qualifying matches exist beyond the unfiltered top-``limit``
+                window.
 
         Returns:
             Matches ordered by descending similarity (most similar first).
         """
         distance = DocumentEmbedding.embedding.cosine_distance(query_embedding)
 
+        # Filtering by min_similarity happens in Python (below) after
+        # ranking, so fetch a wider window than `limit` when a threshold is
+        # given — otherwise rows cut off by LIMIT before the threshold is
+        # applied can starve the result below `limit` even when enough
+        # qualifying matches exist further down the ranking.
+        fetch_limit = limit * 5 if min_similarity is not None else limit
+
         statement = select(DocumentEmbedding, distance.label("distance"))
         if model_name is not None:
             statement = statement.where(DocumentEmbedding.model_name == model_name)
-        statement = statement.order_by(distance).limit(limit)
+        statement = statement.order_by(distance).limit(fetch_limit)
 
         rows = self._db.execute(statement).all()
 
@@ -183,4 +194,4 @@ class DocumentEmbeddingRepository(BaseRepository[DocumentEmbedding]):
         ]
         if min_similarity is not None:
             matches = [match for match in matches if match.similarity >= min_similarity]
-        return matches
+        return matches[:limit]
