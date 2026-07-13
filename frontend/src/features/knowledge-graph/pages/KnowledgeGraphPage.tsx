@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Waypoints, RotateCw } from 'lucide-react';
 import { PageHeader, Badge, Alert, Button, EmptyState, Loader } from '@/components/ui';
 import { GraphControls } from '@/features/knowledge-graph/components/GraphControls';
@@ -13,6 +13,11 @@ export function KnowledgeGraphPage() {
   const { nodes, relationships, metadata, loading, error, refresh } = useKnowledgeGraph();
   const selectedNode = useGraphSelectionStore((s) => s.selectedNode);
   const select = useGraphSelectionStore((s) => s.select);
+  const publishGraph = useGraphSelectionStore((s) => s.publishGraph);
+
+  useEffect(() => {
+    publishGraph({ nodes, relationships });
+  }, [nodes, relationships, publishGraph]);
 
   const graphNodes = useMemo(() => nodes.map(adaptGraphNode), [nodes]);
   const graphEdges = useMemo(() => relationships.map(adaptGraphEdge), [relationships]);

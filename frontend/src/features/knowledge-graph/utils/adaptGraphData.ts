@@ -17,8 +17,9 @@ const LABEL_TO_KIND: Record<string, GraphNodeKind> = {
 
 /** Picks a human-readable label for a node from its properties, falling back to the graph label + id. */
 function deriveNodeLabel(node: KnowledgeGraphNode): string {
-  const name = node.properties.name ?? node.properties.title ?? node.properties.id;
-  return typeof name === 'string' && name.length > 0 ? name : `${node.label} ${node.id}`;
+  const name = node.properties.name ?? node.properties.title;
+  if (typeof name === 'string' && name.length > 0) return name;
+  return `${node.label} ${node.id}`;
 }
 
 export function adaptGraphNode(node: KnowledgeGraphNode): GraphNode {
