@@ -37,3 +37,21 @@ class WorkerRepository(BaseRepository[Worker]):
             .select_from(Worker)
             .where(Worker.status == status)
         ).scalar_one()
+
+    def count_by_zone(self, zone: str) -> int:
+        """Return the count of workers currently located in the given zone."""
+        return self._db.execute(
+            select(func.count())
+            .select_from(Worker)
+            .where(Worker.current_zone == zone)
+        ).scalar_one()
+
+    def get_distinct_zones(self) -> list[str]:
+        """Return a sorted list of every zone with at least one worker currently located in it."""
+        rows = self._db.execute(
+            select(Worker.current_zone)
+            .where(Worker.current_zone.is_not(None))
+            .distinct()
+            .order_by(Worker.current_zone)
+        ).scalars().all()
+        return list(rows)

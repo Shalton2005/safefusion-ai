@@ -39,3 +39,18 @@ class PermitRepository(BaseRepository[Permit]):
             .select_from(Permit)
             .where(Permit.status == PermitStatus.ACTIVE)
         ).scalar_one()
+
+    def count_active_by_zone(self, zone: str) -> int:
+        """Return the count of currently active permits issued for the given zone."""
+        return self._db.execute(
+            select(func.count())
+            .select_from(Permit)
+            .where(Permit.zone == zone, Permit.status == PermitStatus.ACTIVE)
+        ).scalar_one()
+
+    def get_distinct_zones(self) -> list[str]:
+        """Return a sorted list of every zone with at least one permit issued for it."""
+        rows = self._db.execute(
+            select(Permit.zone).distinct().order_by(Permit.zone)
+        ).scalars().all()
+        return list(rows)

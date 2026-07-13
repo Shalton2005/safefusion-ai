@@ -84,3 +84,11 @@ class SensorRepository(BaseRepository[Sensor]):
             .select_from(Sensor)
             .where(Sensor.status == status)
         ).scalar_one()
+
+    def count_by_zone(self, zone: str) -> int:
+        """Return the count of sensor readings (any status) for the given zone."""
+        return self._db.execute(
+            select(func.count())
+            .select_from(Sensor)
+            .where(Sensor.zone == zone)
+        ).scalar_one()

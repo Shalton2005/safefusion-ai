@@ -18,7 +18,13 @@ from src.repositories.permit import PermitRepository
 from src.repositories.risk_score import RiskScoreRepository
 from src.repositories.sensor import SensorRepository
 from src.repositories.worker import WorkerRepository
-from src.schemas.dashboard import DashboardResponse, DashboardSummary, ZoneSensorSummary
+from src.schemas.dashboard import (
+    DashboardResponse,
+    DashboardSummary,
+    ZoneOverviewResponse,
+    ZoneOverviewSummary,
+    ZoneSensorSummary,
+)
 from src.utils.response import success_response
 
 router: APIRouter = APIRouter(prefix="/dashboard", tags=["Dashboard"])
@@ -88,6 +94,54 @@ def get_dashboard(db: DbDep) -> JSONResponse:
     return success_response(
         data=payload.model_dump(mode="json"),
         message="Dashboard data retrieved.",
+    )
+
+
+@router.get(
+    "/zones",
+    summary="Zone overview",
+    description=(
+        "Returns, for every known plant zone, the current worker count, active "
+        "sensor count, active permit count, and current risk level — the data "
+        "backing the Zone Overview component. Every value is computed "
+        "server-side from persisted records."
+    ),
+    response_class=JSONResponse,
+    response_description="Per-zone overview: presence, active sensors/permits, and risk level.",
+)
+def get_zone_overview(db: DbDep) -> JSONResponse:
+    """Assemble and return the per-zone overview payload."""
+    worker_repo = WorkerRepository(db)
+    sensor_repo = SensorRepository(db)
+    permit_repo = PermitRepository(db)
+    risk_repo = RiskScoreRepository(db)
+
+    # Union every zone referenced by any domain entity — a zone with permits
+    # but no sensors yet (or vice versa) should still appear.
+    zones = sorted(
+        set(worker_repo.get_distinct_zones())
+        | set(sensor_repo.get_distinct_zones())
+        | set(permit_repo.get_distinct_zones())
+    )
+
+    zone_summaries: list[ZoneOverviewSummary] = []
+    for zone in zones:
+        latest_risk = risk_repo.get_latest_by_zone(zone)
+        zone_summaries.append(
+            ZoneOverviewSummary(
+                zone=zone,
+                workers_present=worker_repo.count_by_zone(zone),
+                active_sensors=sensor_repo.count_by_zone(zone),
+                active_permits=permit_repo.count_active_by_zone(zone),
+                risk_level=latest_risk.risk_level if latest_risk else None,
+            )
+        )
+
+    payload = ZoneOverviewResponse(zones=zone_summaries)
+
+    return success_response(
+        data=payload.model_dump(mode="json"),
+        message="Zone overview retrieved.",
     )
 
 
