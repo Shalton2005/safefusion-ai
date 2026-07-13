@@ -502,6 +502,44 @@ export interface IncidentReportData {
   compliance_status: ComplianceStatus | null;
 }
 
+// ─── Knowledge Graph ───────────────────────────────────────────────
+// Mirrors backend/src/schemas/response/graph_visualization.py exactly —
+// GET /graph/visualization returns this shape unwrapped (no ApiResponse envelope).
+
+/** A single graph node as returned by the knowledge-graph API. */
+export interface KnowledgeGraphNode {
+  id: string;
+  /** Primary node label, e.g. "Worker", "Zone", "Sensor", "Permit", "Incident", "Risk". */
+  label: string;
+  properties: Record<string, unknown>;
+}
+
+/** A single graph relationship (edge) as returned by the knowledge-graph API. */
+export interface KnowledgeGraphRelationship {
+  id: string;
+  source: string;
+  target: string;
+  /** Relationship type, e.g. "LOCATED_IN". */
+  type: string;
+  properties: Record<string, unknown>;
+}
+
+/** Summary counts describing a knowledge-graph payload. */
+export interface KnowledgeGraphMetadata {
+  node_count: number;
+  relationship_count: number;
+  node_labels: Record<string, number>;
+  relationship_types: Record<string, number>;
+  generated_at: string;
+}
+
+/** Full knowledge graph payload: `GET /graph/visualization`. */
+export interface KnowledgeGraphVisualization {
+  nodes: KnowledgeGraphNode[];
+  relationships: KnowledgeGraphRelationship[];
+  metadata: KnowledgeGraphMetadata;
+}
+
 // ─── Navigation ────────────────────────────────────────────────────
 export interface NavItem {
   label: string;

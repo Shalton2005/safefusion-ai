@@ -11,6 +11,7 @@ export { complianceService } from './compliance.service';
 export { compoundRiskService } from './compoundRisk.service';
 export { dashboardService } from './dashboard.service';
 export { emergencyResponseService } from './emergencyResponse.service';
+export { graphService } from './graph.service';
 export { incidentReportService } from './incidentReport.service';
 export { incidentsService } from './incidents.service';
 export { monitoringService }from './monitoring.service';
