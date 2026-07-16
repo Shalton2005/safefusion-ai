@@ -22,6 +22,7 @@ import {
   FileBarChart2,
   BarChart3,
   Waypoints,
+  BrainCircuit,
   Settings,
 } from 'lucide-react';
 import { ROUTES } from '@/constants/routes';
@@ -154,6 +155,22 @@ export const appRouteDefinitions: AppRouteDefinition[] = [
     component: lazy(() =>
       import('@/features/knowledge-graph/pages/KnowledgeGraphPage').then((m) => ({
         default: m.KnowledgeGraphPage,
+      })),
+    ),
+  },
+
+  // ── AI Supervisor ───────────────────────────────────────────────
+  {
+    id:          'ai-supervisor',
+    path:        ROUTES.AI_SUPERVISOR,
+    label:       'AI Supervisor',
+    description: 'Live synthesis of every safety engine — risk, emergency response, recommendations, and compliance.',
+    icon:        BrainCircuit,
+    showInNav:   true,
+    isProtected: true,
+    component: lazy(() =>
+      import('@/features/ai-supervisor/pages/AISupervisorPage').then((m) => ({
+        default: m.AISupervisorPage,
       })),
     ),
   },

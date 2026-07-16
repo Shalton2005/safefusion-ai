@@ -17,6 +17,7 @@ import { RecentIncidentsPanel } from '@/features/alerts/components/RecentInciden
 import { PermitDashboardPanel } from '@/features/permits/components/PermitDashboardPanel';
 import { SafetyHeatmapContainer } from '@/features/live-monitoring/components/SafetyHeatmapContainer';
 import { CompoundRiskCardSectionView } from '@/features/risk/components/CompoundRiskCardSection';
+import { AISupervisorCardSection } from '@/features/ai-supervisor/components/AISupervisorCardSection';
 import { RiskExplanationPanelSectionView } from '@/features/risk/components/RiskExplanationPanelSection';
 import { EmergencyResponsePanelSectionView } from '@/features/emergency/components/EmergencyResponsePanelSection';
 import { ComplianceDashboardSectionView } from '@/features/compliance/components/ComplianceDashboardSection';
@@ -140,6 +141,9 @@ export function DashboardPage() {
           <AlertDistributionChart data={ALERT_DISTRIBUTION_DATA} />
         </ChartCard>
       </div>
+
+      {/* AI Supervisor */}
+      <AISupervisorCardSection />
 
       {/* Compound risk */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
