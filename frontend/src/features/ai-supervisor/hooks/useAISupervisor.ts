@@ -27,6 +27,8 @@ import type { AISupervisorSnapshot } from '../types';
 export interface UseAISupervisorResult {
   snapshot: AISupervisorSnapshot;
   loading: boolean;
+  /** First error reported by any of the four supervised engines, or `null` when all are healthy. */
+  error: string | null;
   refresh: () => void;
 }
 
@@ -73,6 +75,7 @@ export function useAISupervisor(): UseAISupervisorResult {
   );
 
   const loading = compoundRisk.loading || emergencyResponse.loading || recommendation.loading || compliance.loading;
+  const error = compoundRisk.error ?? emergencyResponse.error ?? recommendation.error ?? compliance.error;
 
   const refresh = () => {
     compoundRisk.refresh();
@@ -81,5 +84,5 @@ export function useAISupervisor(): UseAISupervisorResult {
     compliance.refresh();
   };
 
-  return { snapshot, loading, refresh };
+  return { snapshot, loading, error, refresh };
 }

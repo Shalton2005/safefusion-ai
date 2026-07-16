@@ -18,7 +18,7 @@ import { ExplainDecisionPanel } from '../components/ExplainDecisionPanel';
 import type { AIDecision } from '../types';
 
 export function AISupervisorPage() {
-  const { snapshot, refresh } = useAISupervisor();
+  const { snapshot, loading, error, refresh } = useAISupervisor();
   const [selectedDecision, setSelectedDecision] = useState<AIDecision | null>(null);
 
   const agentErrors = snapshot.agents.filter((agent) => agent.error);
@@ -70,8 +70,11 @@ export function AISupervisorPage() {
           <CardContent>
             <DecisionTimeline
               decisions={snapshot.decisions}
+              loading={loading && snapshot.decisions.length === 0}
+              error={snapshot.decisions.length === 0 ? error : null}
               selectedId={selectedDecision?.id}
               onSelect={setSelectedDecision}
+              onRetry={refresh}
             />
           </CardContent>
         </Card>

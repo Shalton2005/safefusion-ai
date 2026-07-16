@@ -19,13 +19,44 @@ import type {
   Recommendation,
   RiskStatus,
 } from '@/types';
-import type { AIAgentId, AIAgentSummary, AIDecision, AISupervisorSnapshot } from '../types';
+import type {
+  AIAgentId,
+  AIAgentStatus,
+  AIAgentSummary,
+  AIDecision,
+  AIDecisionExecutionStatus,
+  AIDecisionType,
+  AISupervisorSnapshot,
+} from '../types';
 
 const AGENT_LABEL: Record<AIAgentId, string> = {
   compound_risk:      'Compound Risk Engine',
   emergency_response: 'Emergency Response Engine',
   recommendation:     'Recommendation Engine',
   compliance:         'Compliance Engine',
+};
+
+/** Decision type produced by each agent — one per engine's output shape. */
+const AGENT_DECISION_TYPE: Record<AIAgentId, AIDecisionType> = {
+  compound_risk:      'risk_assessment',
+  emergency_response: 'emergency_action',
+  recommendation:     'recommendation',
+  compliance:         'compliance_violation',
+};
+
+/** What each decision type means for execution — see `AIDecisionExecutionStatus` doc. */
+const DECISION_TYPE_EXECUTION_STATUS: Record<AIDecisionType, AIDecisionExecutionStatus> = {
+  risk_assessment:       'logged',
+  emergency_action:      'executed',
+  recommendation:        'pending',
+  compliance_violation:  'flagged',
+};
+
+/** Per-decision confidence, derived from the source agent's health at fetch time — not a fabricated model score. */
+const AGENT_STATUS_CONFIDENCE: Record<AIAgentStatus, number> = {
+  active: 100,
+  degraded: 50,
+  offline: 0,
 };
 
 export interface AgentEngineInput<T> {
@@ -71,7 +102,7 @@ function buildAgent<T>(
   };
 }
 
-function compoundRiskDecisions(engine: AgentEngineInput<CompoundRiskAssessment | null>): AIDecision[] {
+function compoundRiskDecisions(engine: AgentEngineInput<CompoundRiskAssessment | null>, agentStatus: AIAgentStatus): AIDecision[] {
   if (!engine.data) return [];
   const timestamp = (engine.lastUpdated ?? new Date()).toISOString();
   return [
@@ -79,47 +110,56 @@ function compoundRiskDecisions(engine: AgentEngineInput<CompoundRiskAssessment |
       id: 'compound-risk-latest',
       agentId: 'compound_risk',
       agentLabel: AGENT_LABEL.compound_risk,
+      decisionType: AGENT_DECISION_TYPE.compound_risk,
       zone: null,
       severity: engine.data.risk_level,
       title: `${engine.data.triggered_rules_count} rule(s) triggered`,
       explanation: `Highest zone risk score reached ${engine.data.risk_score}/100.`,
       timestamp,
       isTimeApproximate: true,
+      confidence: AGENT_STATUS_CONFIDENCE[agentStatus],
+      executionStatus: DECISION_TYPE_EXECUTION_STATUS[AGENT_DECISION_TYPE.compound_risk],
     },
   ];
 }
 
-function emergencyResponseDecisions(engine: AgentEngineInput<EmergencyActionItem[]>): AIDecision[] {
+function emergencyResponseDecisions(engine: AgentEngineInput<EmergencyActionItem[]>, agentStatus: AIAgentStatus): AIDecision[] {
   const timestamp = (engine.lastUpdated ?? new Date()).toISOString();
   return engine.data.map((item) => ({
     id: `emergency-${item.zone}-${item.order}`,
     agentId: 'emergency_response',
     agentLabel: AGENT_LABEL.emergency_response,
+    decisionType: AGENT_DECISION_TYPE.emergency_response,
     zone: item.zone,
     severity: item.risk_level,
     title: item.action,
     explanation: item.explanation,
     timestamp,
     isTimeApproximate: true,
+    confidence: AGENT_STATUS_CONFIDENCE[agentStatus],
+    executionStatus: DECISION_TYPE_EXECUTION_STATUS[AGENT_DECISION_TYPE.emergency_response],
   }));
 }
 
-function recommendationDecisions(engine: AgentEngineInput<Recommendation[]>): AIDecision[] {
+function recommendationDecisions(engine: AgentEngineInput<Recommendation[]>, agentStatus: AIAgentStatus): AIDecision[] {
   const timestamp = (engine.lastUpdated ?? new Date()).toISOString();
   return engine.data.map((rec, index) => ({
     id: `recommendation-${index}`,
     agentId: 'recommendation',
     agentLabel: AGENT_LABEL.recommendation,
+    decisionType: AGENT_DECISION_TYPE.recommendation,
     zone: rec.zone,
     severity: 'medium',
     title: rec.message,
     explanation: rec.reason,
     timestamp,
     isTimeApproximate: true,
+    confidence: AGENT_STATUS_CONFIDENCE[agentStatus],
+    executionStatus: DECISION_TYPE_EXECUTION_STATUS[AGENT_DECISION_TYPE.recommendation],
   }));
 }
 
-function complianceDecisions(engine: AgentEngineInput<ComplianceStatusSnapshot | null>): AIDecision[] {
+function complianceDecisions(engine: AgentEngineInput<ComplianceStatusSnapshot | null>, agentStatus: AIAgentStatus): AIDecision[] {
   if (!engine.data || engine.data.status === 'compliant') return [];
   const timestamp = (engine.lastUpdated ?? new Date()).toISOString();
   return [
@@ -127,12 +167,15 @@ function complianceDecisions(engine: AgentEngineInput<ComplianceStatusSnapshot |
       id: 'compliance-latest',
       agentId: 'compliance',
       agentLabel: AGENT_LABEL.compliance,
+      decisionType: AGENT_DECISION_TYPE.compliance,
       zone: null,
       severity: 'high',
       title: `${engine.data.non_compliant_count} non-compliant incident(s)`,
       explanation: `Frameworks violated: ${engine.data.violated_frameworks.join(', ') || 'none reported'}.`,
       timestamp,
       isTimeApproximate: true,
+      confidence: AGENT_STATUS_CONFIDENCE[agentStatus],
+      executionStatus: DECISION_TYPE_EXECUTION_STATUS[AGENT_DECISION_TYPE.compliance],
     },
   ];
 }
@@ -145,12 +188,13 @@ function buildSnapshot(input: BuildSnapshotInput): AISupervisorSnapshot {
     buildAgent('recommendation', input.recommendation, input.recommendation.data.length),
     buildAgent('compliance', input.compliance, input.compliance.data?.non_compliant_count ?? 0),
   ];
+  const agentStatusById = new Map(agents.map((a) => [a.id, a.status]));
 
   const decisions = [
-    ...compoundRiskDecisions(input.compoundRisk),
-    ...emergencyResponseDecisions(input.emergencyResponse),
-    ...recommendationDecisions(input.recommendation),
-    ...complianceDecisions(input.compliance),
+    ...compoundRiskDecisions(input.compoundRisk, agentStatusById.get('compound_risk')!),
+    ...emergencyResponseDecisions(input.emergencyResponse, agentStatusById.get('emergency_response')!),
+    ...recommendationDecisions(input.recommendation, agentStatusById.get('recommendation')!),
+    ...complianceDecisions(input.compliance, agentStatusById.get('compliance')!),
   ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
   const severities = agents
