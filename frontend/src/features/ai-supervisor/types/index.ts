@@ -216,3 +216,71 @@ export interface ExplainableAIData {
   applicableRules: ApplicableSafetyRule[];
   recommendedActions: RecommendedAction[];
 }
+
+// ─── AI Reasoning Panel ─────────────────────────────────────────────
+//
+// A dedicated, API-shaped contract for `AIReasoningPanel` — a general
+// "why did the AI conclude this" display, distinct from
+// `ExplainableAIData` above (which is specific to one AI Supervisor
+// decision's evidence/hazards/rules/actions breakdown). This panel is
+// meant to render whatever a reasoning/explainability endpoint returns
+// for any AI-surfaced conclusion — a Copilot answer, a risk assessment,
+// an incident analysis — so its shape favours generality: a narrative
+// summary, confidence, risk level, the rules that fired, the evidence
+// sources behind them, retrieved regulatory text, and the knowledge
+// graph entities referenced. The panel never generates any of this
+// itself — every field is rendered as received.
+
+/** One rule the reasoning engine reports as triggered. */
+export interface ReasoningTriggeredRule {
+  id: string;
+  /** Rule code/name, e.g. "critical_sensors" or "OISD-STD-118-4.2". */
+  name: string;
+  detail: string;
+}
+
+/** One underlying data point the reasoning cites as evidence, e.g. a sensor reading or a risk score. */
+export interface ReasoningEvidenceSource {
+  id: string;
+  /** What kind of evidence this is, e.g. "Sensor Reading", "Risk Score", "Incident Report". */
+  type: string;
+  label: string;
+  value: string;
+  /** ISO timestamp the evidence was recorded/observed, if the backend reports one. */
+  timestamp: string | null;
+}
+
+/** One regulatory document chunk retrieved to support the reasoning (mirrors RAG retrieval output). */
+export interface ReasoningRetrievedRegulation {
+  id: string;
+  /** Source document name, e.g. "OISD-STD-118". */
+  source: string;
+  title: string | null;
+  excerpt: string;
+  /** Cosine similarity, 0-1 — higher is more relevant. `null` when the backend doesn't rank results. */
+  similarity: number | null;
+}
+
+/** One knowledge graph node the reasoning references. */
+export interface ReasoningGraphReference {
+  id: string;
+  /** Node label, e.g. "Worker", "Zone", "Sensor", "Permit", "Incident". */
+  label: string;
+  /** Human-readable name/identifier for the node, e.g. a worker's name or a zone code. */
+  name: string;
+  /** How this node relates to the reasoning, e.g. "LOCATED_IN Zone-A". `null` when the backend doesn't report a relationship. */
+  relationship: string | null;
+}
+
+/** Full payload for `AIReasoningPanel` — mirrors what a real reasoning/explainability API would return. */
+export interface AIReasoningData {
+  /** Backend-authored narrative explaining the conclusion. Never generated client-side. */
+  summary: string;
+  /** 0-100 confidence the backend reports for this conclusion. */
+  confidence: number;
+  riskLevel: SeverityLevel;
+  triggeredRules: ReasoningTriggeredRule[];
+  evidenceSources: ReasoningEvidenceSource[];
+  retrievedRegulations: ReasoningRetrievedRegulation[];
+  knowledgeGraphReferences: ReasoningGraphReference[];
+}
