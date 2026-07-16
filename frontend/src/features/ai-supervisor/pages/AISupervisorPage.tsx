@@ -1,9 +1,9 @@
 /**
  * AISupervisorPage
  *
- * Full AI Supervisor dashboard: overall status card, agent activity,
- * agent workflow graph, decision timeline, and the explain-decision
- * panel for the selected decision.
+ * Full AI Supervisor dashboard: overall status card, data pipeline
+ * diagram, agent activity, agent workflow graph, decision timeline,
+ * and the explain-decision panel for the selected decision.
  */
 
 import { useState } from 'react';
@@ -13,6 +13,7 @@ import { useAISupervisor } from '../hooks/useAISupervisor';
 import { AISupervisorCard } from '../components/AISupervisorCard';
 import { AgentActivityList } from '../components/AgentActivityList';
 import { WorkflowGraph } from '../components/WorkflowGraph';
+import { PipelineWorkflow } from '../components/PipelineWorkflow';
 import { DecisionTimeline } from '../components/DecisionTimeline';
 import { ExplainDecisionPanel } from '../components/ExplainDecisionPanel';
 import type { AIDecision } from '../types';
@@ -47,6 +48,13 @@ export function AISupervisorPage() {
       )}
 
       <AISupervisorCard snapshot={snapshot} />
+
+      <Card>
+        <CardHeader title="Data Pipeline" description="How data flows from the field into the AI Supervisor" />
+        <CardContent>
+          <PipelineWorkflow />
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card>
