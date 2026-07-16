@@ -31,9 +31,11 @@ export interface WorkflowGraphProps {
 }
 
 const AGENT_STATUS_COLOR: Record<AIAgentStatus, string> = {
-  active: 'var(--sf-safe-500, #22c55e)',
-  degraded: 'var(--sf-caution-500, #f59e0b)',
-  offline: 'var(--sf-danger-500, #ef4444)',
+  completed: 'var(--sf-safe-500, #22c55e)',
+  waiting: 'var(--sf-caution-500, #f59e0b)',
+  running: 'var(--sf-primary-500, #3b82f6)',
+  failed: 'var(--sf-danger-500, #ef4444)',
+  idle: 'var(--sf-text-tertiary, #64748b)',
 };
 
 const PROCESSING_STATE_COLOR: Record<AISupervisorProcessingState, string> = {
@@ -85,7 +87,7 @@ function buildEdges(agents: AIAgentSummary[]): Edge[] {
     id: `${agent.id}-supervisor`,
     source: agent.id,
     target: 'supervisor',
-    animated: agent.status === 'active',
+    animated: agent.status === 'completed' || agent.status === 'waiting' || agent.status === 'running',
     style: { stroke: AGENT_STATUS_COLOR[agent.status], strokeWidth: 1.5 },
   }));
 }

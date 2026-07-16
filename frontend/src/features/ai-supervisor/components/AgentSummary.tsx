@@ -1,8 +1,8 @@
 /**
  * AgentSummary
  *
- * Single supervised-agent row: name, live status badge, and finding
- * count. Purely presentational — pass an `AIAgentSummary` from
+ * Single supervised-agent row: name, status badge, last update, and
+ * confidence. Purely presentational — pass an `AIAgentSummary` from
  * `useAISupervisor`.
  *
  * @example
@@ -39,6 +39,9 @@ export function AgentSummary({ agent, className }: AgentSummaryProps) {
         </div>
       </div>
       <div className="flex items-center gap-3 flex-shrink-0">
+        <span className="text-xs text-[var(--sf-text-tertiary)] font-mono" title="Confidence">
+          {agent.confidence}%
+        </span>
         <span className="text-xs text-[var(--sf-text-tertiary)] font-mono">
           {agent.findingCount} finding{agent.findingCount === 1 ? '' : 's'}
         </span>

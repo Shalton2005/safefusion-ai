@@ -53,12 +53,17 @@ const DECISION_TYPE_EXECUTION_STATUS: Record<AIDecisionType, AIDecisionExecution
   compliance_violation:  'flagged',
 };
 
-/** Per-decision confidence, derived from the source agent's health at fetch time — not a fabricated model score. */
+/** Per-agent (and per-decision) confidence, derived from lifecycle status — not a fabricated model score. */
 const AGENT_STATUS_CONFIDENCE: Record<AIAgentStatus, number> = {
-  active: 100,
-  degraded: 50,
-  offline: 0,
+  completed: 100,
+  waiting: 100,
+  running: 50,
+  idle: 0,
+  failed: 0,
 };
+
+/** Lifecycle statuses that mean the agent is healthy and reporting (used to count "active" agents and gate the overall processing state). */
+const HEALTHY_AGENT_STATUSES: readonly AIAgentStatus[] = ['completed', 'waiting'];
 
 export interface AgentEngineInput<T> {
   data: T;
@@ -87,11 +92,15 @@ function buildAgent<T>(
   engine: AgentEngineInput<T>,
   findingCount: number,
 ): AIAgentSummary {
-  const status: AIAgentSummary['status'] = engine.error
-    ? 'offline'
+  const status: AIAgentStatus = engine.error
+    ? 'failed'
     : engine.loading && !engine.lastUpdated
-      ? 'degraded'
-      : 'active';
+      ? 'running'
+      : !engine.lastUpdated
+        ? 'idle'
+        : findingCount > 0
+          ? 'completed'
+          : 'waiting';
 
   return {
     id,
@@ -100,6 +109,7 @@ function buildAgent<T>(
     findingCount,
     lastUpdated: engine.lastUpdated,
     error: engine.error,
+    confidence: AGENT_STATUS_CONFIDENCE[status],
   };
 }
 
@@ -211,9 +221,9 @@ function buildSnapshot(input: BuildSnapshotInput): AISupervisorSnapshot {
         : 'critical'
     : null;
 
-  const activeAgentCount = agents.filter((a) => a.status === 'active').length;
-  const anyError = agents.some((a) => a.status === 'offline');
-  const anyLoading = agents.some((a) => a.status === 'degraded');
+  const activeAgentCount = agents.filter((a) => HEALTHY_AGENT_STATUSES.includes(a.status)).length;
+  const anyError = agents.some((a) => a.status === 'failed');
+  const anyLoading = agents.some((a) => a.status === 'running' || a.status === 'idle');
 
   const processingState: AISupervisorSnapshot['processingState'] = anyError
     ? 'error'

@@ -20,10 +20,16 @@ export const AI_AGENT_IDS = [
 export type AIAgentId = (typeof AI_AGENT_IDS)[number];
 
 /**
- * Per-agent health, derived from whether its underlying engine call
- * most recently succeeded, failed, or hasn't reported yet.
+ * Per-agent lifecycle status, derived entirely from the polling state
+ * each engine hook already exposes (`loading` / `error` / `lastUpdated`)
+ * — never a fabricated job-queue state:
+ *  - `idle`      — not yet polled (no `lastUpdated`, not loading)
+ *  - `running`   — a fetch is currently in flight
+ *  - `completed` — most recent fetch succeeded and reported findings
+ *  - `waiting`   — most recent fetch succeeded with zero findings (healthy, nothing to act on)
+ *  - `failed`    — most recent fetch errored
  */
-export const AI_AGENT_STATUSES = ['active', 'degraded', 'offline'] as const;
+export const AI_AGENT_STATUSES = ['idle', 'running', 'completed', 'waiting', 'failed'] as const;
 export type AIAgentStatus = (typeof AI_AGENT_STATUSES)[number];
 
 /** Overall AI Supervisor processing state, derived from the loading/error state of all agents. */
@@ -41,6 +47,13 @@ export interface AIAgentSummary {
   lastUpdated: Date | null;
   /** Present only when the agent's most recent call failed. */
   error: string | null;
+  /**
+   * 0-100 confidence in this agent's current output. Derived from its
+   * lifecycle status (completed/waiting=100, running=50, idle/failed=0)
+   * — a system-health confidence measure, not a fabricated model score
+   * (mirrors `AIDecision.confidence`'s convention).
+   */
+  confidence: number;
 }
 
 /**

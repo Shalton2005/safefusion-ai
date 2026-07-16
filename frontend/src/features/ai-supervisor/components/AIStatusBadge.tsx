@@ -1,13 +1,15 @@
 /**
  * AIStatusBadge
  *
- * Small badge rendering either an agent status (`active`/`degraded`/`offline`)
- * or the overall supervisor processing state
- * (`idle`/`processing`/`action_required`/`error`) with consistent
- * colour coding and an optional live-pulsing dot.
+ * Small badge rendering either an agent lifecycle status
+ * (`running`/`waiting`/`completed`/`failed`/`idle`) or the overall
+ * supervisor processing state (`idle`/`processing`/`action_required`/`error`)
+ * with consistent colour coding and an optional live-pulsing dot.
+ * Uses the shared `Badge` component's existing variants — no new
+ * colour styles introduced.
  *
  * @example
- * <AIStatusBadge kind="agent" value="active" />
+ * <AIStatusBadge kind="agent" value="running" />
  * <AIStatusBadge kind="processing" value="action_required" />
  */
 
@@ -15,15 +17,19 @@ import { Badge, type BadgeSize } from '@/components/ui';
 import type { AIAgentStatus, AISupervisorProcessingState } from '../types';
 
 const AGENT_STATUS_LABEL: Record<AIAgentStatus, string> = {
-  active: 'Active',
-  degraded: 'Degraded',
-  offline: 'Offline',
+  running: 'Running',
+  waiting: 'Waiting',
+  completed: 'Completed',
+  failed: 'Failed',
+  idle: 'Idle',
 };
 
-const AGENT_STATUS_VARIANT: Record<AIAgentStatus, 'success' | 'warning' | 'danger'> = {
-  active: 'success',
-  degraded: 'warning',
-  offline: 'danger',
+const AGENT_STATUS_VARIANT: Record<AIAgentStatus, 'success' | 'primary' | 'warning' | 'danger' | 'secondary'> = {
+  running: 'primary',
+  waiting: 'warning',
+  completed: 'success',
+  failed: 'danger',
+  idle: 'secondary',
 };
 
 const PROCESSING_STATE_LABEL: Record<AISupervisorProcessingState, string> = {
@@ -61,7 +67,7 @@ export function AIStatusBadge(props: AIStatusBadgeProps) {
 
   if (props.kind === 'agent') {
     return (
-      <Badge variant={AGENT_STATUS_VARIANT[props.value]} size={size} dot pulsing={props.value === 'active'} className={className}>
+      <Badge variant={AGENT_STATUS_VARIANT[props.value]} size={size} dot pulsing={props.value === 'running'} className={className}>
         {AGENT_STATUS_LABEL[props.value]}
       </Badge>
     );
