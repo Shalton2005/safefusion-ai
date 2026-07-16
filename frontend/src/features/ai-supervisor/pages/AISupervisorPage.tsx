@@ -1,9 +1,10 @@
 /**
  * AISupervisorPage
  *
- * Full AI Supervisor dashboard: overall status card, data pipeline
- * diagram, agent activity, agent workflow graph, decision timeline,
- * and the explainable-AI panel for the selected decision.
+ * Full AI Supervisor dashboard: overall status card, per-category
+ * confidence gauges, data pipeline diagram, agent activity, agent
+ * workflow graph, decision timeline, and the explainable-AI panel for
+ * the selected decision.
  */
 
 import { useState } from 'react';
@@ -14,6 +15,7 @@ import { AISupervisorCard } from '../components/AISupervisorCard';
 import { AgentActivityList } from '../components/AgentActivityList';
 import { WorkflowGraph } from '../components/WorkflowGraph';
 import { PipelineWorkflow } from '../components/PipelineWorkflow';
+import { ConfidenceOverview } from '../components/ConfidenceOverview';
 import { DecisionTimeline } from '../components/DecisionTimeline';
 import { ExplainableAIPanel } from '../components/ExplainableAIPanel';
 import { aiSupervisorService } from '../services/aiSupervisor.service';
@@ -49,6 +51,13 @@ export function AISupervisorPage() {
       )}
 
       <AISupervisorCard snapshot={snapshot} />
+
+      <Card>
+        <CardHeader title="Confidence" description="Detection, recommendation, prediction, and emergency confidence" />
+        <CardContent>
+          <ConfidenceOverview agents={snapshot.agents} />
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader title="Data Pipeline" description="How data flows from the field into the AI Supervisor" />
