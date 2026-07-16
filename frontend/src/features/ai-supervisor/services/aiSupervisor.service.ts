@@ -27,6 +27,7 @@ import type {
   AIDecisionExecutionStatus,
   AIDecisionType,
   AISupervisorSnapshot,
+  ExplainableAIData,
 } from '../types';
 
 const AGENT_LABEL: Record<AIAgentId, string> = {
@@ -243,6 +244,45 @@ function buildSnapshot(input: BuildSnapshotInput): AISupervisorSnapshot {
   };
 }
 
+/**
+ * Maps a single `AIDecision` onto the `ExplainableAIData` contract for
+ * `ExplainableAIPanel`. Every section is derived only from fields the
+ * decision already carries — `decisionType` decides which section the
+ * decision's `title`/`explanation` populates, since none of the four
+ * engines return separately-structured evidence/hazard/rule/action
+ * lists today. Nothing here invents data the source engine didn't report.
+ */
+function toExplainableAIData(decision: AIDecision): ExplainableAIData {
+  const summary = {
+    title: decision.title,
+    zone: decision.zone,
+    severity: decision.severity,
+    confidence: decision.confidence,
+    timestamp: decision.timestamp,
+  };
+
+  const evidence = [
+    { label: 'Source', value: decision.agentLabel },
+    { label: 'Zone', value: decision.zone ?? 'Plant-wide' },
+    { label: 'Reported', value: decision.timestamp },
+  ];
+
+  const detectedHazards = decision.decisionType === 'risk_assessment' || decision.decisionType === 'emergency_action'
+    ? [{ label: decision.title, severity: decision.severity, description: decision.explanation }]
+    : [];
+
+  const applicableRules = decision.decisionType === 'compliance_violation'
+    ? [{ code: decision.title, description: decision.explanation }]
+    : [];
+
+  const recommendedActions = decision.decisionType === 'recommendation' || decision.decisionType === 'emergency_action'
+    ? [{ label: decision.title, rationale: decision.explanation }]
+    : [];
+
+  return { summary, evidence, detectedHazards, applicableRules, recommendedActions };
+}
+
 export const aiSupervisorService = {
   buildSnapshot,
+  toExplainableAIData,
 };

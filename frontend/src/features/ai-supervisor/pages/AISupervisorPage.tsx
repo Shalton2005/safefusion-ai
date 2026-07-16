@@ -3,7 +3,7 @@
  *
  * Full AI Supervisor dashboard: overall status card, data pipeline
  * diagram, agent activity, agent workflow graph, decision timeline,
- * and the explain-decision panel for the selected decision.
+ * and the explainable-AI panel for the selected decision.
  */
 
 import { useState } from 'react';
@@ -15,7 +15,8 @@ import { AgentActivityList } from '../components/AgentActivityList';
 import { WorkflowGraph } from '../components/WorkflowGraph';
 import { PipelineWorkflow } from '../components/PipelineWorkflow';
 import { DecisionTimeline } from '../components/DecisionTimeline';
-import { ExplainDecisionPanel } from '../components/ExplainDecisionPanel';
+import { ExplainableAIPanel } from '../components/ExplainableAIPanel';
+import { aiSupervisorService } from '../services/aiSupervisor.service';
 import type { AIDecision } from '../types';
 
 export function AISupervisorPage() {
@@ -88,9 +89,11 @@ export function AISupervisorPage() {
         </Card>
 
         <Card>
-          <CardHeader title="Explain Decision" description="Why the AI Supervisor made this call" />
+          <CardHeader title="Explainable AI" description="Full breakdown of why the AI Supervisor made this call" />
           <CardContent>
-            <ExplainDecisionPanel decision={selectedDecision} />
+            <ExplainableAIPanel
+              data={selectedDecision ? aiSupervisorService.toExplainableAIData(selectedDecision) : null}
+            />
           </CardContent>
         </Card>
       </div>

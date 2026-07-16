@@ -121,3 +121,55 @@ export interface AISupervisorSnapshot {
   overallConfidence: number;
   decisions: AIDecision[];
 }
+
+// ─── Explainable AI Panel ───────────────────────────────────────────
+//
+// A dedicated, API-shaped contract for `ExplainableAIPanel` — distinct
+// from `AIDecision` above. `AIDecision` is this feature's internal
+// synthesis type (client-derived from four engine hooks); this section
+// models what a real explainability endpoint would return for a single
+// decision, so the panel can be dropped in as-is once such an endpoint
+// exists, and can also be fed today via `toExplainableAIData` (see
+// `aiSupervisor.service.ts`), which maps an `AIDecision` onto this
+// shape using only fields already present on it — nothing fabricated.
+
+/** One piece of supporting data behind a decision, e.g. a sensor reading or a risk score. */
+export interface ExplainableEvidenceItem {
+  label: string;
+  value: string;
+}
+
+/** One hazard the decision identified. */
+export interface DetectedHazard {
+  label: string;
+  severity: SeverityLevel;
+  description: string;
+}
+
+/** One safety rule or framework the decision was checked against. */
+export interface ApplicableSafetyRule {
+  code: string;
+  description: string;
+}
+
+/** One action recommended (not necessarily executed) as a result of the decision. */
+export interface RecommendedAction {
+  label: string;
+  rationale: string;
+}
+
+/** Full payload for `ExplainableAIPanel` — mirrors what a real explainability API would return for one decision. */
+export interface ExplainableAIData {
+  /** High-level summary of what was decided and why. */
+  summary: {
+    title: string;
+    zone: string | null;
+    severity: SeverityLevel;
+    confidence: number;
+    timestamp: string;
+  };
+  evidence: ExplainableEvidenceItem[];
+  detectedHazards: DetectedHazard[];
+  applicableRules: ApplicableSafetyRule[];
+  recommendedActions: RecommendedAction[];
+}
