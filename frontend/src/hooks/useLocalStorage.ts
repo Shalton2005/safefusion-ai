@@ -11,13 +11,16 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
   });
 
   const setValue = (value: T | ((prev: T) => T)) => {
-    try {
-      const valueToStore = value instanceof Function ? value(storedValue) : value;
-      setStoredValue(valueToStore);
-      localStorage.setItem(key, JSON.stringify(valueToStore));
-    } catch (error) {
-      console.error(`useLocalStorage: failed to set "${key}"`, error);
-    }
+    setStoredValue((prev) => {
+      try {
+        const valueToStore = value instanceof Function ? value(prev) : value;
+        localStorage.setItem(key, JSON.stringify(valueToStore));
+        return valueToStore;
+      } catch (error) {
+        console.error(`useLocalStorage: failed to set "${key}"`, error);
+        return prev;
+      }
+    });
   };
 
   useEffect(() => {

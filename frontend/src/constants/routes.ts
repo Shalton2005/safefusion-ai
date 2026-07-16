@@ -16,6 +16,7 @@ export const ROUTES = {
   ANALYTICS:       '/analytics',
   KNOWLEDGE_GRAPH: '/knowledge-graph',
   AI_SUPERVISOR:   '/ai-supervisor',
+  COPILOT:         '/copilot',
   REPORTS:         '/reports',
   SETTINGS:        '/settings',
 

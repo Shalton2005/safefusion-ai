@@ -23,6 +23,7 @@ import {
   BarChart3,
   Waypoints,
   BrainCircuit,
+  MessageSquareText,
   Settings,
 } from 'lucide-react';
 import { ROUTES } from '@/constants/routes';
@@ -171,6 +172,22 @@ export const appRouteDefinitions: AppRouteDefinition[] = [
     component: lazy(() =>
       import('@/features/ai-supervisor/pages/AISupervisorPage').then((m) => ({
         default: m.AISupervisorPage,
+      })),
+    ),
+  },
+
+  // ── AI Safety Copilot ────────────────────────────────────────────
+  {
+    id:          'copilot',
+    path:        ROUTES.COPILOT,
+    label:       'Copilot',
+    description: "Ask questions grounded in your plant's ingested safety and compliance documents.",
+    icon:        MessageSquareText,
+    showInNav:   true,
+    isProtected: true,
+    component: lazy(() =>
+      import('@/features/copilot/pages/CopilotPage').then((m) => ({
+        default: m.CopilotPage,
       })),
     ),
   },

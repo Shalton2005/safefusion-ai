@@ -11,8 +11,9 @@ export const TOAST_DURATION_NORMAL = 5000;
 export const TOAST_DURATION_LONG   = 8000;
 
 // Local storage keys
-export const LS_THEME_KEY   = 'safefusion:theme';
-export const LS_SIDEBAR_KEY = 'safefusion:sidebar-collapsed';
+export const LS_THEME_KEY    = 'safefusion:theme';
+export const LS_SIDEBAR_KEY  = 'safefusion:sidebar-collapsed';
+export const LS_COPILOT_KEY  = 'safefusion:copilot-conversations';
 
 // Polling intervals (ms)
 export const MONITOR_POLL_INTERVAL   = 5000;
