@@ -4,11 +4,13 @@
  * Global Zustand store for the AI Supervisor feature. Unlike the
  * feature's own `useAISupervisor` hook (which composes the dashboard's
  * already-polling engine hooks so it never issues a duplicate network
- * call), this store is self-sufficient: its `fetch*` actions call the
- * four real engine services directly and reduce their results via the
- * same `aiSupervisorService.buildSnapshot` used everywhere else in this
- * feature — so both code paths agree on what a "decision" or "agent
- * status" means, and neither fabricates data the backend didn't report.
+ * call), this store is self-sufficient: its `fetch*` actions call
+ * `fetchSupervisorSnapshot` (shared with `aiSupervisorApiService`),
+ * which calls the four real engine services directly and reduces their
+ * results via the same `aiSupervisorService.buildSnapshot` used
+ * everywhere else in this feature — so every code path agrees on what
+ * a "decision" or "agent status" means, and none fabricates data the
+ * backend didn't report.
  *
  * Use this store where a global, imperative fetch (outside of a page
  * that already runs `useAISupervisor`) is more appropriate than a hook —
@@ -25,12 +27,9 @@
  */
 
 import { create } from 'zustand';
-import { compoundRiskService } from '@/services/compoundRisk.service';
-import { emergencyResponseService } from '@/services/emergencyResponse.service';
-import { recommendationService } from '@/services/recommendation.service';
-import { complianceService } from '@/services/compliance.service';
 import { ApiError } from '@/api/errors';
 import { aiSupervisorService } from '@/features/ai-supervisor/services/aiSupervisor.service';
+import { fetchSupervisorSnapshot } from '@/features/ai-supervisor/services/fetchSupervisorSnapshot';
 import type {
   AIAgentSummary,
   AIDecision,
@@ -38,28 +37,16 @@ import type {
   ExplainableAIData,
 } from '@/features/ai-supervisor/types';
 
-/** Runs all four engine calls in parallel and reduces them into a snapshot — the single fetch path every `fetch*` action below shares. */
-async function fetchSnapshot() {
-  const [compoundRisk, emergencyActions, recommendationResult, compliance] = await Promise.all([
-    compoundRiskService.getAssessment(),
-    emergencyResponseService.getActions(),
-    recommendationService.getRecommendations(),
-    complianceService.getStatus(),
-  ]);
-  const now = new Date();
-
-  return aiSupervisorService.buildSnapshot({
-    compoundRisk: { data: compoundRisk, loading: false, error: null, lastUpdated: now },
-    emergencyResponse: {
-      data: emergencyResponseService.toActionItems(emergencyActions),
-      loading: false,
-      error: null,
-      lastUpdated: now,
-    },
-    recommendation: { data: recommendationResult.recommendations, loading: false, error: null, lastUpdated: now },
-    compliance: { data: compliance, loading: false, error: null, lastUpdated: now },
-  });
-}
+/**
+ * Guards against a slower, earlier `fetch*` call overwriting state with
+ * stale data after a faster, later call already resolved — e.g. a
+ * component calling both `fetchStatus()` and `fetchWorkflow()` in the
+ * same effect. Each `fetch*` action captures the current token before
+ * awaiting, and only applies its `set()` if the token is still current
+ * (no newer `fetch*` call started in the meantime) or clears `loading`
+ * only when it owns the latest request.
+ */
+let latestRequestId = 0;
 
 interface AISupervisorStoreState {
   /** Overall AI Supervisor processing state, or `null` before the first fetch. */
@@ -107,9 +94,11 @@ export const useAISupervisorStore = create<AISupervisorStoreState>()((set, get) 
   ...initialState,
 
   fetchStatus: async () => {
+    const requestId = ++latestRequestId;
     set({ loading: true, error: null });
     try {
-      const snapshot = await fetchSnapshot();
+      const snapshot = await fetchSupervisorSnapshot();
+      if (requestId !== latestRequestId) return;
       set({
         supervisorStatus: snapshot.processingState,
         confidence: snapshot.overallConfidence,
@@ -117,30 +106,37 @@ export const useAISupervisorStore = create<AISupervisorStoreState>()((set, get) 
         loading: false,
       });
     } catch (err) {
+      if (requestId !== latestRequestId) return;
       set({ error: ApiError.from(err).toUserMessage(), loading: false });
     }
   },
 
   fetchWorkflow: async () => {
+    const requestId = ++latestRequestId;
     set({ loading: true, error: null });
     try {
-      const snapshot = await fetchSnapshot();
+      const snapshot = await fetchSupervisorSnapshot();
+      if (requestId !== latestRequestId) return;
       set({
         workflow: snapshot.agents,
         activeAgents: snapshot.agents.filter((agent) => agent.status === 'completed' || agent.status === 'waiting'),
         loading: false,
       });
     } catch (err) {
+      if (requestId !== latestRequestId) return;
       set({ error: ApiError.from(err).toUserMessage(), loading: false });
     }
   },
 
   fetchTimeline: async () => {
+    const requestId = ++latestRequestId;
     set({ loading: true, error: null });
     try {
-      const snapshot = await fetchSnapshot();
+      const snapshot = await fetchSupervisorSnapshot();
+      if (requestId !== latestRequestId) return;
       set({ decisionTimeline: snapshot.decisions, loading: false });
     } catch (err) {
+      if (requestId !== latestRequestId) return;
       set({ error: ApiError.from(err).toUserMessage(), loading: false });
     }
   },

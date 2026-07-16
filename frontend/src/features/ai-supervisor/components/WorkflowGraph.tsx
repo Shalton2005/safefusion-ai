@@ -7,6 +7,10 @@
  * as props, fetches nothing itself (mirrors the knowledge-graph
  * feature's `GraphVisualization`).
  *
+ * Colors come from `utils/statusColor` — the same status→color source
+ * `AIStatusBadge` and `ConfidenceGauge` use — so this graph can't drift
+ * from what the rest of the feature renders for the same status.
+ *
  * @example
  * <WorkflowGraph agents={snapshot.agents} processingState={snapshot.processingState} />
  */
@@ -22,28 +26,14 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { cn } from '@/lib/cn';
-import type { AIAgentStatus, AIAgentSummary, AISupervisorProcessingState } from '../types';
+import { AGENT_STATUS_COLOR, PROCESSING_STATE_COLOR } from '../utils/statusColor';
+import type { AIAgentSummary, AISupervisorProcessingState } from '../types';
 
 export interface WorkflowGraphProps {
   agents: AIAgentSummary[];
   processingState: AISupervisorProcessingState;
   className?: string;
 }
-
-const AGENT_STATUS_COLOR: Record<AIAgentStatus, string> = {
-  completed: 'var(--sf-safe-500, #22c55e)',
-  waiting: 'var(--sf-caution-500, #f59e0b)',
-  running: 'var(--sf-primary-500, #3b82f6)',
-  failed: 'var(--sf-danger-500, #ef4444)',
-  idle: 'var(--sf-text-tertiary, #64748b)',
-};
-
-const PROCESSING_STATE_COLOR: Record<AISupervisorProcessingState, string> = {
-  idle: '#22c55e',
-  processing: '#3b82f6',
-  action_required: '#ef4444',
-  error: '#ef4444',
-};
 
 const AGENT_SPACING_Y = 90;
 const SUPERVISOR_X = 340;
@@ -99,7 +89,7 @@ export function WorkflowGraph({ agents, processingState, className }: WorkflowGr
   return (
     <div
       className={cn(
-        'relative w-full h-64 rounded-xl border border-[var(--sf-border-default)]',
+        'relative w-full h-72 sm:h-64 rounded-xl border border-[var(--sf-border-default)]',
         'bg-[var(--sf-surface-sunken)] overflow-hidden',
         className,
       )}

@@ -12,12 +12,11 @@
  * No such backend endpoints exist yet (confirmed against
  * `backend/src/routes/` — there is no `/ai` or `/supervisor` router).
  * Rather than hardcode fixture data, each function below computes its
- * response by calling the four real, already-live engine endpoints
- * (Compound Risk, Emergency Response, Recommendation, Compliance) and
- * reducing them through the same `aiSupervisorService.buildSnapshot` /
- * `toExplainableAIData` used everywhere else in this feature — so every
- * value returned still traces back to a real backend response, and
- * nothing here is invented UI data.
+ * response via `fetchSupervisorSnapshot` (shared with
+ * `useAISupervisorStore`) — calling the four real, already-live engine
+ * endpoints and reducing them through `aiSupervisorService.buildSnapshot`
+ * / `toExplainableAIData` — so every value returned still traces back
+ * to a real backend response, and nothing here is invented UI data.
  *
  * Each function's signature and return type match what the real
  * endpoint would return once built — swapping the body for a direct
@@ -25,11 +24,8 @@
  * change required to any caller.
  */
 
-import { compoundRiskService } from '@/services/compoundRisk.service';
-import { emergencyResponseService } from '@/services/emergencyResponse.service';
-import { recommendationService } from '@/services/recommendation.service';
-import { complianceService } from '@/services/compliance.service';
 import { aiSupervisorService } from './aiSupervisor.service';
+import { fetchSupervisorSnapshot } from './fetchSupervisorSnapshot';
 import type {
   AIAgentSummary,
   AIDecision,
@@ -39,29 +35,6 @@ import type {
 import type { SeverityLevel } from '@/constants';
 import type { RiskStatus } from '@/types';
 import type { RequestOptions } from '@/api/types';
-
-/** Runs all four supervised engines in parallel and reduces them into a snapshot — the single computation every endpoint function below shares. */
-async function fetchSnapshot(options?: RequestOptions) {
-  const [compoundRisk, emergencyActions, recommendationResult, compliance] = await Promise.all([
-    compoundRiskService.getAssessment(options),
-    emergencyResponseService.getActions(options),
-    recommendationService.getRecommendations(options),
-    complianceService.getStatus(undefined, options),
-  ]);
-  const now = new Date();
-
-  return aiSupervisorService.buildSnapshot({
-    compoundRisk: { data: compoundRisk, loading: false, error: null, lastUpdated: now },
-    emergencyResponse: {
-      data: emergencyResponseService.toActionItems(emergencyActions),
-      loading: false,
-      error: null,
-      lastUpdated: now,
-    },
-    recommendation: { data: recommendationResult.recommendations, loading: false, error: null, lastUpdated: now },
-    compliance: { data: compliance, loading: false, error: null, lastUpdated: now },
-  });
-}
 
 /** Response shape for `GET /api/ai/supervisor/status`. */
 export interface AISupervisorStatusResponse {
@@ -90,7 +63,7 @@ export type AISupervisorExplanationResponse = ExplainableAIData | null;
 export const aiSupervisorApiService = {
   /** GET /api/ai/supervisor/status */
   getStatus: async (options?: RequestOptions): Promise<AISupervisorStatusResponse> => {
-    const snapshot = await fetchSnapshot(options);
+    const snapshot = await fetchSupervisorSnapshot(options);
     return {
       processingState: snapshot.processingState,
       overallRiskLevel: snapshot.overallRiskLevel,
@@ -104,19 +77,19 @@ export const aiSupervisorApiService = {
 
   /** GET /api/ai/supervisor/workflow */
   getWorkflow: async (options?: RequestOptions): Promise<AISupervisorWorkflowResponse> => {
-    const snapshot = await fetchSnapshot(options);
+    const snapshot = await fetchSupervisorSnapshot(options);
     return { agents: snapshot.agents };
   },
 
   /** GET /api/ai/supervisor/decisions */
   getDecisions: async (options?: RequestOptions): Promise<AISupervisorDecisionsResponse> => {
-    const snapshot = await fetchSnapshot(options);
+    const snapshot = await fetchSupervisorSnapshot(options);
     return { decisions: snapshot.decisions };
   },
 
   /** GET /api/ai/supervisor/explanations/:id */
   getExplanation: async (id: string, options?: RequestOptions): Promise<AISupervisorExplanationResponse> => {
-    const snapshot = await fetchSnapshot(options);
+    const snapshot = await fetchSupervisorSnapshot(options);
     const decision = snapshot.decisions.find((d) => d.id === id);
     return decision ? aiSupervisorService.toExplainableAIData(decision) : null;
   },

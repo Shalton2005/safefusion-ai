@@ -4,9 +4,10 @@
  * Reusable radial gauge for a single 0-100 confidence value, built on
  * Recharts' `RadialBarChart` (the same chart library every other chart
  * in the app uses — see `components/charts/`). Color follows the
- * project's status scale (safe/caution/danger), matching
- * `ConfidenceMeter`'s linear equivalent and `WorkflowGraph`'s agent
- * status colors.
+ * project's status scale (safe/caution/danger) via `utils/statusColor`
+ * — the same thresholds `ConfidenceMeter`'s linear equivalent uses, so
+ * the two can never disagree on where a value crosses from one tier
+ * to the next.
  *
  * @example
  * <ConfidenceGauge label="Detection Confidence" value={92} />
@@ -14,6 +15,7 @@
 
 import { RadialBarChart, RadialBar, PolarAngleAxis, ResponsiveContainer } from 'recharts';
 import { cn } from '@/lib/cn';
+import { CONFIDENCE_TIER_COLOR, confidenceTier } from '../utils/statusColor';
 
 export interface ConfidenceGaugeProps {
   label: string;
@@ -22,19 +24,9 @@ export interface ConfidenceGaugeProps {
   className?: string;
 }
 
-const SAFE_500 = '#22c55e';
-const CAUTION_500 = '#f97316';
-const DANGER_500 = '#ef4444';
-
-function gaugeColor(value: number): string {
-  if (value >= 75) return SAFE_500;
-  if (value >= 40) return CAUTION_500;
-  return DANGER_500;
-}
-
 export function ConfidenceGauge({ label, value, className }: ConfidenceGaugeProps) {
   const clamped = Math.max(0, Math.min(100, value));
-  const data = [{ name: label, value: clamped, fill: gaugeColor(clamped) }];
+  const data = [{ name: label, value: clamped, fill: CONFIDENCE_TIER_COLOR[confidenceTier(clamped)] }];
 
   return (
     <div className={cn('flex flex-col items-center gap-1', className)}>

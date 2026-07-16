@@ -8,7 +8,13 @@
 // nothing is fabricated client-side.
 
 import type { SeverityLevel } from '@/constants';
-import type { RiskStatus } from '@/types';
+import type {
+  CompoundRiskAssessment,
+  ComplianceStatusSnapshot,
+  EmergencyActionItem,
+  Recommendation,
+  RiskStatus,
+} from '@/types';
 
 /** One real backend engine, modelled as a supervised "agent". */
 export const AI_AGENT_IDS = [
@@ -133,6 +139,30 @@ export interface AISupervisorSnapshot {
    */
   overallConfidence: number;
   decisions: AIDecision[];
+}
+
+// ─── Engine synthesis inputs ────────────────────────────────────────
+//
+// Shared by every service module that builds an `AIAgentSummary` or
+// `AISupervisorSnapshot` (`agentBuilder.ts`, `decisionBuilder.ts`,
+// `aiSupervisor.service.ts`) — kept here, not in any one service file,
+// so those modules can depend on this shape without depending on each
+// other.
+
+/** One engine's polling state, in the shape every `useXEngine` hook already exposes. */
+export interface AgentEngineInput<T> {
+  data: T;
+  loading: boolean;
+  error: string | null;
+  lastUpdated: Date | null;
+}
+
+/** The four real engine results `aiSupervisorService.buildSnapshot` reduces into one `AISupervisorSnapshot`. */
+export interface BuildSnapshotInput {
+  compoundRisk: AgentEngineInput<CompoundRiskAssessment | null>;
+  emergencyResponse: AgentEngineInput<EmergencyActionItem[]>;
+  recommendation: AgentEngineInput<Recommendation[]>;
+  compliance: AgentEngineInput<ComplianceStatusSnapshot | null>;
 }
 
 // ─── Explainable AI Panel ───────────────────────────────────────────

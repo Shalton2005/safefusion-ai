@@ -5,7 +5,7 @@
  * (most recent first). Each item shows its timestamp, decision type,
  * triggering agent (module), severity, confidence, and execution
  * status. Selecting a decision fires `onSelect` so a parent can drive
- * `ExplainDecisionPanel`.
+ * `ExplainableAIPanel`.
  *
  * Supports three explicit states in addition to the populated list:
  *  - `loading`  — skeleton rows, shown while the first fetch is in flight
