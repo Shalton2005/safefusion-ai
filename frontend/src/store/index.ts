@@ -8,6 +8,9 @@ export { useRightPanelStore }                from './useRightPanelStore';
 // ─── Cross-tree data bridges ──────────────────────────────────────
 export { usePlantStatusStore }               from './usePlantStatusStore';
 
+// ─── AI Supervisor ────────────────────────────────────────────────
+export { useAISupervisorStore }              from './aiSupervisorStore';
+
 // ─── Notifications ────────────────────────────────────────────────
 export { useNotificationStore, toast }       from './useNotificationStore';
 export type { Notification, NotificationType } from './useNotificationStore';
