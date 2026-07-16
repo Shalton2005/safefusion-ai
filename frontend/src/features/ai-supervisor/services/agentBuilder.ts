@@ -14,6 +14,8 @@ export const AGENT_LABEL: Record<AIAgentId, string> = {
   emergency_response: 'Emergency Response Engine',
   recommendation:     'Recommendation Engine',
   compliance:         'Compliance Engine',
+  knowledge_graph:    'Knowledge Graph Agent',
+  supervisor:         'Supervisor',
 };
 
 /** Per-agent (and per-decision) confidence, derived from lifecycle status — not a fabricated model score. */
@@ -32,6 +34,7 @@ export function buildAgent<T>(
   id: AIAgentId,
   engine: AgentEngineInput<T>,
   findingCount: number,
+  executionTimeMs: number | null = null,
 ): AIAgentSummary {
   const status: AIAgentStatus = engine.error
     ? 'failed'
@@ -51,5 +54,6 @@ export function buildAgent<T>(
     lastUpdated: engine.lastUpdated,
     error: engine.error,
     confidence: AGENT_STATUS_CONFIDENCE[status],
+    executionTimeMs,
   };
 }

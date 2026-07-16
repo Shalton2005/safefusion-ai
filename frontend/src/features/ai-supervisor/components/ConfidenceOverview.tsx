@@ -22,14 +22,17 @@
 
 import { cn } from '@/lib/cn';
 import { ConfidenceGauge } from './ConfidenceGauge';
-import type { AIAgentId, AIAgentSummary } from '../types';
+import type { AIAgentSummary } from '../types';
 
 export interface ConfidenceOverviewProps {
   agents: AIAgentSummary[];
   className?: string;
 }
 
-const CONFIDENCE_LABEL_BY_AGENT: Record<AIAgentId, string> = {
+/** Only these four agents have a confidence-gauge label — deliberately not `Record<AIAgentId, …>` (this panel doesn't show every supervised agent, see `AIAgentStatusBoard` for that). */
+type GaugedAgentId = 'compliance' | 'recommendation' | 'compound_risk' | 'emergency_response';
+
+const CONFIDENCE_LABEL_BY_AGENT: Record<GaugedAgentId, string> = {
   compliance: 'Detection Confidence',
   recommendation: 'Recommendation Confidence',
   compound_risk: 'Prediction Confidence',
@@ -37,7 +40,7 @@ const CONFIDENCE_LABEL_BY_AGENT: Record<AIAgentId, string> = {
 };
 
 /** Fixed display order: Detection, Recommendation, Prediction, Emergency. */
-const DISPLAY_ORDER: AIAgentId[] = ['compliance', 'recommendation', 'compound_risk', 'emergency_response'];
+const DISPLAY_ORDER: GaugedAgentId[] = ['compliance', 'recommendation', 'compound_risk', 'emergency_response'];
 
 export function ConfidenceOverview({ agents, className }: ConfidenceOverviewProps) {
   const agentById = new Map(agents.map((agent) => [agent.id, agent]));

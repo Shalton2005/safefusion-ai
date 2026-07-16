@@ -16,12 +16,25 @@ import type {
   RiskStatus,
 } from '@/types';
 
-/** One real backend engine, modelled as a supervised "agent". */
+/**
+ * One supervised "agent". The first four map 1:1 onto the real backend
+ * engines above; `knowledge_graph` maps onto `GET /graph/visualization`
+ * (the closest real backend capability to a "Knowledge Agent" — the
+ * backend has no dedicated knowledge-graph *engine*, just this query
+ * endpoint, so it's modelled as an agent the same way the other
+ * read-only engines are); `supervisor` is not a backend call at all —
+ * it represents the client-side synthesis step itself (see
+ * `AISupervisorSnapshot`), included as a peer row so the panel that
+ * lists agents can show the Supervisor's own aggregate health alongside
+ * what it supervises.
+ */
 export const AI_AGENT_IDS = [
   'compound_risk',
   'emergency_response',
   'recommendation',
   'compliance',
+  'knowledge_graph',
+  'supervisor',
 ] as const;
 export type AIAgentId = (typeof AI_AGENT_IDS)[number];
 
@@ -60,6 +73,16 @@ export interface AIAgentSummary {
    * (mirrors `AIDecision.confidence`'s convention).
    */
   confidence: number;
+  /**
+   * Wall-clock duration of the agent's most recent fetch, in
+   * milliseconds — measured client-side with `performance.now()`
+   * around the actual request (see `useAgentExecutionTiming`). This is
+   * a real measured network+processing duration, not a backend-reported
+   * figure (no backend endpoint reports its own execution time yet).
+   * `null` before the agent's first fetch resolves, or for `supervisor`
+   * (a client-side synthesis step with no network call of its own).
+   */
+  executionTimeMs: number | null;
 }
 
 /**

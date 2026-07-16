@@ -11,8 +11,10 @@ import { useState } from 'react';
 import { PageHeader, Card, CardHeader, CardContent, Alert, Button } from '@/components/ui';
 import { RotateCw } from 'lucide-react';
 import { useAISupervisor } from '../hooks/useAISupervisor';
+import { useAgentStatusBoard } from '../hooks/useAgentStatusBoard';
 import { AISupervisorCard } from '../components/AISupervisorCard';
 import { AgentActivityList } from '../components/AgentActivityList';
+import { AIAgentStatusBoard } from '../components/AIAgentStatusBoard';
 import { WorkflowGraph } from '../components/WorkflowGraph';
 import { PipelineWorkflow } from '../components/PipelineWorkflow';
 import { ConfidenceOverview } from '../components/ConfidenceOverview';
@@ -23,6 +25,7 @@ import type { AIDecision } from '../types';
 
 export function AISupervisorPage() {
   const { snapshot, loading, error, refresh } = useAISupervisor();
+  const agentStatusBoard = useAgentStatusBoard();
   const [selectedDecision, setSelectedDecision] = useState<AIDecision | null>(null);
 
   const agentErrors = snapshot.agents.filter((agent) => agent.error);
@@ -51,6 +54,16 @@ export function AISupervisorPage() {
       )}
 
       <AISupervisorCard snapshot={snapshot} />
+
+      <Card>
+        <CardHeader
+          title="Agent Status"
+          description="Current status, execution time, confidence, and last run for every backend agent"
+        />
+        <CardContent>
+          <AIAgentStatusBoard agents={agentStatusBoard.agents} loading={agentStatusBoard.loading} />
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader title="Confidence" description="Detection, recommendation, prediction, and emergency confidence" />
