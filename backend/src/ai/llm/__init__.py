@@ -15,9 +15,11 @@ Public surface:
       the provider seam and its default Ollama implementation
       (``llama3.1:8b`` by default, configurable via ``OLLAMA_LLM_MODEL``).
 
-Prompt text is centralized in :mod:`src.ai.llm.prompts` — no other
-module in this package (or elsewhere) should assemble prompt strings
-inline. No FastAPI import anywhere in this package.
+Prompt text is centralized in :mod:`src.ai.prompts` (not in this
+package) — no module here assembles prompt strings inline;
+:class:`~src.ai.llm.service.LlmService` only selects a template by
+domain and passes the question/context through it. No FastAPI import
+anywhere in this package.
 """
 
 from src.ai.llm.config import LlmConfig, from_settings

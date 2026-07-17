@@ -33,6 +33,7 @@ from src.config.settings import settings
 from src.graph_database.driver import close_driver, ensure_constraints
 from src.middleware.exception_handler import API_ERROR_RESPONSES, register_exception_handlers
 from src.middleware.logging_middleware import RequestLoggingMiddleware
+from src.routes import ai_copilot as ai_copilot_router
 from src.routes import alerts as alerts_router
 from src.routes import compliance as compliance_router
 from src.routes import dashboard as dashboard_router
@@ -80,6 +81,7 @@ OPENAPI_TAGS_METADATA = [
     {"name": "Incident Reports", "description": "Generates structured, six-section JSON incident reports from detected risk, emergency response, and compliance data."},
     {"name": "Knowledge Graph", "description": "Reusable Neo4j knowledge-graph lookups: workers by zone, permits by worker, incidents by equipment, sensors by zone, and risks by incident."},
     {"name": "RAG", "description": "Retrieval over ingested OISD/Factory Act/DGMS/incident-report document chunks: document search, semantic search, and question-context retrieval. Retrieval only — no LLM call."},
+    {"name": "AI Safety Copilot", "description": "LangGraph AI Supervisor-backed query, explain, recommend, and chat endpoints, routing to specialized Risk/Compliance/Knowledge/Graph Knowledge/Emergency agents with LLM-grounded explainability."},
 ]
 
 
@@ -176,6 +178,7 @@ def create_application() -> FastAPI:
     application.include_router(incident_router.router, prefix=settings.API_PREFIX)
     application.include_router(graph_router.router, prefix=settings.API_PREFIX)
     application.include_router(rag_router.router, prefix=settings.API_PREFIX)
+    application.include_router(ai_copilot_router.router, prefix=settings.API_PREFIX)
 
     return application
 
