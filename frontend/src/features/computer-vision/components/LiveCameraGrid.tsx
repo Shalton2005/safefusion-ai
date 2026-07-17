@@ -6,7 +6,7 @@
  */
 
 import { RotateCw, Video } from 'lucide-react';
-import { Alert, Button, Card, CardHeader, EmptyState, Skeleton } from '@/components/ui';
+import { Alert, Button, Card, CardHeader, EmptyState } from '@/components/ui';
 import { useCameras } from '../hooks';
 import { CameraTile } from './CameraTile';
 import type { Camera } from '../types';
@@ -51,7 +51,7 @@ export function LiveCameraGrid({ zone, onSelectCamera }: LiveCameraGridProps) {
         ) : loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {Array.from({ length: 6 }).map((_, i) => (
-              <Skeleton key={i} className="aspect-video rounded-xl" />
+              <CameraTile key={i} loading />
             ))}
           </div>
         ) : cameras.length === 0 ? (

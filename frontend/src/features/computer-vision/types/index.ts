@@ -25,6 +25,10 @@ export interface Camera {
   lastFrameAt: string | null;
   resolution: string;
   fps: number | null;
+  /** Detections (hazards + PPE violations) attributed to this camera in the current window. */
+  detectionCount: number;
+  /** Bucketed risk level for this camera's zone, or `null` when no risk assessment has been recorded yet. */
+  riskLevel: SeverityLevel | null;
 }
 
 // ─── PPE Compliance ────────────────────────────────────────────────
