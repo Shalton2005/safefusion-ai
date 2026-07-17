@@ -37,14 +37,14 @@ export function ChatWindow({ conversation, isSending, error, onSend }: ChatWindo
   return (
     <div className="flex flex-col h-full min-w-0">
       {isEmpty ? (
-        <div className="flex-1 flex flex-col items-center justify-center gap-6 px-4 text-center overflow-y-auto">
+        <div className="flex-1 flex flex-col items-center justify-center gap-6 px-4 text-center overflow-y-auto motion-safe:animate-fade-in">
           <div className="flex flex-col items-center gap-3">
-            <div className="w-14 h-14 rounded-2xl flex items-center justify-center bg-primary-600/10 text-primary-400 border border-primary-600/20">
+            <div className="w-14 h-14 rounded-2xl flex items-center justify-center bg-primary-600/10 text-primary-400 border border-primary-600/20 motion-safe:animate-scale-in">
               <BrainCircuit className="w-7 h-7" aria-hidden="true" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-[var(--sf-text-primary)]">AI Safety Copilot</h2>
-              <p className="mt-1 text-sm text-[var(--sf-text-tertiary)] max-w-md">
+              <h2 className="text-lg font-semibold text-[var(--sf-text-primary)] tracking-tight">AI Safety Copilot</h2>
+              <p className="mt-1.5 text-sm text-[var(--sf-text-tertiary)] leading-relaxed max-w-md">
                 Ask about safety procedures, compliance requirements, and incident response — grounded in your
                 plant's ingested regulatory documents.
               </p>
@@ -58,13 +58,13 @@ export function ChatWindow({ conversation, isSending, error, onSend }: ChatWindo
 
       <div className="px-4 sm:px-6 pb-4 sm:pb-6 pt-2">
         {error && (
-          <div className="max-w-3xl mx-auto mb-3">
+          <div className="max-w-3xl mx-auto mb-3 motion-safe:animate-slide-in-up">
             <Alert variant="danger">{error}</Alert>
           </div>
         )}
         <div className="max-w-3xl mx-auto">
           <ChatInput onSend={onSend} disabled={isSending} />
-          <p className="mt-2 text-2xs text-center text-[var(--sf-text-tertiary)]">
+          <p className="mt-2 text-2xs text-center text-[var(--sf-text-tertiary)] leading-relaxed">
             AI Safety Copilot can surface retrieved reference material. Always verify against official procedures.
           </p>
         </div>

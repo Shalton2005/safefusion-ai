@@ -50,7 +50,7 @@ export function ChatInput({ onSend, disabled = false, placeholder = 'Ask the AI 
   };
 
   return (
-    <div className="flex items-end gap-2 rounded-xl border border-[var(--sf-border-default)] bg-[var(--sf-surface-sunken)] p-2 focus-within:border-[var(--sf-border-focus)] focus-within:ring-2 focus-within:ring-primary-500/30 transition-colors duration-150">
+    <div className="flex items-end gap-2 rounded-xl border border-[var(--sf-border-default)] bg-[var(--sf-surface-sunken)] p-2 transition-[border-color,box-shadow] duration-200 focus-within:border-[var(--sf-border-focus)] focus-within:ring-2 focus-within:ring-primary-500/30">
       <textarea
         ref={textareaRef}
         value={value}
@@ -63,7 +63,7 @@ export function ChatInput({ onSend, disabled = false, placeholder = 'Ask the AI 
         placeholder={placeholder}
         rows={1}
         aria-label="Message the AI Safety Copilot"
-        className="flex-1 resize-none bg-transparent px-2 py-1.5 text-sm text-[var(--sf-text-primary)] placeholder:text-[var(--sf-text-tertiary)] focus:outline-none disabled:opacity-50"
+        className="flex-1 resize-none bg-transparent px-2 py-1.5 text-sm leading-relaxed text-[var(--sf-text-primary)] placeholder:text-[var(--sf-text-tertiary)] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
       />
       <Button
         type="button"
@@ -72,6 +72,7 @@ export function ChatInput({ onSend, disabled = false, placeholder = 'Ask the AI 
         disabled={disabled || value.trim().length === 0}
         onClick={submit}
         aria-label="Send message"
+        className="transition-transform duration-150 enabled:hover:scale-105"
       >
         <SendHorizontal className="w-4 h-4" />
       </Button>

@@ -3,7 +3,8 @@
  *
  * Renders a single chat message — user or assistant — with role-based
  * alignment/styling, an error state, and an optional source-citation list
- * for grounded assistant replies.
+ * for grounded assistant replies. Entrance/streaming animations respect
+ * `prefers-reduced-motion` via Tailwind's `motion-safe:` variant.
  *
  * @example
  * <MessageBubble message={message} />
@@ -31,11 +32,17 @@ export function MessageBubble({ message }: MessageBubbleProps) {
   const hasFinishedStreaming = !shouldStream || !isStreaming;
 
   return (
-    <div className={cn('flex items-start gap-3', isUser && 'flex-row-reverse')}>
+    <div
+      className={cn(
+        'flex items-start gap-3 motion-safe:animate-slide-in-up',
+        isUser && 'flex-row-reverse',
+      )}
+    >
       {/* Avatar */}
       <div
         className={cn(
           'flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center',
+          'transition-colors duration-200',
           isUser
             ? 'bg-primary-600 text-white'
             : 'bg-[var(--sf-surface-raised)] border border-[var(--sf-border-default)] text-primary-400',
@@ -50,6 +57,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
         <div
           className={cn(
             'rounded-xl px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap break-words',
+            'transition-colors duration-200',
             isUser && 'bg-primary-600 text-white rounded-tr-sm',
             !isUser && !isError && 'bg-[var(--sf-surface-raised)] text-[var(--sf-text-primary)] border border-[var(--sf-border-default)] rounded-tl-sm',
             !isUser && isError && 'bg-danger-500/10 text-danger-600 dark:text-danger-400 border border-danger-500/30 rounded-tl-sm',
@@ -62,11 +70,17 @@ export function MessageBubble({ message }: MessageBubbleProps) {
             </div>
           )}
           {content}
+          {!isUser && isStreaming && (
+            <span
+              className="inline-block w-[2px] h-[1em] ml-0.5 -mb-[0.1em] bg-current motion-safe:animate-blink align-middle"
+              aria-hidden="true"
+            />
+          )}
         </div>
 
         {/* Source citations — shown once streaming finishes so citations don't appear before the text they support. */}
         {hasFinishedStreaming && message.sources && message.sources.length > 0 && (
-          <div className="flex flex-col gap-1 w-full">
+          <div className="flex flex-col gap-1 w-full motion-safe:animate-fade-in">
             {message.sources.map((source) => (
               <div
                 key={source.id}
@@ -82,7 +96,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
           </div>
         )}
 
-        <span className="text-2xs text-[var(--sf-text-tertiary)]">
+        <span className="text-2xs text-[var(--sf-text-tertiary)] tabular-nums">
           {new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </span>
       </div>

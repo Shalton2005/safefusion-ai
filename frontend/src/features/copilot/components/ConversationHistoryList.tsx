@@ -59,14 +59,15 @@ export function ConversationHistoryList({
             description="Start a new conversation to see it here."
           />
         ) : (
-          <ul className="flex flex-col gap-1">
+          <ul className="flex flex-col gap-1" aria-label="Saved conversations">
             {conversations.map((conversation) => {
               const isActive = conversation.id === activeConversationId;
               return (
-                <li key={conversation.id}>
+                <li key={conversation.id} className="motion-safe:animate-fade-in">
                   <div
                     className={cn(
-                      'group flex items-center gap-1 rounded-lg pr-1 transition-colors duration-150',
+                      'group flex items-center gap-1 rounded-lg pr-1',
+                      'transition-[background-color,border-color] duration-150',
                       isActive
                         ? 'bg-primary-600/10 border border-primary-600/30'
                         : 'border border-transparent hover:bg-[var(--sf-surface-raised)]',
@@ -76,11 +77,11 @@ export function ConversationHistoryList({
                       type="button"
                       onClick={() => onSelect(conversation.id)}
                       aria-current={isActive ? 'true' : undefined}
-                      className="flex-1 min-w-0 text-left px-3 py-2.5 text-sm focus:outline-none"
+                      className="flex-1 min-w-0 text-left px-3 py-2.5 text-sm rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-inset"
                     >
                       <p
                         className={cn(
-                          'truncate font-medium',
+                          'truncate font-medium transition-colors duration-150',
                           isActive ? 'text-primary-400' : 'text-[var(--sf-text-primary)]',
                         )}
                       >
@@ -94,7 +95,7 @@ export function ConversationHistoryList({
                       type="button"
                       onClick={() => onDelete(conversation.id)}
                       aria-label={`Delete conversation "${conversation.title}"`}
-                      className="flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-md text-[var(--sf-text-tertiary)] opacity-0 group-hover:opacity-100 hover:text-danger-500 hover:bg-danger-500/10 focus:opacity-100 focus:outline-none transition-opacity duration-150"
+                      className="flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-md text-[var(--sf-text-tertiary)] opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 hover:text-danger-500 hover:bg-danger-500/10 focus:opacity-100 focus-visible:ring-2 focus-visible:ring-danger-500 focus:outline-none transition-[opacity,background-color,color] duration-150"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
