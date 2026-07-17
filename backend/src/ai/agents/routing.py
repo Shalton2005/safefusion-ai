@@ -67,7 +67,7 @@ class KeywordRoutingStrategy:
 
 
 def default_keyword_routes() -> dict[str, tuple[str, ...]]:
-    """Keyword table for the four built-in agents.
+    """Keyword table for the built-in agents.
 
     A plain function (not a module-level constant baked into
     :class:`KeywordRoutingStrategy`) so a caller can start from this
@@ -82,5 +82,6 @@ def default_keyword_routes() -> dict[str, tuple[str, ...]]:
         "risk": ("risk", "hazard", "danger", "score", "unsafe"),
         "compliance": ("compliance", "regulation", "violation", "factory act", "oisd", "dgms"),
         "emergency": ("emergency", "evacuate", "evacuation", "critical", "urgent", "dispatch"),
+        "graph_knowledge": ("relationship", "connected to", "related to", "graph", "who is assigned", "history of"),
         "knowledge": ("what is", "explain", "documentation", "policy", "procedure", "how do"),
     }

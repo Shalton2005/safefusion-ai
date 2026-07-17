@@ -27,8 +27,8 @@ pattern without altering the core loop.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import Any
+from dataclasses import dataclass
+from typing import Any, Callable
 
 from src.ai.agents.base import AgentRequest, AgentResult
 from src.ai.agents.registry import AgentRegistry
@@ -68,13 +68,27 @@ class SupervisorResponse:
         return next((result for result in self.results if result.agent == agent_name), None)
 
 
+def _risk_to_emergency_handoff(data: Any) -> Any:
+    """Unwrap Risk agent output into the ``ZoneCompoundRiskResult`` list Emergency needs.
+
+    The Risk agent's public ``AgentResult.data`` is
+    ``list[RiskAssessment]`` (see ``src/ai/agents/risk_agent.py``), but
+    ``EmergencyAgent``/``EmergencyResponseService`` need the raw engine
+    results each assessment was built from.
+    """
+    return [assessment.raw_compound_risk_result for assessment in data]
+
+
 # Agents whose output the supervisor knows how to forward to a later
 # agent in the same run. Keyed by the *producing* agent; the value is
-# the params key the *consuming* agent reads (see
-# ``src/ai/agents/emergency_agent.py``). Extending this dict is how a
-# future producer/consumer pair gets wired without touching the
-# execution loop below.
-_HANDOFFS: dict[str, str] = {"risk": "risk_results"}
+# ``(params_key, extractor)`` — the params key the *consuming* agent
+# reads (see ``src/ai/agents/emergency_agent.py``) and a function that
+# turns the producing agent's ``AgentResult.data`` into what the
+# consumer expects. Extending this dict is how a future producer/
+# consumer pair gets wired without touching the execution loop below.
+_HANDOFFS: dict[str, tuple[str, Callable[[Any], Any]]] = {
+    "risk": ("risk_results", _risk_to_emergency_handoff),
+}
 
 
 class Supervisor:
@@ -112,9 +126,10 @@ class Supervisor:
                 result = AgentResult(agent=agent_name, summary="", error=str(exc))
             results.append(result)
 
-            handoff_key = _HANDOFFS.get(agent_name)
-            if handoff_key and result.ok:
-                handoff_params[handoff_key] = result.data
+            handoff = _HANDOFFS.get(agent_name)
+            if handoff and result.ok:
+                handoff_key, extract = handoff
+                handoff_params[handoff_key] = extract(result.data)
 
         return SupervisorResponse(
             request_text=request.text,
