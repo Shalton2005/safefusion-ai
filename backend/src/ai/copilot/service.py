@@ -23,11 +23,13 @@ from __future__ import annotations
 from typing import Any, Protocol
 
 from src.ai.agents.base import AgentRequest, AgentResult
+from src.ai.agents.explainability_service import explain as build_explainability_report
 from src.ai.agents.response_aggregator import aggregate
 from src.ai.agents.supervisor import SupervisorResponse
 from src.ai.copilot.schemas import (
     AgentTrace,
     ChatResult,
+    ExplainabilityResult,
     ExplainResult,
     QueryResult,
     Recommendation,
@@ -300,6 +302,25 @@ class AiCopilotService:
         return SummaryResult(
             request_text=text,
             unified=aggregate(list(supervisor_response.results)),
+            reasoning=_build_reasoning(supervisor_response),
+        )
+
+    def explainability(self, *, text: str, params: dict[str, Any] | None = None) -> ExplainabilityResult:
+        """Run the Supervisor and build a structured explainability report from its output.
+
+        No LLM call — :func:`~src.ai.agents.explainability_service.explain`
+        derives every section (evidence used, graph relationships,
+        retrieved regulations, per-agent contributions, confidence)
+        deterministically from the Supervisor's own ``AgentResult`` list.
+        Distinct from :meth:`explain`, which generates a natural-language
+        answer via the LLM service — this method explains *how* the
+        system arrived at its output, not what the answer is.
+        """
+        supervisor_response = run_supervisor(self._graph, AgentRequest(text=text, params=params or {}))
+
+        return ExplainabilityResult(
+            request_text=text,
+            report=build_explainability_report(list(supervisor_response.results)),
             reasoning=_build_reasoning(supervisor_response),
         )
 

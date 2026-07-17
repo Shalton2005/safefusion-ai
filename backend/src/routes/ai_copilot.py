@@ -1,14 +1,16 @@
 """AI Safety Copilot routes for SafeFusion AI API v1.
 
-Exposes the four Copilot operations over a single ``/ai`` namespace,
-each backed by :class:`~src.ai.copilot.service.AiCopilotService`, which
-runs every request through the LangGraph-compiled AI Supervisor (see
+Exposes the Copilot operations over a single ``/ai`` namespace, each
+backed by :class:`~src.ai.copilot.service.AiCopilotService`, which runs
+every request through the LangGraph-compiled AI Supervisor (see
 ``src/ai/graph/builder.py``):
 
-    - ``POST /ai/query``      — general question -> aggregated structured agent output.
-    - ``POST /ai/explain``    — Supervisor output -> LLM-generated, context-grounded explanation.
-    - ``POST /ai/recommend``  — Supervisor output -> aggregated recommendations across agents.
-    - ``POST /ai/chat``       — conversational reply, grounded the same way as ``/explain``.
+    - ``POST /ai/query``          — general question -> aggregated structured agent output.
+    - ``POST /ai/explain``        — Supervisor output -> LLM-generated, context-grounded explanation.
+    - ``POST /ai/recommend``      — Supervisor output -> aggregated recommendations across agents.
+    - ``POST /ai/summary``        — Supervisor output -> unified six-section response (no LLM call).
+    - ``POST /ai/explainability`` — Supervisor output -> structured "why" report (no LLM call).
+    - ``POST /ai/chat``           — conversational reply, grounded the same way as ``/explain``.
 
 Every response includes a ``reasoning`` block (executed agent route,
 per-agent summaries/citations, and — for the two LLM-backed endpoints —
@@ -29,10 +31,18 @@ from src.ai.agents.risk_agent import MonitoringEnginePort
 from src.ai.agents.routing import KeywordRoutingStrategy, default_keyword_routes
 from src.ai.agents.supervisor import Supervisor
 from src.ai.config import GraphConfig
+from src.ai.agents.explainability_service import (
+    AgentContribution,
+    EvidenceItem,
+    ExplainabilityReport,
+    GraphRelationshipItem,
+    RegulationReference,
+)
 from src.ai.agents.response_aggregator import UnifiedResponse, ZoneRiskFinding
 from src.ai.copilot.schemas import (
     AgentTrace,
     ChatResult,
+    ExplainabilityResult,
     ExplainResult,
     QueryResult,
     Recommendation,
@@ -62,20 +72,27 @@ from src.repositories.sensor import SensorRepository
 from src.repositories.worker import WorkerRepository
 from src.schemas.request.ai_copilot import (
     AiChatRequest,
+    AiExplainabilityRequest,
     AiExplainRequest,
     AiQueryRequest,
     AiRecommendRequest,
     AiSummaryRequest,
 )
 from src.schemas.response.ai_copilot import (
+    AgentContributionResponse,
     AgentTraceResponse,
     AiChatResponse,
+    AiExplainabilityResponse,
     AiExplainResponse,
     AiQueryResponse,
     AiRecommendResponse,
     AiSummaryResponse,
+    EvidenceItemResponse,
+    ExplainabilityReportModel,
+    GraphRelationshipItemResponse,
     RecommendationResponse,
     ReasoningMetadataResponse,
+    RegulationReferenceResponse,
     UnifiedResponseModel,
     ZoneRiskFindingResponse,
 )
@@ -331,6 +348,35 @@ def _unified_to_response(unified: UnifiedResponse) -> UnifiedResponseModel:
     )
 
 
+def _evidence_to_response(item: EvidenceItem) -> EvidenceItemResponse:
+    return EvidenceItemResponse(source_agent=item.source_agent, content=item.content, origin=item.origin)
+
+
+def _graph_relationship_to_response(item: GraphRelationshipItem) -> GraphRelationshipItemResponse:
+    return GraphRelationshipItemResponse(category=item.category, query=item.query, record=item.record)
+
+
+def _regulation_to_response(item: RegulationReference) -> RegulationReferenceResponse:
+    return RegulationReferenceResponse(regulation=item.regulation, section=item.section)
+
+
+def _contribution_to_response(item: AgentContribution) -> AgentContributionResponse:
+    return AgentContributionResponse(
+        agent=item.agent, ok=item.ok, summary=item.summary, weight=item.weight, citations=item.citations, error=item.error
+    )
+
+
+def _report_to_response(report: ExplainabilityReport) -> ExplainabilityReportModel:
+    return ExplainabilityReportModel(
+        summary=report.summary,
+        evidence_used=[_evidence_to_response(item) for item in report.evidence_used],
+        graph_relationships=[_graph_relationship_to_response(item) for item in report.graph_relationships],
+        retrieved_regulations=[_regulation_to_response(item) for item in report.retrieved_regulations],
+        agent_contributions=[_contribution_to_response(item) for item in report.agent_contributions],
+        confidence=report.confidence,
+    )
+
+
 # ── routes ────────────────────────────────────────────────────────────────────
 
 
@@ -423,6 +469,32 @@ def summary(payload: AiSummaryRequest, service: AiCopilotServiceDep) -> AiSummar
     return AiSummaryResponse(
         request_text=result.request_text,
         unified=_unified_to_response(result.unified),
+        reasoning=_reasoning_to_response(result.reasoning),
+    )
+
+
+@router.post(
+    "/explainability",
+    summary="Run the AI Supervisor and return a structured explainability report",
+    description=(
+        "Routes the request through the AI Supervisor, then builds a "
+        "structured, auditable explanation of how the response was "
+        "produced: Summary, Evidence Used, Graph Relationships, Retrieved "
+        "Regulations, Agent Contributions, and a Confidence score. No LLM "
+        "call — every field is derived deterministically from the agents' "
+        "own structured output (see src/ai/agents/explainability_service.py). "
+        "Distinct from `POST /ai/explain`, which generates a natural-language "
+        "answer via the LLM; this endpoint explains *how* the system "
+        "arrived at its output, not what the answer to the question is."
+    ),
+    response_model=AiExplainabilityResponse,
+    response_description="Structured explainability report, JSON-serializable as-is.",
+)
+def explainability(payload: AiExplainabilityRequest, service: AiCopilotServiceDep) -> AiExplainabilityResponse:
+    result: ExplainabilityResult = service.explainability(text=payload.text, params=payload.params)
+    return AiExplainabilityResponse(
+        request_text=result.request_text,
+        report=_report_to_response(result.report),
         reasoning=_reasoning_to_response(result.reasoning),
     )
 

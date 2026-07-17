@@ -16,6 +16,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+from src.ai.agents.explainability_service import ExplainabilityReport
 from src.ai.agents.response_aggregator import UnifiedResponse
 
 
@@ -139,4 +140,23 @@ class SummaryResult:
 
     request_text: str
     unified: UnifiedResponse
+    reasoning: ReasoningMetadata
+
+
+@dataclass(frozen=True, slots=True)
+class ExplainabilityResult:
+    """Result of ``POST /ai/explainability`` — the Explainability Service's structured report.
+
+    Thin wrapper around
+    :class:`~src.ai.agents.explainability_service.ExplainabilityReport`
+    that adds ``request_text`` and ``reasoning``, matching every other
+    Copilot result's shape. No LLM call — the report is purely
+    deterministic (see ``src/ai/agents/explainability_service.py``).
+    Not to be confused with ``POST /ai/explain``, which *does* call the
+    LLM to generate a natural-language answer; this endpoint explains
+    *how* a response was produced, not what the answer to a question is.
+    """
+
+    request_text: str
+    report: ExplainabilityReport
     reasoning: ReasoningMetadata

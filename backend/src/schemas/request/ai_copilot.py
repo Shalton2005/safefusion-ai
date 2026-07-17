@@ -38,6 +38,13 @@ class AiSummaryRequest(AppBaseModel):
     params: dict[str, Any] = Field(default_factory=dict, description="Optional structured parameters.")
 
 
+class AiExplainabilityRequest(AppBaseModel):
+    """Request body for ``POST /ai/explainability``."""
+
+    text: str = Field(..., min_length=1, max_length=2000, description="Natural-language question or request.")
+    params: dict[str, Any] = Field(default_factory=dict, description="Optional structured parameters.")
+
+
 class AiChatMessage(AppBaseModel):
     """One turn of prior chat history."""
 

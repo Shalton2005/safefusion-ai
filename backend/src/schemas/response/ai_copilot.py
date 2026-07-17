@@ -104,3 +104,56 @@ class AiSummaryResponse(AppBaseModel):
     request_text: str
     unified: UnifiedResponseModel
     reasoning: ReasoningMetadataResponse
+
+
+class EvidenceItemResponse(AppBaseModel):
+    """One piece of evidence backing the response, within :class:`ExplainabilityReportModel`."""
+
+    source_agent: str
+    content: str
+    origin: str
+
+
+class GraphRelationshipItemResponse(AppBaseModel):
+    """One graph relationship record, within :class:`ExplainabilityReportModel`."""
+
+    category: str
+    query: str
+    record: dict[str, Any]
+
+
+class RegulationReferenceResponse(AppBaseModel):
+    """One regulation + matched section pair, within :class:`ExplainabilityReportModel`."""
+
+    regulation: str
+    section: str
+
+
+class AgentContributionResponse(AppBaseModel):
+    """What one executed agent contributed to the response, within :class:`ExplainabilityReportModel`."""
+
+    agent: str
+    ok: bool
+    summary: str
+    weight: float
+    citations: tuple[str, ...]
+    error: str | None = None
+
+
+class ExplainabilityReportModel(AppBaseModel):
+    """The Explainability Service's structured "why" report."""
+
+    summary: str
+    evidence_used: list[EvidenceItemResponse]
+    graph_relationships: list[GraphRelationshipItemResponse]
+    retrieved_regulations: list[RegulationReferenceResponse]
+    agent_contributions: list[AgentContributionResponse]
+    confidence: float
+
+
+class AiExplainabilityResponse(AppBaseModel):
+    """Result payload for ``POST /ai/explainability``."""
+
+    request_text: str
+    report: ExplainabilityReportModel
+    reasoning: ReasoningMetadataResponse
