@@ -54,15 +54,36 @@ export interface PpeDetection {
   detectedAt: string;
 }
 
+/** Compliance rate for a single PPE item type, backend-computed. */
+export interface PpeItemComplianceRate {
+  item: PpeItemType;
+  /** Compliance rate 0-100 for this item across all detected workers. */
+  complianceRate: number;
+}
+
 /** Aggregated PPE compliance summary, plant-wide or scoped to a zone. */
 export interface PpeComplianceSummary {
   zone: string | null;
   compliantCount: number;
   nonCompliantCount: number;
-  /** Compliance rate 0-100, backend-computed. */
+  /** Overall compliance rate 0-100, backend-computed. */
   complianceRate: number;
+  /** Per-item compliance rate, one entry per `PpeItemType` the backend tracks. */
+  itemComplianceRates: PpeItemComplianceRate[];
   /** Per-item detection miss counts, most-violated first. */
   topViolations: Array<{ item: PpeItemType; count: number }>;
+}
+
+/** A single currently-open PPE violation, backing the "Current Violations" list. */
+export interface PpeViolation {
+  id: string;
+  cameraId: string;
+  zone: string;
+  /** `null` when the detected worker could not be matched to a known worker record. */
+  workerId: string | null;
+  /** PPE items the worker was missing at detection time. */
+  missingItems: PpeItemType[];
+  detectedAt: string;
 }
 
 // ─── Hazard Detection ──────────────────────────────────────────────

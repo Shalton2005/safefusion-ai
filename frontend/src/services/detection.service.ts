@@ -3,7 +3,8 @@
  *
  * API-layer service for the computer-vision detection endpoints:
  * `GET /detection/cameras`, `GET /detection/summary`,
- * `GET /detection/ppe`, `GET /detection/hazards`,
+ * `GET /detection/ppe`, `GET /detection/ppe/summary`,
+ * `GET /detection/ppe/violations`, `GET /detection/hazards`,
  * `GET /detection/timeline`, `GET /detection/cameras/{id}/detections`.
  *
  * None of these routes exist on the backend yet — `backend/src/ai/detection/`
@@ -29,6 +30,7 @@ import type {
   DetectionSummary,
   PpeDetection,
   PpeComplianceSummary,
+  PpeViolation,
   HazardDetection,
   CvTimelineEvent,
   BoundingBoxDetection,
@@ -53,9 +55,13 @@ export const detectionService = {
   getPpeDetections: (params?: ZoneScopedParams, options?: RequestOptions) =>
     base.get<PpeDetection[]>('ppe', params, options),
 
-  /** GET /detection/ppe/summary — aggregated PPE compliance rate and top violations. */
+  /** GET /detection/ppe/summary — aggregated PPE compliance rate, per-item rates, and top violations. */
   getPpeComplianceSummary: (params?: { zone?: string }, options?: RequestOptions) =>
     base.get<PpeComplianceSummary>('ppe/summary', params, options),
+
+  /** GET /detection/ppe/violations — currently-open PPE violations, most recent first. */
+  getPpeViolations: (params?: ZoneScopedParams, options?: RequestOptions) =>
+    base.get<PpeViolation[]>('ppe/violations', params, options),
 
   /** GET /detection/hazards — recent hazard detections, most recent first. */
   getHazards: (params?: ZoneScopedParams, options?: RequestOptions) =>
