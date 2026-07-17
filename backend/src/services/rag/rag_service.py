@@ -11,6 +11,29 @@ No LLM call happens anywhere in this module. Semantic search and the
 query endpoint both stop at "here are the most relevant chunks" — turning
 that into a generated answer is a deliberately separate, not-yet-built
 step (see the module docstring in ``src/routes/rag.py``).
+
+Timeout/failure handling: :meth:`semantic_search`/:meth:`query` call
+``embedder.embed_query`` with no try/except of their own — a slow or
+unreachable embedding provider (e.g. Ollama) is bounded by the
+provider's own configured timeout
+(``OllamaEmbeddingConfig.timeout_seconds``, see
+``src/services/embedding/ollama_provider.py``) and raises
+:class:`~src.services.embedding.exceptions.EmbeddingUnavailableError`
+rather than hanging indefinitely. This service deliberately lets that
+exception propagate uncaught — callers that need graceful degradation
+(the Knowledge/Compliance agents, via
+:class:`~src.ai.agents.knowledge_agent.KnowledgeAgent`/
+:class:`~src.ai.agents.compliance_agent.ComplianceAgent`) already catch
+broadly around their own retrieval call, so catching it here too would
+just duplicate that handling one layer too early.
+
+Observability: :meth:`semantic_search` times the embed + similarity
+search span as ``operation=retrieval`` via
+:func:`~src.utils.timing.timed` — covers both the embedding-provider
+network call and the pgvector query as one end-to-end retrieval
+latency figure, since a caller cares about total time-to-results, not
+which half was slower (the embedding provider's own per-call timing, if
+ever added, would be a separate finer-grained measurement).
 """
 
 from __future__ import annotations
@@ -20,6 +43,7 @@ from typing import TYPE_CHECKING, Protocol
 from src.repositories.document_embedding import DocumentEmbeddingRepository, SimilarityMatch
 from src.services.rag.schemas import RetrievedChunk
 from src.utils.logger import get_logger
+from src.utils.timing import timed
 
 
 if TYPE_CHECKING:
@@ -86,12 +110,13 @@ class RagService:
         if not query or not query.strip():
             return []
 
-        query_vector = self._embedder.embed_query(query)
-        matches = self._repository.search_by_cosine_similarity(
-            query_vector,
-            limit=limit,
-            min_similarity=min_similarity,
-        )
+        with timed(logger, "retrieval", query_length=len(query)):
+            query_vector = self._embedder.embed_query(query)
+            matches = self._repository.search_by_cosine_similarity(
+                query_vector,
+                limit=limit,
+                min_similarity=min_similarity,
+            )
 
         logger.info("Semantic search query_length=%d matches=%d", len(query), len(matches))
         return [_to_retrieved_chunk(match) for match in matches]

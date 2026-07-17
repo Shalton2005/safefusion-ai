@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from unittest.mock import MagicMock
 
 from src.repositories.document_embedding import SimilarityMatch
@@ -118,6 +119,30 @@ class TestRagServiceSemanticSearch:
         service = RagService(repository=repo, embedder=FakeQueryEmbedder())
 
         assert service.semantic_search(query="something") == []
+
+
+class TestRagServiceRetrievalTiming:
+    def test_semantic_search_logs_a_retrieval_timing_line(self, caplog) -> None:
+        repo = MagicMock()
+        repo.search_by_cosine_similarity.return_value = []
+        service = RagService(repository=repo, embedder=FakeQueryEmbedder())
+
+        with caplog.at_level(logging.INFO, logger="src.services.rag.rag_service"):
+            service.semantic_search(query="what PPE is required?")
+
+        timing_lines = [r.message for r in caplog.records if "operation=retrieval" in r.message]
+        assert len(timing_lines) == 1
+        assert "duration_ms=" in timing_lines[0]
+        assert "query_length=" in timing_lines[0]
+
+    def test_empty_query_does_not_log_a_retrieval_timing_line(self, caplog) -> None:
+        repo = MagicMock()
+        service = RagService(repository=repo, embedder=FakeQueryEmbedder())
+
+        with caplog.at_level(logging.INFO, logger="src.services.rag.rag_service"):
+            service.semantic_search(query="   ")
+
+        assert not any("operation=retrieval" in r.message for r in caplog.records)
 
 
 class TestRagServiceQuery:

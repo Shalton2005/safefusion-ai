@@ -20,6 +20,9 @@ from dataclasses import dataclass, field
 from typing import Protocol
 
 from src.ai.agents.base import AgentRequest, AgentResult
+from src.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 # ── Engine port ───────────────────────────────────────────────────────────────
@@ -89,6 +92,7 @@ class ComplianceAgent:
         try:
             chunks = self._retrieval_engine.query(question=request.text, limit=limit)
         except Exception as exc:  # noqa: BLE001 - one agent's failure must not abort the others
+            logger.warning("Compliance agent failed: %s", exc)
             return AgentResult(agent=self.name, summary="", error=str(exc))
 
         if not chunks:

@@ -34,6 +34,9 @@ from typing import Protocol
 
 from src.ai.agents.base import AgentRequest, AgentResult
 from src.ai.agents.emergency_categorization import EmergencyAssessment, categorize
+from src.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class EmergencyEnginePort(Protocol):
@@ -66,6 +69,7 @@ class EmergencyAgent:
         try:
             zone_results = self._engine.respond(risk_results)
         except Exception as exc:  # noqa: BLE001 - one agent's failure must not abort the others
+            logger.warning("Emergency agent failed: %s", exc)
             return AgentResult(agent=self.name, summary="", error=str(exc))
 
         assessment = categorize(zone_results)

@@ -103,10 +103,42 @@ def configure_logging(*, log_level: str = "INFO", debug: bool = False) -> None:
                     "level": sqlalchemy_level,
                     "propagate": False,
                 },
+                # Quieted so root's fix (below) doesn't turn these into
+                # noise — each logs one line per HTTP/Bolt call at INFO,
+                # which would otherwise drown out the application's own
+                # operation=... timing lines this module exists to carry.
+                "httpx": {
+                    "handlers": ["console"],
+                    "level": "WARNING",
+                    "propagate": False,
+                },
+                "httpcore": {
+                    "handlers": ["console"],
+                    "level": "WARNING",
+                    "propagate": False,
+                },
+                "neo4j": {
+                    "handlers": ["console"],
+                    "level": "WARNING",
+                    "propagate": False,
+                },
+                "langchain_ollama": {
+                    "handlers": ["console"],
+                    "level": "WARNING",
+                    "propagate": False,
+                },
             },
+            # Every module calls get_logger(__name__), i.e. get_logger("src.foo.bar")
+            # — none of those names match an entry in "loggers" above (only
+            # exact names like "safefusion"/"uvicorn"/"sqlalchemy.engine" do),
+            # so they all fall through to this root config. It must carry
+            # the same handler/level as the named loggers above, or every
+            # application module's logger.info() call — the entire
+            # get_logger(__name__) convention used throughout src/ — is
+            # silently dropped below WARNING with no handler to emit it.
             "root": {
                 "handlers": ["console"],
-                "level": "WARNING",
+                "level": normalized_level,
             },
         }
     )

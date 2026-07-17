@@ -23,6 +23,17 @@ plain post-execution enrichment step, not a special case in the routing
 or execution loop, so adding a *different* agent dependency later (e.g.
 Compliance feeding into a future reporting agent) follows the same
 pattern without altering the core loop.
+
+Observability: :meth:`Supervisor.handle` times the whole routing +
+execution + aggregation lifecycle (``operation=workflow``), and each
+``agent.run()`` call is individually timed
+(``operation=agent_execution agent=<name>``), via
+:func:`~src.utils.timing.timed`. This is distinct from
+:class:`~src.middleware.logging_middleware.RequestLoggingMiddleware`'s
+HTTP-level ``duration_ms`` — that measures the whole request including
+FastAPI dependency injection and response serialization; this measures
+just the Supervisor's own work, so a slow request can be attributed to
+"routing/agents" vs. "everything else" from the log lines alone.
 """
 
 from __future__ import annotations
@@ -34,6 +45,7 @@ from src.ai.agents.base import AgentRequest, AgentResult
 from src.ai.agents.registry import AgentRegistry
 from src.ai.agents.routing import RoutingStrategy
 from src.utils.logger import get_logger
+from src.utils.timing import timed
 
 logger = get_logger(__name__)
 
@@ -91,6 +103,21 @@ _HANDOFFS: dict[str, tuple[str, Callable[[Any], Any]]] = {
 }
 
 
+def known_handoffs() -> tuple[tuple[str, str], ...]:
+    """Every configured producer -> consumer-param handoff, as ``(producer, consumer_param)`` pairs.
+
+    Read-only introspection for callers that want to describe the
+    workflow's wiring (e.g. the ``/ai/workflow`` monitoring endpoint —
+    see ``src/ai/monitoring/service.py``) without reaching into
+    :data:`_HANDOFFS` directly, which would also expose each entry's
+    private extractor callable. Doesn't identify the *consuming* agent
+    by name — that's implicit in which agent later reads
+    ``consumer_param`` from its own ``request.params`` (see
+    ``src/ai/agents/emergency_agent.py`` for today's only consumer).
+    """
+    return tuple((producer, params_key) for producer, (params_key, _extract) in _HANDOFFS.items())
+
+
 class Supervisor:
     """Coordinates specialized agents to answer a single user request."""
 
@@ -100,6 +127,10 @@ class Supervisor:
 
     def handle(self, request: AgentRequest) -> SupervisorResponse:
         """Route, execute, and aggregate — the supervisor's full request lifecycle."""
+        with timed(logger, "workflow"):
+            return self._handle(request)
+
+    def _handle(self, request: AgentRequest) -> SupervisorResponse:
         route = self._routing_strategy.route(request.text, self._registry)
         logger.info("Supervisor routed request to agents=%s", route)
 
@@ -120,7 +151,8 @@ class Supervisor:
 
             scoped_request = AgentRequest(text=request.text, params=dict(handoff_params))
             try:
-                result = agent.run(scoped_request)
+                with timed(logger, "agent_execution", agent=agent_name):
+                    result = agent.run(scoped_request)
             except Exception as exc:  # noqa: BLE001 - a single agent's failure must not abort the rest
                 logger.exception("Agent '%s' raised while handling request", agent_name)
                 result = AgentResult(agent=agent_name, summary="", error=str(exc))
@@ -129,7 +161,21 @@ class Supervisor:
             handoff = _HANDOFFS.get(agent_name)
             if handoff and result.ok:
                 handoff_key, extract = handoff
-                handoff_params[handoff_key] = extract(result.data)
+                try:
+                    handoff_params[handoff_key] = extract(result.data)
+                except Exception as exc:  # noqa: BLE001 - a malformed handoff must not abort the rest
+                    # The producing agent reported success, but its data
+                    # wasn't the shape the handoff extractor expected
+                    # (e.g. a custom/fake agent registered under a
+                    # known producer name). Log and skip the handoff
+                    # rather than crashing the whole request — the
+                    # consuming agent (e.g. Emergency) still runs, just
+                    # without this producer's context, the same
+                    # degraded-but-alive outcome as if the producer had
+                    # failed outright.
+                    logger.warning(
+                        "Handoff from agent '%s' failed (data=%r): %s", agent_name, result.data, exc
+                    )
 
         return SupervisorResponse(
             request_text=request.text,

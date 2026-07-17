@@ -48,20 +48,33 @@ class ReasoningMetadata:
         route: Ordered agent names the Supervisor's routing strategy
             selected and executed.
         agent_traces: One :class:`AgentTrace` per executed agent, in
-            execution order.
+            execution order. A failed agent still gets a trace here
+            (``ok=False``, ``error`` set) — see each agent's ``run()``
+            in ``src/ai/agents/*.py``.
         model: Name of the LLM model used for generation, if this
             operation invoked :class:`~src.ai.llm.service.LlmService`.
             ``None`` for operations that only aggregate agent output
-            (e.g. ``/ai/recommend``) without an LLM call.
+            (e.g. ``/ai/recommend``) without an LLM call, *or* when an
+            LLM call was attempted but failed — see ``warnings``.
+        warnings: Human-readable notes about degraded external
+            dependencies that this response's caller should know about
+            (e.g. "Ollama unavailable — falling back to the aggregated
+            agent summary", "graph_knowledge agent failed: Neo4j
+            unreachable"). Empty when nothing degraded. Distinct from a
+            failed :class:`AgentTrace` — a warning here can describe a
+            *whole-operation* fallback (like the LLM call in
+            :meth:`~src.ai.copilot.service.AiCopilotService.explain`)
+            that isn't any single agent's failure.
     """
 
     route: tuple[str, ...]
     agent_traces: tuple[AgentTrace, ...]
     model: str | None = None
+    warnings: tuple[str, ...] = field(default_factory=tuple)
 
     @property
     def ok(self) -> bool:
-        return all(trace.ok for trace in self.agent_traces)
+        return all(trace.ok for trace in self.agent_traces) and not self.warnings
 
 
 @dataclass(frozen=True, slots=True)

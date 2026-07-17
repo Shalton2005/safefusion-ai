@@ -37,8 +37,9 @@ from src.ai.copilot.schemas import (
     ReasoningMetadata,
     SummaryResult,
 )
+from src.ai.exceptions import AiDependencyError
 from src.ai.llm.context import GraphContextItem, LlmContext, RagContextItem, RiskContextItem
-from src.ai.llm.service import LlmService
+from src.ai.llm.service import LlmResponse, LlmService
 from src.ai.prompts import COMPLIANCE, EMERGENCY_RESPONSE, GENERAL, RISK_ANALYSIS
 from src.utils.logger import get_logger
 
@@ -105,13 +106,49 @@ def run_supervisor(graph: CompiledGraphPort, request: AgentRequest) -> Any:
     return result_state["context"]["supervisor_response"]
 
 
-def _build_reasoning(supervisor_response: SupervisorResponse, *, model: str | None = None) -> ReasoningMetadata:
+def _build_reasoning(
+    supervisor_response: SupervisorResponse, *, model: str | None = None, warnings: tuple[str, ...] = ()
+) -> ReasoningMetadata:
     """Build a :class:`ReasoningMetadata` block from a ``SupervisorResponse``."""
     traces = tuple(
         AgentTrace(agent=result.agent, ok=result.ok, summary=result.summary, citations=result.citations, error=result.error)
         for result in supervisor_response.results
     )
-    return ReasoningMetadata(route=supervisor_response.route, agent_traces=traces, model=model)
+    return ReasoningMetadata(route=supervisor_response.route, agent_traces=traces, model=model, warnings=warnings)
+
+
+def _generate_or_degrade(
+    llm_service: LlmService, *, question: str, context: LlmContext, domain: str
+) -> tuple[LlmResponse | None, tuple[str, ...]]:
+    """Call ``llm_service.generate(...)``, degrading to ``(None, warning)`` instead of raising.
+
+    Every other failure point in the AI layer (each agent's ``run()``,
+    the Supervisor's own per-agent try/except in
+    ``src/ai/agents/supervisor.py``) already converts a dependency
+    failure into "continue without this piece, note why" rather than
+    aborting the whole request. The LLM grounding step in
+    :meth:`AiCopilotService.explain`/:meth:`AiCopilotService.chat` is the
+    one place that didn't follow that rule — it called
+    ``LlmService.generate`` with no try/except at all, so an unreachable
+    Ollama server 500'd the entire request instead of falling back to
+    the Supervisor's own aggregated summary (which both methods already
+    use when no ``llm_service`` is configured at all — this reuses that
+    same fallback for "configured but unavailable").
+
+    Catches :class:`~src.ai.exceptions.AiDependencyError` (raised by
+    :class:`~src.ai.llm.ollama_provider.OllamaLlmProvider` for a
+    connection failure, timeout, or error response) as well as any other
+    unexpected exception, so a provider-level bug degrades the same way
+    a known dependency outage does — never a 500.
+    """
+    try:
+        return llm_service.generate(question=question, context=context, domain=domain), ()
+    except AiDependencyError as exc:
+        logger.warning("LLM generation unavailable (%s): %s", exc.dependency, exc)
+        return None, (f"LLM generation unavailable ({exc.dependency}); returning the aggregated agent summary instead.",)
+    except Exception as exc:  # noqa: BLE001 - any LLM-layer failure must not abort the request
+        logger.exception("Unexpected error during LLM generation")
+        return None, (f"LLM generation failed unexpectedly ({exc}); returning the aggregated agent summary instead.",)
 
 
 def _build_llm_context(supervisor_response: SupervisorResponse) -> LlmContext:
@@ -253,10 +290,13 @@ class AiCopilotService:
     def explain(self, *, text: str, params: dict[str, Any] | None = None) -> ExplainResult:
         """Run the Supervisor, then generate an LLM explanation grounded in its output.
 
-        If no ``llm_service`` was configured, ``explanation`` is empty
-        and ``answer`` falls back to the Supervisor's own aggregated
-        summary — the endpoint still returns structured agent data and
-        reasoning metadata rather than failing outright.
+        If no ``llm_service`` was configured, *or* the configured one is
+        unavailable (Ollama down, timed out, erroring — see
+        :func:`_generate_or_degrade`), ``explanation`` is empty and
+        ``answer`` falls back to the Supervisor's own aggregated summary
+        — the endpoint still returns structured agent data and reasoning
+        metadata (with a warning explaining the fallback) rather than
+        failing outright.
         """
         supervisor_response = run_supervisor(self._graph, AgentRequest(text=text, params=params or {}))
         context = _build_llm_context(supervisor_response)
@@ -269,9 +309,16 @@ class AiCopilotService:
                 reasoning=_build_reasoning(supervisor_response),
             )
 
-        llm_response = self._llm_service.generate(
-            question=text, context=context, domain=_select_domain(supervisor_response)
+        llm_response, warnings = _generate_or_degrade(
+            self._llm_service, question=text, context=context, domain=_select_domain(supervisor_response)
         )
+        if llm_response is None:
+            return ExplainResult(
+                request_text=text,
+                answer=supervisor_response.summary,
+                explanation="",
+                reasoning=_build_reasoning(supervisor_response, warnings=warnings),
+            )
         return ExplainResult(
             request_text=text,
             answer=llm_response.answer,
@@ -332,8 +379,10 @@ class AiCopilotService:
         call here operate on ``message`` alone — multi-turn context
         carryover is a future enhancement, not silently faked today.
 
-        If no ``llm_service`` was configured, ``reply`` falls back to
-        the Supervisor's aggregated summary, same as :meth:`explain`.
+        If no ``llm_service`` was configured, *or* the configured one is
+        unavailable, ``reply`` falls back to the Supervisor's aggregated
+        summary (with a warning explaining the fallback), same as
+        :meth:`explain` — see :func:`_generate_or_degrade`.
         """
         supervisor_response = run_supervisor(self._graph, AgentRequest(text=message, params=params or {}))
         context = _build_llm_context(supervisor_response)
@@ -345,9 +394,15 @@ class AiCopilotService:
                 reasoning=_build_reasoning(supervisor_response),
             )
 
-        llm_response = self._llm_service.generate(
-            question=message, context=context, domain=_select_domain(supervisor_response)
+        llm_response, warnings = _generate_or_degrade(
+            self._llm_service, question=message, context=context, domain=_select_domain(supervisor_response)
         )
+        if llm_response is None:
+            return ChatResult(
+                reply=supervisor_response.summary,
+                explanation="",
+                reasoning=_build_reasoning(supervisor_response, warnings=warnings),
+            )
         return ChatResult(
             reply=llm_response.answer,
             explanation=llm_response.reasoning,

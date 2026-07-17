@@ -24,6 +24,9 @@ from dataclasses import dataclass, field
 from typing import Protocol
 
 from src.ai.agents.base import AgentRequest, AgentResult
+from src.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 # ── Engine ports ──────────────────────────────────────────────────────────────
@@ -152,6 +155,7 @@ class RiskAgent:
             hazards_by_zone = self._detect_hazards()
             risk_results = self._compound_risk_engine.detect_compound_risks()
         except Exception as exc:  # noqa: BLE001 - one agent's failure must not abort the others
+            logger.warning("Risk agent failed: %s", exc)
             return AgentResult(agent=self.name, summary="", error=str(exc))
 
         if not risk_results:

@@ -30,6 +30,10 @@ class Settings(BaseSettings):
     NEO4J_USERNAME: str = "neo4j"
     NEO4J_PASSWORD: str = "change-this-password-in-production"
     NEO4J_DATABASE: str = "neo4j"
+    # How long a single Cypher query may run before the driver gives up —
+    # bounds how long a Graph Knowledge agent call can block on a slow or
+    # unresponsive Neo4j instance. See src/repositories/graph_query.py.
+    NEO4J_QUERY_TIMEOUT_SECONDS: float = 10.0
 
     # ── Ollama (Local LLM / Embeddings) ──────────────────────────────────────
     # Used by src/services/embedding for RAG document-chunk embeddings, and
@@ -38,6 +42,11 @@ class Settings(BaseSettings):
     OLLAMA_EMBEDDING_MODEL: str = "nomic-embed-text"
     OLLAMA_LLM_MODEL: str = "llama3.1:8b"
     OLLAMA_LLM_TEMPERATURE: float = 0.2
+    # Request timeouts (seconds) so an unreachable/hanging Ollama server
+    # fails fast instead of hanging a request indefinitely — see
+    # src/ai/llm/ollama_provider.py and src/services/embedding/ollama_provider.py.
+    OLLAMA_LLM_TIMEOUT_SECONDS: float = 30.0
+    OLLAMA_EMBEDDING_TIMEOUT_SECONDS: float = 15.0
 
     # ── pgvector (RAG document embeddings) ───────────────────────────────────
     # Must match the output width of OLLAMA_EMBEDDING_MODEL — nomic-embed-text

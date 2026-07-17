@@ -63,6 +63,12 @@ def _build_driver() -> Driver:
     return GraphDatabase.driver(
         settings.NEO4J_URI,
         auth=(settings.NEO4J_USERNAME, settings.NEO4J_PASSWORD),
+        # Bounds how long establishing a new connection may take — an
+        # unreachable Neo4j instance fails in bounded time instead of
+        # hanging the first query indefinitely. Per-query execution time
+        # is bounded separately, via neo4j.Query(..., timeout=...) in
+        # src/repositories/graph_query.py.
+        connection_timeout=settings.NEO4J_QUERY_TIMEOUT_SECONDS,
     )
 
 

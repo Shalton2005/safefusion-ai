@@ -16,4 +16,6 @@ Available routers:
     - :mod:`src.routes.incidents`    — ``/api/v1/incidents``
     - :mod:`src.routes.alerts`       — ``/api/v1/alerts``
     - :mod:`src.routes.risk_scores`  — ``/api/v1/risk-scores``
+    - :mod:`src.routes.ai_copilot`   — ``/api/v1/ai`` (query, explain, recommend, summary, explainability, chat)
+    - :mod:`src.routes.ai_monitoring` — ``/api/v1/ai`` (status, health, metrics, workflow)
 """

@@ -297,6 +297,7 @@ def get_ai_copilot_service(db: DbDep, graph_session: GraphSessionDep) -> AiCopil
             model=settings.OLLAMA_LLM_MODEL,
             base_url=settings.OLLAMA_BASE_URL,
             temperature=settings.OLLAMA_LLM_TEMPERATURE,
+            timeout_seconds=settings.OLLAMA_LLM_TIMEOUT_SECONDS,
         )
     )
     llm_service = LlmService(llm_provider)
@@ -315,6 +316,7 @@ def _reasoning_to_response(reasoning: ReasoningMetadata) -> ReasoningMetadataRes
         route=reasoning.route,
         agent_traces=[_trace_to_response(trace) for trace in reasoning.agent_traces],
         model=reasoning.model,
+        warnings=reasoning.warnings,
     )
 
 

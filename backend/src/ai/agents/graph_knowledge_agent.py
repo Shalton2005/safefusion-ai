@@ -20,6 +20,13 @@ Graph querying is kept strictly separate from reasoning:
       only categorization of results the port already returned.
 
 No LLM call. No FastAPI import anywhere in this module.
+
+``run()``'s ``except Exception`` also catches
+:class:`~src.repositories.graph_exceptions.GraphUnavailableError`
+(raised by :class:`~src.repositories.graph_query.GraphQueryRepository`
+when Neo4j is unreachable, times out, or errors — see that module) the
+same way it catches any other lookup failure: as a degraded
+:class:`~src.ai.agents.base.AgentResult`, never a crash.
 """
 
 from __future__ import annotations
@@ -28,6 +35,9 @@ from dataclasses import dataclass, field
 from typing import Any, Protocol
 
 from src.ai.agents.base import AgentRequest, AgentResult
+from src.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 # ── Engine port ───────────────────────────────────────────────────────────────
@@ -122,6 +132,7 @@ class GraphKnowledgeAgent:
         try:
             result = _build_result(self._graph_engine, request)
         except Exception as exc:  # noqa: BLE001 - one agent's failure must not abort the others
+            logger.warning("Graph Knowledge agent failed: %s", exc)
             return AgentResult(agent=self.name, summary="", error=str(exc))
 
         if result.total_count == 0:

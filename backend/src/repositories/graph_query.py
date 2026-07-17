@@ -35,45 +35,93 @@ Every method returns plain ``dict``/``list[dict]`` structures built from
 Neo4j ``Record`` objects — never a driver-native ``Node``/``Relationship``
 — so callers (the service layer) can serialize the result directly to
 JSON without depending on Neo4j types.
+
+Every query below runs through :meth:`GraphQueryRepository._run`, which
+applies a per-query timeout (``settings.NEO4J_QUERY_TIMEOUT_SECONDS``,
+via :class:`neo4j.Query`), times it (``operation=graph_query``, via
+:func:`~src.utils.timing.timed`), and converts any driver failure —
+connection refused, query timeout, session expired — into
+:class:`~src.repositories.graph_exceptions.GraphUnavailableError`.
+Callers (the Graph Knowledge agent, via
+:class:`~src.ai.exceptions.GraphUnavailableError`, which re-exports this
+same type) catch that one type instead of importing
+``neo4j.exceptions`` themselves. :class:`~src.repositories.graph_base.GraphBaseRepository`'s
+own ``list_nodes``/``merge_node``/etc. are deliberately left untouched —
+this timeout/error-wrapping/timing behavior belongs to the read-only
+AI-facing query path, not the shared write/ingestion primitives those
+methods also serve.
 """
 
 from typing import Any
 
+import neo4j.exceptions
+from neo4j import Query
+
+from src.config.settings import settings
 from src.repositories.graph_base import GraphBaseRepository
+from src.repositories.graph_exceptions import GraphUnavailableError
+from src.utils.logger import get_logger
+from src.utils.timing import timed
+
+logger = get_logger(__name__)
 
 
 class GraphQueryRepository(GraphBaseRepository):
     """Read-only knowledge-graph queries backed by a Neo4j session."""
 
+    def _run(self, cypher: str, **parameters: Any) -> list[neo4j.Record]:
+        """Run one bounded, timed Cypher query, converting driver failures to :class:`GraphUnavailableError`.
+
+        Every query method below goes through this instead of calling
+        ``self._session.run`` directly, so a Neo4j outage — and its
+        latency — is handled once here rather than once per method.
+        """
+        query = Query(cypher, timeout=settings.NEO4J_QUERY_TIMEOUT_SECONDS)
+        try:
+            with timed(logger, "graph_query"):
+                result = self._session.run(query, **parameters)
+                return list(result)
+        except neo4j.exceptions.Neo4jError as exc:
+            logger.warning("Neo4j query failed: %s", exc)
+            raise GraphUnavailableError(f"Neo4j query failed: {exc}") from exc
+        except neo4j.exceptions.DriverError as exc:
+            logger.warning("Neo4j unreachable: %s", exc)
+            raise GraphUnavailableError(f"Neo4j unreachable: {exc}") from exc
+
     # ── Flat entity listings ─────────────────────────────────────────────────
-    # Thin wrappers over GraphBaseRepository.list_nodes — one label per method
-    # so each collection endpoint stays a single, independent lookup.
+    # One label per method so each collection endpoint stays a single,
+    # independent lookup — mirrors GraphBaseRepository.list_nodes but
+    # routed through _run for the timeout/error handling above.
 
     def list_workers(self) -> list[dict[str, Any]]:
         """Return every worker node in the graph."""
-        return self.list_nodes("Worker")
+        return self._list_label("Worker")
 
     def list_zones(self) -> list[dict[str, Any]]:
         """Return every zone node in the graph."""
-        return self.list_nodes("Zone")
+        return self._list_label("Zone")
 
     def list_permits(self) -> list[dict[str, Any]]:
         """Return every permit node in the graph."""
-        return self.list_nodes("Permit")
+        return self._list_label("Permit")
 
     def list_incidents(self) -> list[dict[str, Any]]:
         """Return every incident node in the graph."""
-        return self.list_nodes("Incident")
+        return self._list_label("Incident")
 
     def list_risks(self) -> list[dict[str, Any]]:
         """Return every risk assessment node in the graph."""
-        return self.list_nodes("Risk")
+        return self._list_label("Risk")
+
+    def _list_label(self, label: str, limit: int = 1_000) -> list[dict[str, Any]]:
+        result = self._run(f"MATCH (n:{label}) RETURN n AS node LIMIT $limit", limit=limit)
+        return [dict(record["node"]) for record in result]
 
     # ── Workers by Zone ──────────────────────────────────────────────────────
 
     def get_workers_by_zone(self, zone_id: str) -> list[dict[str, Any]]:
         """Return every worker currently located in the given zone."""
-        result = self._session.run(
+        result = self._run(
             "MATCH (w:Worker)-[:LOCATED_IN]->(z:Zone {id: $zone_id}) "
             "RETURN w AS worker "
             "ORDER BY w.employee_id",
@@ -92,7 +140,7 @@ class GraphQueryRepository(GraphBaseRepository):
         or team. Returns an empty list if the worker has no ``current_zone``
         set.
         """
-        result = self._session.run(
+        result = self._run(
             "MATCH (w:Worker {id: $worker_id})-[:LOCATED_IN]->(z:Zone) "
             "MATCH (p:Permit)-[:ISSUED_FOR]->(z) "
             "RETURN p AS permit "
@@ -112,7 +160,7 @@ class GraphQueryRepository(GraphBaseRepository):
         ``zone`` column), so this query's first ``MATCH`` clause can never
         bind. Requires a PostgreSQL schema change to fix.
         """
-        result = self._session.run(
+        result = self._run(
             "MATCH (e:Equipment {id: $equipment_id})-[:LOCATED_IN]->(z:Zone) "
             "MATCH (i:Incident)-[:OCCURRED_IN]->(z) "
             "RETURN i AS incident "
@@ -125,7 +173,7 @@ class GraphQueryRepository(GraphBaseRepository):
 
     def get_sensors_by_zone(self, zone_id: str) -> list[dict[str, Any]]:
         """Return every sensor monitoring the given zone."""
-        result = self._session.run(
+        result = self._run(
             "MATCH (s:Sensor)-[:MONITORS]->(z:Zone {id: $zone_id}) "
             "RETURN s AS sensor "
             "ORDER BY s.sensor_type",
@@ -145,7 +193,7 @@ class GraphQueryRepository(GraphBaseRepository):
         incident to the risk assessment that preceded it, or an explicit
         zone-and-time-window join at ingestion time.
         """
-        result = self._session.run(
+        result = self._run(
             "MATCH (i:Incident {id: $incident_id})-[:TRIGGERED_BY]->(r:Risk) "
             "RETURN r AS risk "
             "ORDER BY r.analyzed_at DESC",

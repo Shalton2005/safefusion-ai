@@ -20,24 +20,32 @@ Modularity: each report section is a self-contained function keyed off
 ``response_aggregator.py`` and every agent module in this package uses.
 An agent absent from the input or one that failed contributes nothing to
 a section rather than raising.
+
+``confidence`` delegates to :func:`~src.ai.confidence.default_confidence_engine`
+— the canonical scorer also used by
+:mod:`~src.ai.agents.response_aggregator` — rather than computing its
+own, so "confidence" means the same thing everywhere it's reported.
+Per-:class:`AgentContribution` ``weight`` is a separate, simpler
+concept: each executed agent's equal share of attention in this report
+(not the confidence engine's per-*factor* weighting, which combines
+multiple agents into factors like "retrieval relevance" that don't map
+1:1 onto a single agent).
 """
 
 from __future__ import annotations
 
 import json
 from dataclasses import asdict, dataclass, field
-from typing import Any, Callable
+from typing import Any
 
 from src.ai.agents.base import AgentResult
 from src.ai.agents.compliance_agent import ComplianceAssessment
 from src.ai.agents.graph_knowledge_agent import GraphKnowledgeResult
-from src.ai.agents.risk_agent import RiskAssessment
+from src.ai.confidence import default_confidence_engine
 
-RISK_AGENT = "risk"
 COMPLIANCE_AGENT = "compliance"
 KNOWLEDGE_AGENT = "knowledge"
 GRAPH_KNOWLEDGE_AGENT = "graph_knowledge"
-EMERGENCY_AGENT = "emergency"
 
 
 # ── Report shape ─────────────────────────────────────────────────────────────
@@ -77,9 +85,11 @@ class AgentContribution:
         agent: Registry name of the agent (e.g. ``"risk"``).
         ok: Whether the agent succeeded.
         summary: The agent's own one-line summary of what it found.
-        weight: This agent's share of the overall confidence score (see
-            :func:`_compute_confidence`) — how much it influenced
-            :attr:`ExplainabilityReport.confidence`.
+        weight: This agent's equal share of attention among every
+            executed agent (``1 / len(results)``) — a simple
+            "how many agents were involved" indicator, not the
+            Confidence Engine's per-factor weighting (see module
+            docstring for why the two don't share a definition).
         citations: Supporting references the agent returned, if any.
         error: Failure reason, if ``ok`` is ``False``.
     """
@@ -106,10 +116,9 @@ class ExplainabilityReport:
         retrieved_regulations: Regulation/document + matched section
             pairs the Compliance agent found.
         agent_contributions: One entry per executed agent, describing
-            what it contributed and how much it weighed toward
-            :attr:`confidence`.
-        confidence: 0.0-1.0 overall confidence in the explanation. See
-            :func:`_compute_confidence`.
+            what it contributed.
+        confidence: 0.0-1.0 overall confidence in the explanation, from
+            :func:`~src.ai.confidence.default_confidence_engine`.
     """
 
     summary: str
@@ -141,15 +150,14 @@ def explain(results: list[AgentResult]) -> ExplainabilityReport:
             failed results.
     """
     by_agent = {result.agent: result for result in results}
-    weights = _agent_weights(results)
 
     return ExplainabilityReport(
         summary=_section_summary(results),
         evidence_used=tuple(_section_evidence(by_agent.get(KNOWLEDGE_AGENT), by_agent.get(COMPLIANCE_AGENT))),
         graph_relationships=tuple(_section_graph_relationships(by_agent.get(GRAPH_KNOWLEDGE_AGENT))),
         retrieved_regulations=tuple(_section_regulations(by_agent.get(COMPLIANCE_AGENT))),
-        agent_contributions=tuple(_section_agent_contributions(results, weights)),
-        confidence=_compute_confidence(results, weights),
+        agent_contributions=tuple(_section_agent_contributions(results)),
+        confidence=default_confidence_engine().score(results).overall_score,
     )
 
 
@@ -225,111 +233,17 @@ def _section_regulations(compliance_result: AgentResult | None) -> list[Regulati
     ]
 
 
-def _section_agent_contributions(
-    results: list[AgentResult], weights: dict[str, float]
-) -> list[AgentContribution]:
+def _section_agent_contributions(results: list[AgentResult]) -> list[AgentContribution]:
     """One :class:`AgentContribution` per executed agent, in execution order."""
+    weight = round(1 / len(results), 4) if results else 0.0
     return [
         AgentContribution(
             agent=result.agent,
             ok=result.ok,
             summary=result.summary,
-            weight=weights.get(result.agent, 0.0),
+            weight=weight,
             citations=result.citations,
             error=result.error,
         )
         for result in results
     ]
-
-
-# ── Confidence scoring ───────────────────────────────────────────────────────
-#
-# Shares the same weighting approach as response_aggregator._compute_confidence_score
-# (per-agent weight table + per-agent scorer registry) so "confidence" means
-# the same thing across both modules, but is kept as a private, separate
-# implementation rather than imported — the two reports are independent
-# contracts and shouldn't couple to each other's internals.
-
-_AGENT_CONFIDENCE_WEIGHT: dict[str, float] = {
-    RISK_AGENT: 1.0,
-    COMPLIANCE_AGENT: 1.0,
-    KNOWLEDGE_AGENT: 0.75,
-    GRAPH_KNOWLEDGE_AGENT: 0.75,
-    EMERGENCY_AGENT: 1.0,
-}
-
-_PER_AGENT_SCORER: dict[str, Callable[[AgentResult], float]] = {}
-
-
-def _register_scorer(agent_name: str) -> Callable[[Callable[[AgentResult], float]], Callable[[AgentResult], float]]:
-    def decorator(fn: Callable[[AgentResult], float]) -> Callable[[AgentResult], float]:
-        _PER_AGENT_SCORER[agent_name] = fn
-        return fn
-
-    return decorator
-
-
-@_register_scorer(RISK_AGENT)
-def _score_risk(result: AgentResult) -> float:
-    return 1.0 if result.data is not None else 0.5
-
-
-@_register_scorer(COMPLIANCE_AGENT)
-def _score_compliance(result: AgentResult) -> float:
-    if not isinstance(result.data, ComplianceAssessment):
-        return 0.0
-    return 1.0 if result.data.relevant_regulations else 0.3
-
-
-@_register_scorer(KNOWLEDGE_AGENT)
-def _score_knowledge(result: AgentResult) -> float:
-    return 1.0 if result.data else 0.3
-
-
-@_register_scorer(GRAPH_KNOWLEDGE_AGENT)
-def _score_graph_knowledge(result: AgentResult) -> float:
-    if not isinstance(result.data, GraphKnowledgeResult):
-        return 0.0
-    return 1.0 if result.data.total_count else 0.3
-
-
-@_register_scorer(EMERGENCY_AGENT)
-def _score_emergency(result: AgentResult) -> float:
-    return 1.0 if result.data is not None else 0.0
-
-
-def _agent_weights(results: list[AgentResult]) -> dict[str, float]:
-    """Each executed agent's share of the overall confidence score, normalized to sum to 1.0.
-
-    Used both to compute :func:`_compute_confidence` and to populate
-    :attr:`AgentContribution.weight`, so the two stay consistent — a
-    reader can sum ``agent_contributions[*].weight`` and land on the same
-    total-weight denominator the confidence score used.
-    """
-    raw = {result.agent: _AGENT_CONFIDENCE_WEIGHT.get(result.agent, 0.5) for result in results}
-    total = sum(raw.values())
-    if total == 0.0:
-        return {}
-    return {agent: weight / total for agent, weight in raw.items()}
-
-
-def _compute_confidence(results: list[AgentResult], weights: dict[str, float]) -> float:
-    """Weighted average of per-agent confidence, over agents that actually ran.
-
-    An agent that failed contributes 0.0 at its normalized weight. An
-    agent that never ran is excluded entirely (see :func:`_agent_weights`).
-    No agents run at all returns 0.0.
-    """
-    if not results:
-        return 0.0
-
-    total = 0.0
-    for result in results:
-        weight = weights.get(result.agent, 0.0)
-        if not result.ok:
-            continue
-        scorer = _PER_AGENT_SCORER.get(result.agent)
-        score = scorer(result) if scorer else 0.5
-        total += weight * score
-
-    return round(total, 2)

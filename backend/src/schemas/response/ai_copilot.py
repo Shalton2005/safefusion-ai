@@ -27,11 +27,19 @@ class AgentTraceResponse(AppBaseModel):
 
 
 class ReasoningMetadataResponse(AppBaseModel):
-    """Trace of how a Copilot response was produced."""
+    """Trace of how a Copilot response was produced.
+
+    ``warnings`` is non-empty when an external dependency (Ollama, Neo4j)
+    was unavailable and the response degraded to a partial result rather
+    than failing outright — see
+    ``src.ai.copilot.service._generate_or_degrade`` and each agent's own
+    failure handling in ``src/ai/agents/*.py``.
+    """
 
     route: tuple[str, ...]
     agent_traces: list[AgentTraceResponse]
     model: str | None = None
+    warnings: tuple[str, ...] = ()
 
 
 class AiQueryResponse(AppBaseModel):

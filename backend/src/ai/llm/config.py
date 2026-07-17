@@ -26,11 +26,16 @@ class LlmConfig:
         temperature: Sampling temperature. Kept low by default (0.2) so
             explanations stay grounded in the supplied context rather
             than creative.
+        timeout_seconds: Maximum time to wait for a generation call
+            before giving up. Without this, a hung or unreachable Ollama
+            server blocks the calling request indefinitely — see
+            :class:`~src.ai.exceptions.LlmUnavailableError`.
     """
 
     model: str = "llama3.1:8b"
     base_url: str = "http://localhost:11434"
     temperature: float = 0.2
+    timeout_seconds: float = 30.0
 
     def __post_init__(self) -> None:
         if not self.model.strip():
@@ -39,6 +44,8 @@ class LlmConfig:
             raise ValueError("LlmConfig.base_url must not be empty")
         if not 0.0 <= self.temperature <= 2.0:
             raise ValueError("LlmConfig.temperature must be between 0.0 and 2.0")
+        if self.timeout_seconds <= 0.0:
+            raise ValueError("LlmConfig.timeout_seconds must be positive")
 
 
 def from_settings(settings: object) -> LlmConfig:
@@ -46,8 +53,8 @@ def from_settings(settings: object) -> LlmConfig:
 
     Accepts ``object`` rather than ``src.config.settings.Settings`` to
     avoid importing the FastAPI-side settings module from within
-    ``src.ai`` — duck-typed on the three ``OLLAMA_*`` attributes
-    instead. Callers in ``src.routes`` or ``src.services`` pass the real
+    ``src.ai`` — duck-typed on the ``OLLAMA_*`` attributes instead.
+    Callers in ``src.routes`` or ``src.services`` pass the real
     ``settings`` singleton; tests can pass any object exposing the same
     attributes.
     """
@@ -55,4 +62,5 @@ def from_settings(settings: object) -> LlmConfig:
         model=getattr(settings, "OLLAMA_LLM_MODEL"),
         base_url=getattr(settings, "OLLAMA_BASE_URL"),
         temperature=getattr(settings, "OLLAMA_LLM_TEMPERATURE"),
+        timeout_seconds=getattr(settings, "OLLAMA_LLM_TIMEOUT_SECONDS", 30.0),
     )

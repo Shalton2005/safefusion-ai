@@ -20,17 +20,22 @@ routed for this request) or one that failed (``result.ok is False``)
 simply contributes nothing to a section rather than raising — the same
 "one agent's problem never blocks the others" rule the supervisor itself
 follows.
+
+Confidence Score delegates to :func:`~src.ai.confidence.default_confidence_engine`
+— the canonical scorer also used by
+:mod:`~src.ai.agents.explainability_service` — rather than computing its
+own, so "confidence" means the same thing everywhere it's reported.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Callable
 
 from src.ai.agents.base import AgentResult
 from src.ai.agents.compliance_agent import ComplianceAssessment
 from src.ai.agents.emergency_categorization import EmergencyAssessment
 from src.ai.agents.risk_agent import RiskAssessment
+from src.ai.confidence import default_confidence_engine
 
 # Agent registry names this module knows how to read from. Not an
 # exhaustive allow-list — an unrecognized agent name is simply skipped by
@@ -118,7 +123,7 @@ def aggregate(results: list[AgentResult]) -> UnifiedResponse:
                 by_agent.get(RISK_AGENT), by_agent.get(COMPLIANCE_AGENT), by_agent.get(EMERGENCY_AGENT)
             )
         ),
-        confidence_score=_compute_confidence_score(results),
+        confidence_score=default_confidence_engine().score(results).overall_score,
         agent_errors={result.agent: result.error for result in results if not result.ok and result.error},
     )
 
@@ -211,83 +216,3 @@ def _section_recommended_actions(
         actions.extend(compliance_result.data.recommendations)
 
     return list(dict.fromkeys(actions))
-
-
-# ── Confidence scoring ───────────────────────────────────────────────────────
-
-# Per-agent weight in the overall confidence score. Data, not branching
-# logic — mirrors the lookup-table pattern used throughout this package
-# (RiskAgent's rule->recommendation table, routing's keyword table).
-# Weights need not sum to 1; the score is normalized against the weight
-# of agents that actually ran.
-_AGENT_CONFIDENCE_WEIGHT: dict[str, float] = {
-    RISK_AGENT: 1.0,
-    COMPLIANCE_AGENT: 1.0,
-    KNOWLEDGE_AGENT: 0.75,
-    EMERGENCY_AGENT: 1.0,
-}
-
-_PER_AGENT_SCORER: dict[str, Callable[[AgentResult], float]] = {}
-
-
-def _register_scorer(agent_name: str) -> Callable[[Callable[[AgentResult], float]], Callable[[AgentResult], float]]:
-    def decorator(fn: Callable[[AgentResult], float]) -> Callable[[AgentResult], float]:
-        _PER_AGENT_SCORER[agent_name] = fn
-        return fn
-
-    return decorator
-
-
-@_register_scorer(RISK_AGENT)
-def _score_risk(result: AgentResult) -> float:
-    """1.0 if zones were assessed (even zero-risk-found is a confident answer)."""
-    return 1.0 if result.data is not None else 0.5
-
-
-@_register_scorer(COMPLIANCE_AGENT)
-def _score_compliance(result: AgentResult) -> float:
-    """Retrieval-confidence proxy: did we find grounding context at all."""
-    if not isinstance(result.data, ComplianceAssessment):
-        return 0.0
-    return 1.0 if result.data.relevant_regulations else 0.3
-
-
-@_register_scorer(KNOWLEDGE_AGENT)
-def _score_knowledge(result: AgentResult) -> float:
-    return 1.0 if result.data else 0.3
-
-
-@_register_scorer(EMERGENCY_AGENT)
-def _score_emergency(result: AgentResult) -> float:
-    if not isinstance(result.data, EmergencyAssessment):
-        return 0.0
-    return 1.0
-
-
-def _compute_confidence_score(results: list[AgentResult]) -> float:
-    """Weighted average of per-agent confidence, over agents that actually ran.
-
-    An agent that failed contributes 0.0 at its full weight (a failure
-    should visibly drag confidence down, not be silently excluded). An
-    agent that never ran (not in ``results`` at all) is excluded from
-    both the numerator and denominator — the score reflects confidence
-    in what was produced, not a penalty for agents the router didn't
-    need. No agents run at all returns 0.0.
-    """
-    if not results:
-        return 0.0
-
-    total_weight = 0.0
-    weighted_sum = 0.0
-    for result in results:
-        weight = _AGENT_CONFIDENCE_WEIGHT.get(result.agent, 0.5)
-        total_weight += weight
-        if not result.ok:
-            continue
-        scorer = _PER_AGENT_SCORER.get(result.agent)
-        score = scorer(result) if scorer else 0.5
-        weighted_sum += weight * score
-
-    if total_weight == 0.0:
-        return 0.0
-    return round(weighted_sum / total_weight, 2)
