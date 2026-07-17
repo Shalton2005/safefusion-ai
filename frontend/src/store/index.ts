@@ -11,6 +11,10 @@ export { usePlantStatusStore }               from './usePlantStatusStore';
 // ─── AI Supervisor ────────────────────────────────────────────────
 export { useAISupervisorStore }              from './aiSupervisorStore';
 
+// ─── AI Safety Copilot ────────────────────────────────────────────
+export { useCopilotStore }                   from './useCopilotStore';
+export type { CopilotConversationMeta }      from './useCopilotStore';
+
 // ─── Notifications ────────────────────────────────────────────────
 export { useNotificationStore, toast }       from './useNotificationStore';
 export type { Notification, NotificationType } from './useNotificationStore';

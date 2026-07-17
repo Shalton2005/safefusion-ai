@@ -3,7 +3,9 @@
  *
  * AI Safety Copilot chat interface: conversation history sidebar (drawer
  * on mobile) + chat window with suggested prompts, message history,
- * typing indicator, and message composer.
+ * typing indicator, and message composer. Reads/writes `useCopilotStore`
+ * directly — the store is this feature's single source of truth for
+ * conversation/message state (see the store's doc comment).
  *
  * Unlike most feature pages, this page owns a fixed-height layout rather
  * than using `.page-container`'s natural document flow — a chat UI needs
@@ -14,24 +16,28 @@
 import { useState } from 'react';
 import { History, PanelLeftClose } from 'lucide-react';
 import { PageHeader, Button } from '@/components/ui';
-import { useCopilotChat } from '../hooks/useCopilotChat';
+import { useCopilotStore } from '@/store';
 import { ChatWindow } from '../components/ChatWindow';
 import { ConversationHistoryList } from '../components/ConversationHistoryList';
 
 export function CopilotPage() {
-  const {
-    conversations,
-    activeConversation,
-    activeConversationId,
-    isSending,
-    error,
-    sendMessage,
-    startNewConversation,
-    selectConversation,
-    deleteConversation,
-  } = useCopilotChat();
+  const conversationHistory = useCopilotStore((s) => s.conversationHistory);
+  const conversation = useCopilotStore((s) => s.conversation);
+  const messages = useCopilotStore((s) => s.messages);
+  const loading = useCopilotStore((s) => s.loading);
+  const error = useCopilotStore((s) => s.error);
+  const sendMessage = useCopilotStore((s) => s.sendMessage);
+  const startNewConversation = useCopilotStore((s) => s.startNewConversation);
+  const selectConversation = useCopilotStore((s) => s.selectConversation);
+  const deleteConversation = useCopilotStore((s) => s.deleteConversation);
 
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+
+  // ChatWindow expects a single CopilotConversation (messages nested inside,
+  // matching the persisted history shape) — composed here from the store's
+  // split conversation/messages fields so ChatWindow/MessageList/MessageBubble
+  // stay unchanged.
+  const activeConversation = conversation ? { ...conversation, messages } : null;
 
   return (
     <div className="flex flex-col h-full min-h-0">
@@ -57,8 +63,8 @@ export function CopilotPage() {
         {/* History sidebar — inline on large screens */}
         <div className="hidden lg:block w-72 flex-shrink-0 border-r border-[var(--sf-border-default)]">
           <ConversationHistoryList
-            conversations={conversations}
-            activeConversationId={activeConversationId}
+            conversations={conversationHistory}
+            activeConversationId={conversation?.id ?? null}
             onSelect={selectConversation}
             onDelete={deleteConversation}
             onNew={startNewConversation}
@@ -87,8 +93,8 @@ export function CopilotPage() {
               </div>
               <ConversationHistoryList
                 className="flex-1 min-h-0"
-                conversations={conversations}
-                activeConversationId={activeConversationId}
+                conversations={conversationHistory}
+                activeConversationId={conversation?.id ?? null}
                 onSelect={(id) => {
                   selectConversation(id);
                   setIsHistoryOpen(false);
@@ -104,7 +110,7 @@ export function CopilotPage() {
         )}
 
         {/* Chat window */}
-        <ChatWindow conversation={activeConversation} isSending={isSending} error={error} onSend={sendMessage} />
+        <ChatWindow conversation={activeConversation} isSending={loading} error={error} onSend={sendMessage} />
       </div>
     </div>
   );

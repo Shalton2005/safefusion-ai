@@ -2,7 +2,7 @@
  * useAIQuery
  *
  * One-shot question/answer via `POST /ai/query` (through `aiService.query`)
- * — distinct from `useCopilotChat`'s multi-turn, conversation-persisted
+ * — distinct from `useCopilotStore`'s multi-turn, conversation-persisted
  * `POST /ai/chat`. Use this for a single lookup that doesn't need a saved
  * thread (e.g. a quick "ask" box outside the full chat UI).
  *
