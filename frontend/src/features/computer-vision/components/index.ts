@@ -24,3 +24,12 @@ export type { CameraDetailsProps } from './CameraDetails';
 
 export { DetectionOverlay }       from './DetectionOverlay';
 export type { DetectionOverlayProps } from './DetectionOverlay';
+
+export { CameraShortcutCard }     from './CameraShortcutCard';
+export type { CameraShortcutCardProps } from './CameraShortcutCard';
+
+export { VisionSummaryWidget }    from './VisionSummaryWidget';
+export type { VisionSummaryWidgetProps } from './VisionSummaryWidget';
+
+export { CriticalHazardBanner }   from './CriticalHazardBanner';
+export type { CriticalHazardBannerProps } from './CriticalHazardBanner';

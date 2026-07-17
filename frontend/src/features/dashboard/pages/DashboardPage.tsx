@@ -22,6 +22,7 @@ import { RiskExplanationPanelSectionView } from '@/features/risk/components/Risk
 import { EmergencyResponsePanelSectionView } from '@/features/emergency/components/EmergencyResponsePanelSection';
 import { ComplianceDashboardSectionView } from '@/features/compliance/components/ComplianceDashboardSection';
 import { RecommendationPanelSectionView } from '@/features/recommendations/components/RecommendationPanelSection';
+import { CameraShortcutCard, VisionSummaryWidget, CriticalHazardBanner } from '@/features/computer-vision/components';
 import { useRecentAlerts } from '@/features/alerts/hooks/useRecentAlerts';
 import { useRecentRiskScores } from '@/features/dashboard/hooks/useRecentRiskScores';
 import { useCompoundRiskEngine } from '@/features/risk/hooks/useCompoundRiskEngine';
@@ -108,11 +109,20 @@ export function DashboardPage() {
         className="px-0 pt-0"
       />
 
+      {/* Critical hazard banner (computer vision) */}
+      <CriticalHazardBanner />
+
       {/* KPI cards */}
       <KpiCardGrid />
 
       {/* Plant safety overview */}
       <PlantSafetyOverviewSection />
+
+      {/* Computer vision — detection summary + camera shortcut */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <VisionSummaryWidget className="lg:col-span-2" />
+        <CameraShortcutCard />
+      </div>
 
       {/* Zone overview */}
       <ZoneOverviewSection />
