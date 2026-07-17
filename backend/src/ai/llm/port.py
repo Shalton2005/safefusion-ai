@@ -28,8 +28,8 @@ class LlmProviderPort(Protocol):
 
         Args:
             system_prompt: Instructions governing the model's behavior
-                for this call (see :mod:`src.ai.llm.prompts` — this
-                always originates from the centralized prompt module,
+                for this call (see :mod:`src.ai.prompts` — this
+                always originates from the centralized prompt package,
                 never assembled ad hoc by a caller).
             user_prompt: The fully-assembled question + context block.
 

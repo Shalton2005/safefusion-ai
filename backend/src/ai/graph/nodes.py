@@ -48,9 +48,11 @@ def make_supervisor_node(supervisor: Supervisor) -> Callable[[GraphState], Graph
 
     def supervisor_node(state: GraphState) -> GraphState:
         request_text = _latest_request_text(state)
-        response = supervisor.handle(AgentRequest(text=request_text))
+        incoming_context = state.get("context") or {}
+        params = incoming_context.get("params") or {}
+        response = supervisor.handle(AgentRequest(text=request_text, params=params))
 
-        context = dict(state.get("context") or {})
+        context = dict(incoming_context)
         context["supervisor_response"] = response
 
         return {

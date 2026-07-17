@@ -98,6 +98,25 @@ class RiskContextItem:
             reasoning=list(assessment.reasoning),
         )
 
+    @classmethod
+    def from_emergency_escalation(cls, escalation: object, actions: list[str]) -> "RiskContextItem":
+        """Adapt one zone's :class:`~src.ai.agents.emergency_categorization.Escalation` + dispatched actions.
+
+        The Emergency agent has no dedicated context-source type of its
+        own — :class:`LlmContext` accepts exactly three sources (RAG,
+        graph, Risk Engine) by design. Dispatched emergency actions are
+        zone-scoped and score/level-bearing just like a risk assessment,
+        so they fold into ``reasoning`` here rather than expanding
+        :class:`LlmContext`'s contract for a single extra source.
+        """
+        return cls(
+            zone=escalation.zone,
+            risk_level=escalation.risk_level,
+            risk_score=escalation.risk_score,
+            hazards=[],
+            reasoning=[escalation.reason, *actions],
+        )
+
     def format(self) -> str:
         hazards = "; ".join(self.hazards) or "none"
         reasoning = "; ".join(self.reasoning) or "none"
@@ -116,7 +135,7 @@ class LlmContext:
 
     Every field is optional and independently populated — a caller
     passes whichever sources it actually has. An entirely empty
-    ``LlmContext()`` is valid; :mod:`src.ai.llm.prompts` renders it as
+    ``LlmContext()`` is valid; :mod:`src.ai.prompts` renders it as
     "no supporting context available" rather than an empty section.
     """
 

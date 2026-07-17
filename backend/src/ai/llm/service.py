@@ -41,12 +41,12 @@ class LlmResponse:
     Attributes:
         answer: The direct answer to the question.
         reasoning: The model's explanation of which context led to that
-            answer — split out from ``answer`` (per the system prompt's
-            required two-part structure; see
-            :data:`~src.ai.llm.prompts.SYSTEM_PROMPT`) so a caller can
-            show "why" separately from "what", or omit it entirely for
-            a terse UI. Empty string if the model didn't follow the
-            requested structure — see :func:`_split_answer_and_reasoning`.
+            answer — split out from ``answer`` (per the required
+            two-part structure every :mod:`src.ai.prompts` template
+            enforces in its system prompt) so a caller can show "why"
+            separately from "what", or omit it entirely for a terse UI.
+            Empty string if the model didn't follow the requested
+            structure — see :func:`_split_answer_and_reasoning`.
         model: Name of the model that produced this response.
         raw_text: The complete, unparsed model output, kept for callers
             that want the original text regardless of how the

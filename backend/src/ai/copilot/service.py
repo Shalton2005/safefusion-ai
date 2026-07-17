@@ -23,6 +23,7 @@ from __future__ import annotations
 from typing import Any, Protocol
 
 from src.ai.agents.base import AgentRequest, AgentResult
+from src.ai.agents.supervisor import SupervisorResponse
 from src.ai.copilot.schemas import (
     AgentTrace,
     ChatResult,
@@ -52,7 +53,7 @@ _AGENT_TO_PROMPT_DOMAIN: dict[str, str] = {
 }
 
 
-def _select_domain(supervisor_response: Any) -> str:
+def _select_domain(supervisor_response: SupervisorResponse) -> str:
     """Pick the prompt domain matching the first agent the Supervisor executed.
 
     "First" (rather than e.g. most agents of one kind, or the
@@ -100,7 +101,7 @@ def run_supervisor(graph: CompiledGraphPort, request: AgentRequest) -> Any:
     return result_state["context"]["supervisor_response"]
 
 
-def _build_reasoning(supervisor_response: Any, *, model: str | None = None) -> ReasoningMetadata:
+def _build_reasoning(supervisor_response: SupervisorResponse, *, model: str | None = None) -> ReasoningMetadata:
     """Build a :class:`ReasoningMetadata` block from a ``SupervisorResponse``."""
     traces = tuple(
         AgentTrace(agent=result.agent, ok=result.ok, summary=result.summary, citations=result.citations, error=result.error)
@@ -109,7 +110,7 @@ def _build_reasoning(supervisor_response: Any, *, model: str | None = None) -> R
     return ReasoningMetadata(route=supervisor_response.route, agent_traces=traces, model=model)
 
 
-def _build_llm_context(supervisor_response: Any) -> LlmContext:
+def _build_llm_context(supervisor_response: SupervisorResponse) -> LlmContext:
     """Adapt whichever agents ran into the LLM service's typed context inputs.
 
     Only agents whose ``AgentResult.data`` shape this function
@@ -132,6 +133,8 @@ def _build_llm_context(supervisor_response: Any) -> LlmContext:
             graph_items.extend(_extract_graph_items(result))
         elif result.agent == "risk":
             risk_items.extend(RiskContextItem.from_risk_assessment(assessment) for assessment in result.data)
+        elif result.agent == "emergency":
+            risk_items.extend(_extract_emergency_risk_items(result))
 
     return LlmContext(rag=rag_items, graph=graph_items, risk=risk_items)
 
@@ -159,7 +162,29 @@ def _extract_graph_items(result: AgentResult) -> list[GraphContextItem]:
     return items
 
 
-def _extract_recommendations(supervisor_response: Any) -> tuple[Recommendation, ...]:
+def _extract_emergency_risk_items(result: AgentResult) -> list[RiskContextItem]:
+    """Adapt the Emergency agent's ``EmergencyAssessment`` into risk context, one item per zone.
+
+    ``EmergencyAssessment`` carries risk score/level only inside its
+    ``escalation`` entries (one per zone the engine evaluated); dispatched
+    actions (immediate_actions/notifications/incident_workflow) are flat
+    lists with no risk score of their own. This correlates each zone's
+    escalation with its own dispatched actions so the Emergency Response
+    template (see ``src/ai/prompts/emergency_response.py``) is actually
+    grounded in what was dispatched, not left with an empty risk section.
+    """
+    assessment = result.data
+    actions_by_zone: dict[str, list[str]] = {}
+    for action in (*assessment.immediate_actions, *assessment.notifications, *assessment.incident_workflow):
+        actions_by_zone.setdefault(action.zone, []).append(f"{action.action}: {action.reason}")
+
+    return [
+        RiskContextItem.from_emergency_escalation(escalation, actions_by_zone.get(escalation.zone, []))
+        for escalation in assessment.escalation
+    ]
+
+
+def _extract_recommendations(supervisor_response: SupervisorResponse) -> tuple[Recommendation, ...]:
     """Pull structured recommendations out of whichever agents produced them.
 
     Risk and Compliance expose a flat ``recommendations: list[str]``.
