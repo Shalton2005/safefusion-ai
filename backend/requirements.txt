@@ -23,3 +23,7 @@ langchain-ollama==1.1.0
 
 # Vector storage (RAG) — see src/models/document_embedding.py
 pgvector==0.5.0
+
+# Agent orchestration (LangGraph) — see src/ai/graph
+langgraph==1.0.4
+langchain-anthropic==1.4.8

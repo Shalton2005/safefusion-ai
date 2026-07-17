@@ -44,6 +44,13 @@ class Settings(BaseSettings):
     # (see src/repositories/document_embedding.py module docstring).
     EMBEDDING_DIMENSIONS: int = 768
 
+    # ── Anthropic / LangGraph (AI agent orchestration) ───────────────────────
+    # Consumed by src/ai/config.py, never imported directly by AI modules —
+    # keeps src/ai/ configurable without depending on this module's shape.
+    ANTHROPIC_API_KEY: str = ""
+    LANGGRAPH_MODEL: str = "claude-opus-4-8"
+    LANGGRAPH_MAX_TOKENS: int = 4096
+
     # ── Security ──────────────────────────────────────────────────────────────
     SECRET_KEY: str = "change-this-secret-key-in-production"
 
