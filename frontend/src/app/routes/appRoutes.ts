@@ -15,6 +15,7 @@ import { lazy } from 'react';
 import {
   LayoutDashboard,
   Activity,
+  Video,
   HardHat,
   Radio,
   FileCheck2,
@@ -58,6 +59,22 @@ export const appRouteDefinitions: AppRouteDefinition[] = [
     component: lazy(() =>
       import('@/features/live-monitoring/pages/LiveMonitoringPage').then((m) => ({
         default: m.LiveMonitoringPage,
+      })),
+    ),
+  },
+
+  // ── CCTV Monitoring ────────────────────────────────────────────
+  {
+    id:          'cctv-monitoring',
+    path:        ROUTES.CCTV_MONITORING,
+    label:       'CCTV Monitoring',
+    description: 'Real-time hazard detection, PPE compliance, and camera status across all monitored zones.',
+    icon:        Video,
+    showInNav:   true,
+    isProtected: true,
+    component: lazy(() =>
+      import('@/features/computer-vision/pages/CctvMonitoringPage').then((m) => ({
+        default: m.CctvMonitoringPage,
       })),
     ),
   },

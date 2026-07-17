@@ -9,6 +9,7 @@ export const ROUTES = {
   // Main sections
   DASHBOARD:       '/dashboard',
   LIVE_MONITORING: '/live-monitoring',
+  CCTV_MONITORING: '/cctv-monitoring',
   WORKERS:         '/workers',
   SENSORS:         '/sensors',
   PERMITS:         '/permits',
