@@ -6,7 +6,7 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { detectionService } from '@/services';
+import { visionService } from '@/services';
 import { ApiError } from '@/api/errors';
 import { createRequestController } from '@/api/client';
 import type { DetectionSummary } from '../types';
@@ -26,8 +26,8 @@ export function useDetectionSummary(zone?: string): UseDetectionSummaryResult {
   const fetchSummary = useCallback((signal?: AbortSignal) => {
     setLoading(true);
     setError(null);
-    detectionService
-      .getSummary(zone ? { zone } : undefined, { signal })
+    visionService
+      .getDetectionSummary(zone ? { zone } : undefined, { signal })
       .then(({ data }) => setSummary(data))
       .catch((err) => {
         const apiError = ApiError.from(err);

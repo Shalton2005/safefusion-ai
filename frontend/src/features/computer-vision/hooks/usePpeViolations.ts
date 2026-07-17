@@ -6,7 +6,7 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { detectionService } from '@/services';
+import { visionService } from '@/services';
 import { ApiError } from '@/api/errors';
 import { createRequestController } from '@/api/client';
 import type { PpeViolation } from '../types';
@@ -26,7 +26,7 @@ export function usePpeViolations(zone?: string): UsePpeViolationsResult {
   const fetchViolations = useCallback((signal?: AbortSignal) => {
     setLoading(true);
     setError(null);
-    detectionService
+    visionService
       .getPpeViolations(zone ? { zone } : undefined, { signal })
       .then(({ data }) => setViolations(data))
       .catch((err) => {

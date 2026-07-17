@@ -2,7 +2,7 @@
 //
 // Mirrors the shape the backend's YOLO/OpenCV detection pipeline
 // (`backend/src/ai/detection/`) is expected to expose once built —
-// see `services/detection.service.ts` for the exact endpoints these
+// see `services/vision.service.ts` for the exact endpoints these
 // types back. No detection logic is computed client-side; every value
 // here is either a real backend field or a client-side presentational
 // bucket of one (documented inline where that applies).

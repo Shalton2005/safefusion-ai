@@ -6,7 +6,7 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { detectionService } from '@/services';
+import { visionService } from '@/services';
 import { ApiError } from '@/api/errors';
 import { createRequestController } from '@/api/client';
 import type { HazardDetection } from '../types';
@@ -26,7 +26,7 @@ export function useHazardDetections(zone?: string): UseHazardDetectionsResult {
   const fetchHazards = useCallback((signal?: AbortSignal) => {
     setLoading(true);
     setError(null);
-    detectionService
+    visionService
       .getHazards(zone ? { zone } : undefined, { signal })
       .then(({ data }) => setHazards(data))
       .catch((err) => {

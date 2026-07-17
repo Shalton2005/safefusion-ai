@@ -6,7 +6,7 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { detectionService } from '@/services';
+import { visionService } from '@/services';
 import { ApiError } from '@/api/errors';
 import { createRequestController } from '@/api/client';
 import type { PpeComplianceSummary } from '../types';
@@ -26,7 +26,7 @@ export function usePpeCompliance(zone?: string): UsePpeComplianceResult {
   const fetchSummary = useCallback((signal?: AbortSignal) => {
     setLoading(true);
     setError(null);
-    detectionService
+    visionService
       .getPpeComplianceSummary(zone ? { zone } : undefined, { signal })
       .then(({ data }) => setSummary(data))
       .catch((err) => {

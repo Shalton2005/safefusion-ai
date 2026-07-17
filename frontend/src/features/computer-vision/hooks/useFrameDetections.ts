@@ -7,7 +7,7 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { detectionService } from '@/services';
+import { visionService } from '@/services';
 import { ApiError } from '@/api/errors';
 import { createRequestController } from '@/api/client';
 import type { BoundingBoxDetection } from '../types';
@@ -33,7 +33,7 @@ export function useFrameDetections(cameraId: string | null | undefined): UseFram
     }
     setLoading(true);
     setError(null);
-    detectionService
+    visionService
       .getFrameDetections(cameraId, { signal })
       .then(({ data }) => setDetections(data))
       .catch((err) => {

@@ -11,7 +11,6 @@ export { analyticsService } from './analytics.service';
 export { complianceService } from './compliance.service';
 export { compoundRiskService } from './compoundRisk.service';
 export { dashboardService } from './dashboard.service';
-export { detectionService } from './detection.service';
 export { emergencyResponseService } from './emergencyResponse.service';
 export { graphService } from './graph.service';
 export { incidentReportService } from './incidentReport.service';
@@ -22,6 +21,7 @@ export { recommendationService } from './recommendation.service';
 export { reportsService }   from './reports.service';
 export { safetyTimelineService } from './safetyTimeline.service';
 export { sensorsService }  from './sensors.service';
+export { visionService }   from './vision.service';
 export { workersService }  from './workers.service';
 
 export { createService }    from './base.service';

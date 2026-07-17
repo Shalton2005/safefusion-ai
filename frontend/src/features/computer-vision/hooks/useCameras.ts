@@ -8,7 +8,7 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { detectionService } from '@/services';
+import { visionService } from '@/services';
 import { ApiError } from '@/api/errors';
 import { createRequestController } from '@/api/client';
 import type { Camera } from '../types';
@@ -28,7 +28,7 @@ export function useCameras(zone?: string): UseCamerasResult {
   const fetchCameras = useCallback((signal?: AbortSignal) => {
     setLoading(true);
     setError(null);
-    detectionService
+    visionService
       .getCameras(zone ? { zone } : undefined, { signal })
       .then(({ data }) => setCameras(data))
       .catch((err) => {

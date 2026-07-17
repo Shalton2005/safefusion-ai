@@ -6,7 +6,7 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { detectionService } from '@/services';
+import { visionService } from '@/services';
 import { ApiError } from '@/api/errors';
 import { createRequestController } from '@/api/client';
 import type { CvTimelineEvent } from '../types';
@@ -26,7 +26,7 @@ export function useCvTimeline(zone?: string): UseCvTimelineResult {
   const fetchEvents = useCallback((signal?: AbortSignal) => {
     setLoading(true);
     setError(null);
-    detectionService
+    visionService
       .getTimeline(zone ? { zone } : undefined, { signal })
       .then(({ data }) => setEvents(data))
       .catch((err) => {
