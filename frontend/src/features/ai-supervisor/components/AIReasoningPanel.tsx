@@ -25,8 +25,7 @@ import {
 import { Badge, Collapsible, EmptyState, Loader } from '@/components/ui';
 import { cn } from '@/lib/cn';
 import { capitalise } from '@/utils/format';
-import { SEVERITY_BADGE_VARIANT } from '@/utils/severity';
-import { confidenceTier } from '../utils/statusColor';
+import { SEVERITY_BADGE_VARIANT, CONFIDENCE_TIER_TEXT_CLASS, CONFIDENCE_TIER_BAR_CLASS, confidenceTier } from '@/utils/severity';
 import type { AIReasoningData } from '../types';
 
 export interface AIReasoningPanelProps {
@@ -37,18 +36,6 @@ export interface AIReasoningPanelProps {
   error?: string | null;
   className?: string;
 }
-
-const CONFIDENCE_TEXT_CLASS: Record<ReturnType<typeof confidenceTier>, string> = {
-  safe: 'text-safe-600 dark:text-safe-400',
-  caution: 'text-caution-600 dark:text-caution-400',
-  danger: 'text-danger-600 dark:text-danger-400',
-};
-
-const CONFIDENCE_BAR_CLASS: Record<ReturnType<typeof confidenceTier>, string> = {
-  safe: 'bg-safe-500',
-  caution: 'bg-caution-500',
-  danger: 'bg-danger-500',
-};
 
 function SectionHeading({ icon: Icon, children }: { icon: typeof ListChecks; children: React.ReactNode }) {
   return (
@@ -135,7 +122,7 @@ export function AIReasoningPanel({ data, loading = false, error = null, classNam
             <Gauge className="w-3 h-3" aria-hidden="true" />
             Confidence
           </span>
-          <span className={cn('text-sm font-bold font-mono', CONFIDENCE_TEXT_CLASS[confidenceTier(clampedConfidence)])}>
+          <span className={cn('text-sm font-bold font-mono', CONFIDENCE_TIER_TEXT_CLASS[confidenceTier(clampedConfidence)])}>
             {clampedConfidence}%
           </span>
         </div>
@@ -148,7 +135,7 @@ export function AIReasoningPanel({ data, loading = false, error = null, classNam
           className="w-full h-2 rounded-full bg-[var(--sf-surface-sunken)] overflow-hidden"
         >
           <div
-            className={cn('h-full rounded-full transition-all duration-300', CONFIDENCE_BAR_CLASS[confidenceTier(clampedConfidence)])}
+            className={cn('h-full rounded-full transition-all duration-300', CONFIDENCE_TIER_BAR_CLASS[confidenceTier(clampedConfidence)])}
             style={{ width: `${clampedConfidence}%` }}
           />
         </div>

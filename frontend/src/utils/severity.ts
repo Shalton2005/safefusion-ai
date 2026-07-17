@@ -126,3 +126,32 @@ export const PLANT_STATUS_BANNER_CLASSES: Record<PlantStatus, string> = {
   critical:  'bg-danger-500/10 border-danger-500/30 text-danger-700 dark:text-danger-400',
   emergency: 'bg-danger-600/20 border-danger-600/50 text-danger-800 dark:text-danger-300',
 };
+
+/**
+ * Three-tier bucketing for a 0-100 confidence score. Single source of
+ * truth — previously redefined independently in `AIRecommendationCard`,
+ * `AIReasoningPanel`, and `AIAgentStatusCard`, which had drifted into
+ * three separate (currently identical, but easy to accidentally diverge)
+ * copies of the same thresholds and colour maps.
+ */
+export type ConfidenceTier = 'safe' | 'caution' | 'danger';
+
+export function confidenceTier(value: number): ConfidenceTier {
+  if (value >= 75) return 'safe';
+  if (value >= 40) return 'caution';
+  return 'danger';
+}
+
+/** Text colour class for each confidence tier. Single source of truth — reuse instead of redefining per component. */
+export const CONFIDENCE_TIER_TEXT_CLASS: Record<ConfidenceTier, string> = {
+  safe:    'text-safe-600 dark:text-safe-400',
+  caution: 'text-caution-600 dark:text-caution-400',
+  danger:  'text-danger-600 dark:text-danger-400',
+};
+
+/** Progress-bar fill class for each confidence tier. Single source of truth — reuse instead of redefining per component. */
+export const CONFIDENCE_TIER_BAR_CLASS: Record<ConfidenceTier, string> = {
+  safe:    'bg-safe-500',
+  caution: 'bg-caution-500',
+  danger:  'bg-danger-500',
+};

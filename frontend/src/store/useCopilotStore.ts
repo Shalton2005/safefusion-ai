@@ -70,10 +70,24 @@ interface CopilotStoreState {
   recommendations: AIRecommendation[];
   /** Reasoning breakdown for the most recently explained decision, from `POST /ai/explain`. */
   reasoning: AIReasoningData | null;
-  /** True while any network action below is in flight. */
+  /**
+   * True while `sendMessage` is in flight. Deliberately independent from
+   * `recommendationsLoading`/`reasoningLoading` — these three actions can
+   * run concurrently (e.g. a page fetching recommendations while the user
+   * is mid-chat), so they must not share one flag or one action's fetch
+   * would silently block/reset another's.
+   */
   loading: boolean;
-  /** Message from the most recently failed action, or `null` when the last one succeeded. */
+  /** Message from `sendMessage`'s most recently failed call, or `null` when the last one succeeded. */
   error: string | null;
+  /** True while `fetchRecommendations` is in flight. */
+  recommendationsLoading: boolean;
+  /** Message from `fetchRecommendations`'s most recently failed call, or `null` when the last one succeeded. */
+  recommendationsError: string | null;
+  /** True while `fetchReasoning` is in flight. */
+  reasoningLoading: boolean;
+  /** Message from `fetchReasoning`'s most recently failed call, or `null` when the last one succeeded. */
+  reasoningError: string | null;
 
   /** Sends a user message in the active conversation (starting a new one if none is active) via `POST /ai/chat`. */
   sendMessage: (content: string) => Promise<void>;
@@ -102,6 +116,10 @@ const initialState = {
   reasoning: null as AIReasoningData | null,
   loading: false,
   error: null as string | null,
+  recommendationsLoading: false,
+  recommendationsError: null as string | null,
+  reasoningLoading: false,
+  reasoningError: null as string | null,
 };
 
 /** Merges the active `conversation`/`messages` back into `conversationHistory` (upsert by id), title re-derived from the messages. */
@@ -155,12 +173,12 @@ export const useCopilotStore = create<CopilotStoreState>()(
         const trimmed = content.trim();
         if (!trimmed || get().loading) return;
 
-        let conversation = get().conversation;
-        if (!conversation) {
+        const existing = get().conversation;
+        const activeConversation: CopilotConversationMeta = existing ?? (() => {
           const created = createConversation();
-          conversation = { id: created.id, title: created.title, createdAt: created.createdAt, updatedAt: created.updatedAt };
-          set({ conversation });
-        }
+          return { id: created.id, title: created.title, createdAt: created.createdAt, updatedAt: created.updatedAt };
+        })();
+        if (!existing) set({ conversation: activeConversation });
 
         const userMessage = createMessage('user', trimmed);
         const pendingReply = createMessage('assistant', '');
@@ -168,7 +186,7 @@ export const useCopilotStore = create<CopilotStoreState>()(
 
         set((state) => ({
           messages: messagesWithPending,
-          conversationHistory: syncActiveIntoHistory(state.conversationHistory, conversation as CopilotConversationMeta, messagesWithPending),
+          conversationHistory: syncActiveIntoHistory(state.conversationHistory, activeConversation, messagesWithPending),
           loading: true,
           error: null,
         }));
@@ -186,7 +204,7 @@ export const useCopilotStore = create<CopilotStoreState>()(
           );
           set((state) => ({
             messages,
-            conversationHistory: syncActiveIntoHistory(state.conversationHistory, conversation as CopilotConversationMeta, messages),
+            conversationHistory: syncActiveIntoHistory(state.conversationHistory, activeConversation, messages),
             loading: false,
           }));
         } catch (err) {
@@ -198,7 +216,7 @@ export const useCopilotStore = create<CopilotStoreState>()(
           );
           set((state) => ({
             messages,
-            conversationHistory: syncActiveIntoHistory(state.conversationHistory, conversation as CopilotConversationMeta, messages),
+            conversationHistory: syncActiveIntoHistory(state.conversationHistory, activeConversation, messages),
             loading: false,
             error: message,
           }));
@@ -209,27 +227,27 @@ export const useCopilotStore = create<CopilotStoreState>()(
 
       fetchRecommendations: async (zone) => {
         const requestId = ++latestRequestId;
-        set({ loading: true, error: null });
+        set({ recommendationsLoading: true, recommendationsError: null });
         try {
           const { data } = await aiService.recommend({ zone });
           if (requestId !== latestRequestId) return;
-          set({ recommendations: data.recommendations, loading: false });
+          set({ recommendations: data.recommendations, recommendationsLoading: false });
         } catch (err) {
           if (requestId !== latestRequestId) return;
-          set({ recommendations: [], error: ApiError.from(err).toUserMessage(), loading: false });
+          set({ recommendations: [], recommendationsError: ApiError.from(err).toUserMessage(), recommendationsLoading: false });
         }
       },
 
       fetchReasoning: async (decisionId) => {
         const requestId = ++latestRequestId;
-        set({ loading: true, error: null });
+        set({ reasoningLoading: true, reasoningError: null });
         try {
           const { data } = await aiService.explain({ decisionId });
           if (requestId !== latestRequestId) return;
-          set({ reasoning: data, loading: false });
+          set({ reasoning: data, reasoningLoading: false });
         } catch (err) {
           if (requestId !== latestRequestId) return;
-          set({ reasoning: null, error: ApiError.from(err).toUserMessage(), loading: false });
+          set({ reasoning: null, reasoningError: ApiError.from(err).toUserMessage(), reasoningLoading: false });
         }
       },
 

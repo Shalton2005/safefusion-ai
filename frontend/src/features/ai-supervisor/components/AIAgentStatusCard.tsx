@@ -13,8 +13,8 @@
 import { Bot, BrainCircuit, ClipboardCheck, ListChecks, ShieldAlert, Waypoints } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { LastUpdated } from '@/components/common/LastUpdated';
+import { CONFIDENCE_TIER_TEXT_CLASS, confidenceTier } from '@/utils/severity';
 import { AIStatusBadge } from './AIStatusBadge';
-import { confidenceTier } from '../utils/statusColor';
 import type { AIAgentId, AIAgentSummary } from '../types';
 
 export interface AIAgentStatusCardProps {
@@ -29,12 +29,6 @@ const AGENT_ICON: Record<AIAgentId, typeof Bot> = {
   compliance: ClipboardCheck,
   knowledge_graph: Waypoints,
   supervisor: BrainCircuit,
-};
-
-const CONFIDENCE_TEXT_CLASS: Record<ReturnType<typeof confidenceTier>, string> = {
-  safe: 'text-safe-600 dark:text-safe-400',
-  caution: 'text-caution-600 dark:text-caution-400',
-  danger: 'text-danger-600 dark:text-danger-400',
 };
 
 /** Formats a millisecond duration as "412ms" below 1s, otherwise "1.2s". */
@@ -74,7 +68,7 @@ export function AIAgentStatusCard({ agent, className }: AIAgentStatusCardProps) 
         </div>
         <div className="flex flex-col gap-0.5 items-end text-right">
           <span className="text-2xs uppercase tracking-wide text-[var(--sf-text-tertiary)]">Confidence</span>
-          <span className={cn('text-sm font-mono font-semibold', CONFIDENCE_TEXT_CLASS[confidenceTier(agent.confidence)])}>
+          <span className={cn('text-sm font-mono font-semibold', CONFIDENCE_TIER_TEXT_CLASS[confidenceTier(agent.confidence)])}>
             {agent.confidence}%
           </span>
         </div>

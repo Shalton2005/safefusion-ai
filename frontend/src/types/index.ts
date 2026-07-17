@@ -54,7 +54,7 @@ export interface Device {
 }
 
 // ─── Alert ─────────────────────────────────────────────────────────
-import type { SeverityLevel, AlertStatus } from '@/constants';
+import type { AlertStatus } from '@/constants';
 
 export interface Alert {
   id: string;

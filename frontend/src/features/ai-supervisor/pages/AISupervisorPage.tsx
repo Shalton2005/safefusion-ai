@@ -147,13 +147,11 @@ export function AISupervisorPage() {
           }
         />
         <CardContent>
-          {aiRecommend.error ? (
-            <Alert variant="danger" title="Couldn't load recommendations">
-              {aiRecommend.error}
-            </Alert>
-          ) : (
-            <AIRecommendationCardGrid recommendations={aiRecommend.recommendations} />
-          )}
+          <AIRecommendationCardGrid
+            recommendations={aiRecommend.recommendations}
+            loading={aiRecommend.loading}
+            error={aiRecommend.error}
+          />
         </CardContent>
       </Card>
     </div>

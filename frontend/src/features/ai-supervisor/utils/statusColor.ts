@@ -11,14 +11,15 @@
  * silently fall back to the hardcoded default value in both themes.
  */
 
+import { confidenceTier } from '@/utils/severity';
 import type { AIAgentStatus, AISupervisorProcessingState } from '../types';
 
-/** `confidence`/`value` thresholds shared by `ConfidenceMeter` and `ConfidenceGauge` — keep the two in sync. */
-export function confidenceTier(value: number): 'safe' | 'caution' | 'danger' {
-  if (value >= 75) return 'safe';
-  if (value >= 40) return 'caution';
-  return 'danger';
-}
+/**
+ * Re-exported for this feature's existing import path
+ * (`../utils/statusColor`) — the actual thresholds live in
+ * `@/utils/severity` (the app-wide single source of truth), not here.
+ */
+export { confidenceTier };
 
 /** CSS-variable color for a confidence tier, with the same fallback hex used elsewhere in this feature. */
 export const CONFIDENCE_TIER_COLOR: Record<ReturnType<typeof confidenceTier>, string> = {

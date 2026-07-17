@@ -29,24 +29,12 @@ import { Gauge, MapPin, Wrench } from 'lucide-react';
 import { Badge, Card, CardHeader, CardContent } from '@/components/ui';
 import { cn } from '@/lib/cn';
 import { capitalise } from '@/utils/format';
-import { SEVERITY_BADGE_VARIANT } from '@/utils/severity';
+import { SEVERITY_BADGE_VARIANT, CONFIDENCE_TIER_TEXT_CLASS, confidenceTier } from '@/utils/severity';
 import type { AIRecommendation } from './types';
 
 export interface AIRecommendationCardProps {
   recommendation: AIRecommendation;
   className?: string;
-}
-
-const CONFIDENCE_TEXT_CLASS: Record<'safe' | 'caution' | 'danger', string> = {
-  safe: 'text-safe-600 dark:text-safe-400',
-  caution: 'text-caution-600 dark:text-caution-400',
-  danger: 'text-danger-600 dark:text-danger-400',
-};
-
-function confidenceTier(value: number): 'safe' | 'caution' | 'danger' {
-  if (value >= 75) return 'safe';
-  if (value >= 40) return 'caution';
-  return 'danger';
 }
 
 export function AIRecommendationCard({ recommendation, className }: AIRecommendationCardProps) {
@@ -79,7 +67,7 @@ export function AIRecommendationCard({ recommendation, className }: AIRecommenda
           <span className="flex items-center gap-1.5 text-xs ml-auto">
             <Gauge className="w-3.5 h-3.5 flex-shrink-0 text-[var(--sf-text-tertiary)]" aria-hidden="true" />
             <span className="text-[var(--sf-text-tertiary)]">Confidence</span>
-            <span className={cn('font-mono font-semibold', CONFIDENCE_TEXT_CLASS[confidenceTier(clampedConfidence)])}>
+            <span className={cn('font-mono font-semibold', CONFIDENCE_TIER_TEXT_CLASS[confidenceTier(clampedConfidence)])}>
               {clampedConfidence}%
             </span>
           </span>
