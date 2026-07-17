@@ -1,0 +1,134 @@
+"""AI Supervisor — routes a user request to the agents it needs and aggregates their output.
+
+Responsibilities (see module-level flow in :meth:`Supervisor.handle`):
+    1. Receive a user request (:class:`~src.ai.agents.base.AgentRequest`).
+    2. Determine which agents are required (delegated to a
+       :class:`~src.ai.agents.routing.RoutingStrategy` — never hardcoded here).
+    3. Execute the selected agents in sequence, via the
+       :class:`~src.ai.agents.registry.AgentRegistry`.
+    4. Aggregate their :class:`~src.ai.agents.base.AgentResult` objects.
+    5. Return a single structured :class:`SupervisorResponse`.
+
+Extensibility: this class contains no ``if agent == "risk"`` branching
+and no fixed agent list. It only knows the :class:`RoutingStrategy` and
+:class:`AgentRegistry` Protocols/collaborators. A new agent becomes
+reachable purely by registering it (``registry.register(...)``) and
+covering it in whatever routing strategy is configured — see
+``src/ai/agents/routing.py`` for how the default strategy is extended.
+
+The one piece of built-in sequencing knowledge is the Risk -> Emergency
+data handoff (Emergency needs Risk's zone results as input — see
+``src/ai/agents/emergency_agent.py``). That handoff is expressed as a
+plain post-execution enrichment step, not a special case in the routing
+or execution loop, so adding a *different* agent dependency later (e.g.
+Compliance feeding into a future reporting agent) follows the same
+pattern without altering the core loop.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import Any
+
+from src.ai.agents.base import AgentRequest, AgentResult
+from src.ai.agents.registry import AgentRegistry
+from src.ai.agents.routing import RoutingStrategy
+from src.utils.logger import get_logger
+
+logger = get_logger(__name__)
+
+
+@dataclass(frozen=True, slots=True)
+class SupervisorResponse:
+    """Structured response returned to the caller.
+
+    Attributes:
+        request_text: Echo of the original request, for traceability.
+        route: Ordered agent names the router selected and the
+            supervisor executed, in execution order.
+        results: One :class:`AgentResult` per agent that ran, in
+            execution order. Includes failed agents (``result.ok is
+            False``) rather than dropping them — callers see the full
+            picture of what was attempted.
+        summary: A single aggregated human-readable summary, built by
+            joining each successful agent's own summary.
+    """
+
+    request_text: str
+    route: tuple[str, ...]
+    results: tuple[AgentResult, ...]
+    summary: str
+
+    @property
+    def ok(self) -> bool:
+        """True if every executed agent succeeded (empty route counts as ok)."""
+        return all(result.ok for result in self.results)
+
+    def result_for(self, agent_name: str) -> AgentResult | None:
+        return next((result for result in self.results if result.agent == agent_name), None)
+
+
+# Agents whose output the supervisor knows how to forward to a later
+# agent in the same run. Keyed by the *producing* agent; the value is
+# the params key the *consuming* agent reads (see
+# ``src/ai/agents/emergency_agent.py``). Extending this dict is how a
+# future producer/consumer pair gets wired without touching the
+# execution loop below.
+_HANDOFFS: dict[str, str] = {"risk": "risk_results"}
+
+
+class Supervisor:
+    """Coordinates specialized agents to answer a single user request."""
+
+    def __init__(self, registry: AgentRegistry, routing_strategy: RoutingStrategy) -> None:
+        self._registry = registry
+        self._routing_strategy = routing_strategy
+
+    def handle(self, request: AgentRequest) -> SupervisorResponse:
+        """Route, execute, and aggregate — the supervisor's full request lifecycle."""
+        route = self._routing_strategy.route(request.text, self._registry)
+        logger.info("Supervisor routed request to agents=%s", route)
+
+        results: list[AgentResult] = []
+        handoff_params: dict[str, Any] = dict(request.params)
+
+        for agent_name in route:
+            agent = self._registry.get(agent_name)
+            if agent is None:
+                # Router named an agent that isn't registered in this
+                # deployment — record it as a failed result instead of
+                # raising, so one misconfigured route doesn't abort
+                # agents that *are* available.
+                results.append(
+                    AgentResult(agent=agent_name, summary="", error=f"Agent '{agent_name}' is not registered.")
+                )
+                continue
+
+            scoped_request = AgentRequest(text=request.text, params=dict(handoff_params))
+            try:
+                result = agent.run(scoped_request)
+            except Exception as exc:  # noqa: BLE001 - a single agent's failure must not abort the rest
+                logger.exception("Agent '%s' raised while handling request", agent_name)
+                result = AgentResult(agent=agent_name, summary="", error=str(exc))
+            results.append(result)
+
+            handoff_key = _HANDOFFS.get(agent_name)
+            if handoff_key and result.ok:
+                handoff_params[handoff_key] = result.data
+
+        return SupervisorResponse(
+            request_text=request.text,
+            route=tuple(route),
+            results=tuple(results),
+            summary=_aggregate_summary(results),
+        )
+
+
+def _aggregate_summary(results: list[AgentResult]) -> str:
+    """Join each successful agent's summary; note any failures separately."""
+    if not results:
+        return "No agents were required for this request."
+
+    lines = [f"[{result.agent}] {result.summary}" for result in results if result.ok]
+    failures = [f"[{result.agent}] failed: {result.error}" for result in results if not result.ok]
+    return " | ".join(lines + failures)
