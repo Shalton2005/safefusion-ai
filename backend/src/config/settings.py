@@ -126,6 +126,13 @@ class Settings(BaseSettings):
     EMERGENCY_THRESHOLD_EVACUATE_AREA: float = 70.0
     EMERGENCY_THRESHOLD_GENERATE_INCIDENT: float = 70.0
 
+    # ── Conversation memory (AI Copilot) ─────────────────────────────────────
+    # How many of the most recent conversation turns
+    # src.ai.memory.service.ConversationMemoryService retains per
+    # conversation. Independent of PERMIT_VALIDATION_* etc. above — tune
+    # per deployment based on model context size and expected chattiness.
+    CONVERSATION_MEMORY_MAX_TURNS: int = 10
+
     # ── CORS ──────────────────────────────────────────────────────────────────
     ALLOWED_ORIGINS: list[str] = [
         "http://localhost:3000",
