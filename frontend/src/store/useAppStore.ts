@@ -43,7 +43,7 @@ const DEFAULT_FEATURES: FeatureFlags = {
   'live-alerts':      true,
   'analytics':        true,
   'report-generator': true,
-  'ai-copilot':       false, // not yet implemented
+  'ai-copilot':       true,
   'heatmap':          false, // not yet implemented
 };
 

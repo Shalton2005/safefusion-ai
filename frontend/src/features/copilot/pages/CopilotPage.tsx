@@ -71,9 +71,10 @@ export function CopilotPage() {
           />
         </div>
 
-        {/* History drawer — overlay on small/medium screens */}
+        {/* History drawer — overlay on small/medium screens. z-tip (60) so it
+            sits above the app sidebar's z-50 if both happen to be open at once. */}
         {isHistoryOpen && (
-          <div className="fixed inset-0 z-40 lg:hidden">
+          <div className="fixed inset-0 z-tip lg:hidden">
             <div
               className="absolute inset-0 bg-black/50"
               onClick={() => setIsHistoryOpen(false)}

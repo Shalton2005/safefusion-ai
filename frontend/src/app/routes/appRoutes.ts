@@ -180,7 +180,7 @@ export const appRouteDefinitions: AppRouteDefinition[] = [
   {
     id:          'copilot',
     path:        ROUTES.COPILOT,
-    label:       'Copilot',
+    label:       'AI Safety Copilot',
     description: "Ask questions grounded in your plant's ingested safety and compliance documents.",
     icon:        MessageSquareText,
     showInNav:   true,
