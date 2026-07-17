@@ -20,19 +20,8 @@ import { Badge, Button, Card, Skeleton } from '@/components/ui';
 import { capitalise, formatDateTime, formatRelativeTime } from '@/utils/format';
 import { SEVERITY_BADGE_VARIANT } from '@/utils/severity';
 import { cn } from '@/lib/cn';
-import type { Camera, CameraStatus } from '../types';
-
-const STATUS_BADGE_VARIANT: Record<CameraStatus, 'success' | 'default' | 'warning'> = {
-  online:   'success',
-  offline:  'default',
-  degraded: 'warning',
-};
-
-const STATUS_LABEL: Record<CameraStatus, string> = {
-  online:   'Live',
-  offline:  'Offline',
-  degraded: 'Degraded',
-};
+import { CAMERA_STATUS_BADGE_VARIANT, CAMERA_STATUS_LABEL } from '../utils/cameraStatus';
+import type { Camera } from '../types';
 
 export interface CameraTileProps {
   /** Camera data. Omit (or leave undefined) while `loading` is true. */
@@ -51,7 +40,12 @@ export function CameraTile({ camera, loading = false, error, onRetry, onSelect, 
   // ── Loading state ────────────────────────────────────────────────
   if (loading) {
     return (
-      <Card padding="none" className={cn('overflow-hidden flex flex-col', className)}>
+      <Card
+        padding="none"
+        className={cn('overflow-hidden flex flex-col motion-safe:animate-fade-in', className)}
+        role="status"
+        aria-label="Loading camera"
+      >
         <Skeleton className="aspect-video rounded-none" />
         <div className="px-3 py-2.5 space-y-2">
           <Skeleton className="h-4 w-2/3 rounded" />
@@ -64,7 +58,11 @@ export function CameraTile({ camera, loading = false, error, onRetry, onSelect, 
   // ── Error state ──────────────────────────────────────────────────
   if (error) {
     return (
-      <Card padding="none" className={cn('overflow-hidden flex flex-col', className)}>
+      <Card
+        padding="none"
+        className={cn('overflow-hidden flex flex-col motion-safe:animate-fade-in', className)}
+        role="alert"
+      >
         <div className="aspect-video bg-[var(--sf-surface-sunken)] flex flex-col items-center justify-center gap-2 px-4 text-center">
           <AlertTriangle className="w-6 h-6 text-danger-500" aria-hidden="true" />
           <p className="text-xs text-[var(--sf-text-tertiary)]">{error}</p>
@@ -82,15 +80,18 @@ export function CameraTile({ camera, loading = false, error, onRetry, onSelect, 
 
   const isLive = camera.status === 'online' && Boolean(camera.streamUrl);
   const isOffline = camera.status === 'offline';
+  const label = `${camera.name}, ${camera.zone}, ${CAMERA_STATUS_LABEL[camera.status]}${camera.riskLevel ? `, ${capitalise(camera.riskLevel)} risk` : ''}`;
 
   return (
     <Card
       padding="none"
       hoverable={Boolean(onSelect)}
-      className={cn('overflow-hidden flex flex-col', className)}
+      className={cn('overflow-hidden flex flex-col motion-safe:animate-fade-in', className)}
       onClick={onSelect ? () => onSelect(camera) : undefined}
+      onKeyDown={onSelect ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(camera); } } : undefined}
       role={onSelect ? 'button' : undefined}
       tabIndex={onSelect ? 0 : undefined}
+      aria-label={onSelect ? label : undefined}
     >
       {/* ── Stream placeholder ──────────────────────────────────── */}
       <div className="relative aspect-video bg-[var(--sf-surface-sunken)] flex items-center justify-center">
@@ -108,13 +109,13 @@ export function CameraTile({ camera, loading = false, error, onRetry, onSelect, 
         )}
 
         <Badge
-          variant={STATUS_BADGE_VARIANT[camera.status]}
+          variant={CAMERA_STATUS_BADGE_VARIANT[camera.status]}
           size="sm"
           dot
           pulsing={camera.status === 'online'}
           className="absolute top-2 left-2 backdrop-blur-sm"
         >
-          {STATUS_LABEL[camera.status]}
+          {CAMERA_STATUS_LABEL[camera.status]}
         </Badge>
 
         {camera.riskLevel && (

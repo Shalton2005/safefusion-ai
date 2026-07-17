@@ -12,6 +12,7 @@ import { Link } from 'react-router-dom';
 import { ChevronRight, Video } from 'lucide-react';
 import { Badge, Card, Skeleton } from '@/components/ui';
 import { ROUTES } from '@/constants/routes';
+import { cn } from '@/lib/cn';
 import { useCameras } from '../hooks';
 
 export interface CameraShortcutCardProps {
@@ -27,7 +28,7 @@ export function CameraShortcutCard({ className }: CameraShortcutCardProps) {
       to={ROUTES.CCTV_MONITORING}
       className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded-xl"
     >
-      <Card padding="sm" hoverable className={className}>
+      <Card padding="sm" hoverable className={cn('motion-safe:animate-fade-in', className)}>
         <div className="flex items-center gap-3">
           <div className="flex items-center justify-center w-9 h-9 rounded-xl flex-shrink-0 bg-primary-600/15 text-primary-400">
             <Video className="w-4.5 h-4.5" aria-hidden="true" />
@@ -38,7 +39,7 @@ export function CameraShortcutCard({ className }: CameraShortcutCardProps) {
             {loading ? (
               <Skeleton className="h-3 w-24 rounded mt-1" />
             ) : (
-              <div className="flex items-center gap-1.5 mt-0.5">
+              <div className="flex items-center gap-1.5 mt-0.5" aria-live="polite">
                 <Badge variant={onlineCount > 0 ? 'success' : 'default'} size="sm" dot pulsing={onlineCount > 0}>
                   {onlineCount} / {cameras.length} online
                 </Badge>

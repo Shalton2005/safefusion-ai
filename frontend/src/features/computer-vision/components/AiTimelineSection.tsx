@@ -39,7 +39,7 @@ export function AiTimelineSection({ zone }: AiTimelineSectionProps) {
             {error}
           </Alert>
         ) : loading ? (
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-6" aria-busy="true" aria-label="Loading AI timeline">
             {Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className="flex gap-3.5">
                 <Skeleton className="w-8 h-8 rounded-full flex-shrink-0" />

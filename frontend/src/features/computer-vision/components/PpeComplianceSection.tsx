@@ -8,7 +8,7 @@
  */
 
 import { AlertTriangle, HardHat, RotateCw, ShieldCheck, Users } from 'lucide-react';
-import { Alert, Badge, Button, Card, CardContent, CardHeader, EmptyState, StatCard } from '@/components/ui';
+import { Alert, Badge, Button, Card, CardContent, CardHeader, EmptyState, Skeleton, StatCard } from '@/components/ui';
 import { formatLabel, formatDateTime, formatRelativeTime } from '@/utils/format';
 import { usePpeCompliance, usePpeViolations } from '../hooks';
 import type { PpeItemType } from '../types';
@@ -114,9 +114,9 @@ export function PpeComplianceSection({ zone }: PpeComplianceSectionProps) {
                   {violationsError}
                 </Alert>
               ) : violationsLoading ? (
-                <div className="space-y-2">
+                <div className="space-y-2" aria-busy="true" aria-label="Loading violations">
                   {Array.from({ length: 3 }).map((_, i) => (
-                    <div key={i} className="h-12 rounded-lg bg-[var(--sf-surface-raised)] animate-pulse" />
+                    <Skeleton key={i} className="h-12" />
                   ))}
                 </div>
               ) : violations.length === 0 ? (
@@ -127,11 +127,11 @@ export function PpeComplianceSection({ zone }: PpeComplianceSectionProps) {
                   description="Every detected worker currently meets PPE requirements."
                 />
               ) : (
-                <div className="flex flex-col gap-2">
+                <ul className="flex flex-col gap-2">
                   {violations.map((violation) => (
-                    <div
+                    <li
                       key={violation.id}
-                      className="flex items-start justify-between gap-3 p-3 rounded-lg border border-[var(--sf-border-default)] bg-[var(--sf-surface-raised)]"
+                      className="flex items-start justify-between gap-3 p-3 rounded-lg border border-[var(--sf-border-default)] bg-[var(--sf-surface-raised)] motion-safe:animate-fade-in"
                     >
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-[var(--sf-text-primary)]">
@@ -152,9 +152,9 @@ export function PpeComplianceSection({ zone }: PpeComplianceSectionProps) {
                       >
                         {formatRelativeTime(violation.detectedAt)}
                       </span>
-                    </div>
+                    </li>
                   ))}
-                </div>
+                </ul>
               )}
             </div>
           </div>

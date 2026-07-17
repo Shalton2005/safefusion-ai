@@ -7,24 +7,13 @@
  * `LiveCameraGrid`/`CameraTile`.
  */
 
-import { Video, VideoOff } from 'lucide-react';
+import { LoaderCircle, Video, VideoOff } from 'lucide-react';
 import { Badge, Modal } from '@/components/ui';
 import { formatDateTime, formatRelativeTime } from '@/utils/format';
 import { useFrameDetections } from '../hooks';
 import { DetectionOverlay } from './DetectionOverlay';
-import type { Camera, CameraStatus } from '../types';
-
-const STATUS_BADGE_VARIANT: Record<CameraStatus, 'success' | 'default' | 'warning'> = {
-  online:   'success',
-  offline:  'default',
-  degraded: 'warning',
-};
-
-const STATUS_LABEL: Record<CameraStatus, string> = {
-  online:   'Live',
-  offline:  'Offline',
-  degraded: 'Degraded',
-};
+import { CAMERA_STATUS_BADGE_VARIANT, CAMERA_STATUS_LABEL } from '../utils/cameraStatus';
+import type { Camera } from '../types';
 
 export interface CameraDetailsProps {
   camera: Camera | null;
@@ -32,10 +21,11 @@ export interface CameraDetailsProps {
 }
 
 export function CameraDetails({ camera, onClose }: CameraDetailsProps) {
-  const { detections } = useFrameDetections(camera?.id);
+  const { detections, loading: detectionsLoading } = useFrameDetections(camera?.id);
 
   if (!camera) return null;
   const isLive = camera.status === 'online' && Boolean(camera.streamUrl);
+  const isOffline = camera.status === 'offline';
 
   return (
     <Modal
@@ -56,24 +46,35 @@ export function CameraDetails({ camera, onClose }: CameraDetailsProps) {
           ) : (
             <div className="flex flex-col items-center gap-2 text-[var(--sf-text-tertiary)]">
               <VideoOff className="w-8 h-8" aria-hidden="true" />
-              <span className="text-sm">No signal</span>
+              <span className="text-sm">{isOffline ? 'Camera offline' : 'No signal'}</span>
             </div>
           )}
 
           <Badge
-            variant={STATUS_BADGE_VARIANT[camera.status]}
+            variant={CAMERA_STATUS_BADGE_VARIANT[camera.status]}
             size="sm"
             dot
             pulsing={camera.status === 'online'}
             className="absolute top-3 left-3 backdrop-blur-sm"
           >
-            {STATUS_LABEL[camera.status]}
+            {CAMERA_STATUS_LABEL[camera.status]}
           </Badge>
 
           {isLive && (
             <div className="absolute top-3 right-3 flex items-center gap-1 px-2 py-1 rounded-md bg-black/50 backdrop-blur-sm">
               <Video className="w-3.5 h-3.5 text-white" aria-hidden="true" />
               {camera.fps && <span className="text-xs font-medium text-white">{camera.fps} fps</span>}
+            </div>
+          )}
+
+          {isLive && detectionsLoading && (
+            <div
+              className="absolute bottom-3 left-3 flex items-center gap-1.5 px-2 py-1 rounded-md bg-black/50 backdrop-blur-sm text-white text-xs"
+              role="status"
+              aria-label="Loading detections"
+            >
+              <LoaderCircle className="w-3.5 h-3.5 motion-safe:animate-spin" aria-hidden="true" />
+              Analyzing frame…
             </div>
           )}
 

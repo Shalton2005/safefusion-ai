@@ -15,9 +15,6 @@ export { useAISupervisorStore }              from './aiSupervisorStore';
 export { useCopilotStore }                   from './useCopilotStore';
 export type { CopilotConversationMeta }      from './useCopilotStore';
 
-// ─── Computer Vision (CCTV Monitoring) ────────────────────────────
-export { useVisionStore }                    from './visionStore';
-
 // ─── Notifications ────────────────────────────────────────────────
 export { useNotificationStore, toast }       from './useNotificationStore';
 export type { Notification, NotificationType } from './useNotificationStore';

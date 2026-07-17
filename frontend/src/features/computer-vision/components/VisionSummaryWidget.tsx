@@ -54,7 +54,7 @@ export function VisionSummaryWidget({ className }: VisionSummaryWidgetProps) {
             {error}
           </Alert>
         ) : (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3" aria-busy={loading || undefined} aria-label="Computer vision summary">
             <StatCard
               label="Active Cameras"
               value={loading || !summary ? '' : `${summary.activeCameras}/${summary.totalCameras}`}

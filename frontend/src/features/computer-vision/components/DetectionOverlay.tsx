@@ -49,7 +49,7 @@ export function DetectionOverlay({ detections, showLabels = true, className }: D
         return (
           <div
             key={detection.id}
-            className="absolute border-2 rounded-sm"
+            className="absolute border-2 rounded-sm motion-safe:animate-fade-in"
             style={{
               left:        `${x * 100}%`,
               top:         `${y * 100}%`,

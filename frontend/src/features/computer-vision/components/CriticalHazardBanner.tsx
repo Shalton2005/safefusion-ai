@@ -16,6 +16,7 @@ import { Flame } from 'lucide-react';
 import { Alert, Button } from '@/components/ui';
 import { ROUTES } from '@/constants/routes';
 import { formatLabel } from '@/utils/format';
+import { cn } from '@/lib/cn';
 import { useHazardDetections } from '../hooks';
 
 export interface CriticalHazardBannerProps {
@@ -41,7 +42,7 @@ export function CriticalHazardBanner({ className }: CriticalHazardBannerProps) {
       variant="danger"
       mode="accent"
       title="Critical Hazard Detected"
-      className={className}
+      className={cn('motion-safe:animate-slide-in-up', className)}
       actions={
         <Link to={ROUTES.CCTV_MONITORING}>
           <Button size="sm" variant="danger" leftIcon={<Flame className="w-3.5 h-3.5" />}>

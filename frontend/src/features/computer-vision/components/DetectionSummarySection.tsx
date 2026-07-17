@@ -34,7 +34,7 @@ export function DetectionSummarySection({ zone }: DetectionSummarySectionProps) 
   }
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4" aria-busy={loading || undefined} aria-label="Detection summary">
       <StatCard
         label="Active Cameras"
         value={loading || !summary ? '' : `${summary.activeCameras}/${summary.totalCameras}`}

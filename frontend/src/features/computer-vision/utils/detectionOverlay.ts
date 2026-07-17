@@ -20,7 +20,10 @@ export const DETECTION_TYPE_LABEL: Record<DetectionObjectType, string> = {
 /**
  * Bounding-box + label colour per detection type — compliant PPE items
  * render green, hazards render red/orange, neutral tracking classes
- * (person, vehicle) render blue.
+ * (person, vehicle) render blue. Fixed hex values, not `--sf-*` theme
+ * tokens: these annotate a live video frame, not app chrome, so they
+ * must stay the same vivid, legible colour in both light and dark mode
+ * rather than following the surface/text palette shift.
  */
 export const DETECTION_TYPE_COLOR: Record<DetectionObjectType, string> = {
   helmet:                 '#22c55e',

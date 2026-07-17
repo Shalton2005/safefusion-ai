@@ -28,7 +28,7 @@ export function LiveCameraGrid({ zone, onSelectCamera }: LiveCameraGridProps) {
         className="px-6 pt-5 pb-0"
         action={
           !loading && !error && cameras.length > 0 && (
-            <span className="text-xs text-[var(--sf-text-tertiary)]">
+            <span className="text-xs text-[var(--sf-text-tertiary)]" aria-live="polite">
               {onlineCount} / {cameras.length} online
             </span>
           )
@@ -49,7 +49,7 @@ export function LiveCameraGrid({ zone, onSelectCamera }: LiveCameraGridProps) {
             {error}
           </Alert>
         ) : loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" aria-busy="true" aria-label="Loading cameras">
             {Array.from({ length: 6 }).map((_, i) => (
               <CameraTile key={i} loading />
             ))}

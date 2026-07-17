@@ -46,7 +46,7 @@ export function CvTimeline({ events, className }: CvTimelineProps) {
         const isLast = index === events.length - 1;
 
         return (
-          <li key={event.id} className="relative flex gap-3.5">
+          <li key={event.id} className="relative flex gap-3.5 motion-safe:animate-slide-in-up">
             <div className="relative flex flex-col items-center flex-shrink-0">
               <div
                 className={cn(

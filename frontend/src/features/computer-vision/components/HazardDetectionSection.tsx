@@ -12,6 +12,7 @@ import type { ElementType } from 'react';
 import { Alert, Badge, Button, Card, CardContent, CardHeader, EmptyState, Skeleton } from '@/components/ui';
 import { formatLabel, formatRelativeTime, formatDateTime } from '@/utils/format';
 import { SEVERITY_BADGE_VARIANT, ALERT_STATUS_BADGE_VARIANT } from '@/utils/severity';
+import { cn } from '@/lib/cn';
 import { useHazardDetections } from '../hooks';
 import type { HazardType } from '../types';
 
@@ -66,7 +67,7 @@ export function HazardDetectionSection({ zone }: HazardDetectionSectionProps) {
             {error}
           </Alert>
         ) : loading ? (
-          <div className="space-y-3">
+          <div className="space-y-3" aria-busy="true" aria-label="Loading hazard detections">
             {Array.from({ length: 3 }).map((_, i) => (
               <Skeleton key={i} className="h-20 rounded-lg" />
             ))}
@@ -78,15 +79,20 @@ export function HazardDetectionSection({ zone }: HazardDetectionSectionProps) {
             description="No active hazard detections across any monitored zone."
           />
         ) : (
-          <div className="flex flex-col gap-3">
+          <ul className="flex flex-col gap-3">
             {hazards.map((hazard) => {
               const Icon = HAZARD_ICON[hazard.type];
               return (
-                <div
+                <li
                   key={hazard.id}
-                  className="flex items-start gap-3 p-3 rounded-lg border border-[var(--sf-border-default)] bg-[var(--sf-surface-raised)]"
+                  className="flex items-start gap-3 p-3 rounded-lg border border-[var(--sf-border-default)] bg-[var(--sf-surface-raised)] motion-safe:animate-fade-in"
                 >
-                  <div className="flex items-center justify-center w-8 h-8 rounded-full flex-shrink-0 bg-danger-500/15 text-danger-500">
+                  <div
+                    className={cn(
+                      'flex items-center justify-center w-8 h-8 rounded-full flex-shrink-0 bg-danger-500/15 text-danger-500',
+                      hazard.severity === 'critical' && hazard.status === 'active' && 'motion-safe:animate-pulse-slow',
+                    )}
+                  >
                     <Icon className="w-4 h-4" aria-hidden="true" />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -111,10 +117,10 @@ export function HazardDetectionSection({ zone }: HazardDetectionSectionProps) {
                       <span title={formatDateTime(hazard.detectedAt)}>{formatRelativeTime(hazard.detectedAt)}</span>
                     </div>
                   </div>
-                </div>
+                </li>
               );
             })}
-          </div>
+          </ul>
         )}
       </CardContent>
     </Card>

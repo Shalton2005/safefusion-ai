@@ -36,24 +36,6 @@ export interface Camera {
 export const PPE_ITEM_TYPES = ['helmet', 'vest', 'gloves', 'goggles', 'mask', 'boots'] as const;
 export type PpeItemType = (typeof PPE_ITEM_TYPES)[number];
 
-export interface PpeItemStatus {
-  item: PpeItemType;
-  detected: boolean;
-  confidence: number;
-}
-
-/** A single worker's PPE detection result for one camera frame. */
-export interface PpeDetection {
-  id: string;
-  cameraId: string;
-  zone: string;
-  /** `null` when the detected worker could not be matched to a known worker record. */
-  workerId: string | null;
-  items: PpeItemStatus[];
-  compliant: boolean;
-  detectedAt: string;
-}
-
 /** Compliance rate for a single PPE item type, backend-computed. */
 export interface PpeItemComplianceRate {
   item: PpeItemType;
