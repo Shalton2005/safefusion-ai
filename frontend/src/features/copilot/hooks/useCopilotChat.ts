@@ -6,10 +6,13 @@
  * pattern as `useSidebarStore`'s collapsed flag), the active conversation,
  * and sending a message.
  *
- * `sendMessage` calls `copilotApiService.ask`, which performs retrieval
- * only (see that service's doc comment) — no AI generation happens here
- * or anywhere in this hook. The "typing" indicator reflects the in-flight
- * retrieval request, not token-by-token generation.
+ * `sendMessage` calls `copilotApiService.ask` (→ `aiService.chat` →
+ * `POST /ai/chat`). That route doesn't exist on the backend yet, so
+ * every call resolves to a real `ApiError` today — handled the same way
+ * as any other failed request (see the `catch` below), not special-cased.
+ * No AI generation happens in this hook; the reply text rendered is
+ * exactly what the backend returns, only revealed incrementally by
+ * `useStreamedText` in `MessageBubble` (a pacing effect, not a content change).
  *
  * @example
  * const { activeConversation, sendMessage, isSending } = useCopilotChat();
@@ -20,7 +23,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { LS_COPILOT_KEY } from '@/constants';
 import { ApiError } from '@/api/errors';
-import { copilotApiService, toPlaceholderReply } from '../services/copilotApi.service';
+import { copilotApiService } from '../services/copilotApi.service';
 import { createConversation, createMessage, deriveConversationTitle } from '../utils/conversation';
 import type { CopilotConversation, CopilotMessage } from '../types';
 
@@ -103,14 +106,13 @@ export function useCopilotChat(): UseCopilotChatResult {
 
       try {
         const response = await copilotApiService.ask({ question: trimmed });
-        const replyContent = toPlaceholderReply(response);
 
         setConversations((prev) =>
           prev.map((c) => {
             if (c.id !== conversationId) return c;
             const messages = c.messages.map((m) =>
               m.id === pendingReply.id
-                ? { ...m, content: replyContent, status: 'complete' as const, sources: response.sources }
+                ? { ...m, content: response.reply, status: 'complete' as const, sources: response.sources }
                 : m,
             );
             return touch(c, messages);

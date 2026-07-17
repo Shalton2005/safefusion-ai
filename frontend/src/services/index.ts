@@ -5,6 +5,7 @@
  *   import { alertsService, monitoringService } from '@/services';
  */
 
+export { aiService }        from './ai.service';
 export { alertsService }    from './alerts.service';
 export { analyticsService } from './analytics.service';
 export { complianceService } from './compliance.service';

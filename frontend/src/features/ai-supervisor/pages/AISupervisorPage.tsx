@@ -10,11 +10,15 @@
 import { useState } from 'react';
 import { PageHeader, Card, CardHeader, CardContent, Alert, Button } from '@/components/ui';
 import { RotateCw } from 'lucide-react';
+import { AIRecommendationCardGrid } from '@/components/recommendations';
 import { useAISupervisor } from '../hooks/useAISupervisor';
 import { useAgentStatusBoard } from '../hooks/useAgentStatusBoard';
+import { useAIExplain } from '../hooks/useAIExplain';
+import { useAIRecommend } from '../hooks/useAIRecommend';
 import { AISupervisorCard } from '../components/AISupervisorCard';
 import { AgentActivityList } from '../components/AgentActivityList';
 import { AIAgentStatusBoard } from '../components/AIAgentStatusBoard';
+import { AIReasoningPanel } from '../components/AIReasoningPanel';
 import { WorkflowGraph } from '../components/WorkflowGraph';
 import { PipelineWorkflow } from '../components/PipelineWorkflow';
 import { ConfidenceOverview } from '../components/ConfidenceOverview';
@@ -27,6 +31,8 @@ export function AISupervisorPage() {
   const { snapshot, loading, error, refresh } = useAISupervisor();
   const agentStatusBoard = useAgentStatusBoard();
   const [selectedDecision, setSelectedDecision] = useState<AIDecision | null>(null);
+  const aiExplain = useAIExplain(selectedDecision?.id ?? null);
+  const aiRecommend = useAIRecommend();
 
   const agentErrors = snapshot.agents.filter((agent) => agent.error);
 
@@ -119,6 +125,37 @@ export function AISupervisorPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader
+          title="AI Reasoning (Live)"
+          description="Backend reasoning for the selected decision via POST /ai/explain"
+        />
+        <CardContent>
+          <AIReasoningPanel data={aiExplain.data} loading={aiExplain.loading} error={aiExplain.error} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader
+          title="AI Recommendations"
+          description="AI-surfaced recommendations via POST /ai/recommend"
+          action={
+            <Button size="sm" variant="outline" onClick={aiRecommend.refresh} leftIcon={<RotateCw className="w-3.5 h-3.5" />}>
+              Refresh
+            </Button>
+          }
+        />
+        <CardContent>
+          {aiRecommend.error ? (
+            <Alert variant="danger" title="Couldn't load recommendations">
+              {aiRecommend.error}
+            </Alert>
+          ) : (
+            <AIRecommendationCardGrid recommendations={aiRecommend.recommendations} />
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

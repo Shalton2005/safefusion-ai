@@ -12,6 +12,7 @@
 import { AlertTriangle, BrainCircuit, FileText, User } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { Badge } from '@/components/ui';
+import { useStreamedText } from '../hooks/useStreamedText';
 import type { CopilotMessage } from '../types';
 
 export interface MessageBubbleProps {
@@ -21,6 +22,13 @@ export interface MessageBubbleProps {
 export function MessageBubble({ message }: MessageBubbleProps) {
   const isUser = message.role === 'user';
   const isError = message.status === 'error';
+
+  // Streaming placeholder: paces the reveal of the already-fetched
+  // reply (see useStreamedText's doc comment) — never alters the text.
+  const shouldStream = !isUser && message.status === 'complete';
+  const { displayedText, isStreaming } = useStreamedText(message.content, shouldStream);
+  const content = isUser ? message.content : displayedText;
+  const hasFinishedStreaming = !shouldStream || !isStreaming;
 
   return (
     <div className={cn('flex items-start gap-3', isUser && 'flex-row-reverse')}>
@@ -53,11 +61,11 @@ export function MessageBubble({ message }: MessageBubbleProps) {
               <span>Something went wrong</span>
             </div>
           )}
-          {message.content}
+          {content}
         </div>
 
-        {/* Source citations */}
-        {message.sources && message.sources.length > 0 && (
+        {/* Source citations — shown once streaming finishes so citations don't appear before the text they support. */}
+        {hasFinishedStreaming && message.sources && message.sources.length > 0 && (
           <div className="flex flex-col gap-1 w-full">
             {message.sources.map((source) => (
               <div
