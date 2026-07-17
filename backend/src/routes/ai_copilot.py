@@ -29,6 +29,7 @@ from src.ai.agents.risk_agent import MonitoringEnginePort
 from src.ai.agents.routing import KeywordRoutingStrategy, default_keyword_routes
 from src.ai.agents.supervisor import Supervisor
 from src.ai.config import GraphConfig
+from src.ai.agents.response_aggregator import UnifiedResponse, ZoneRiskFinding
 from src.ai.copilot.schemas import (
     AgentTrace,
     ChatResult,
@@ -37,6 +38,7 @@ from src.ai.copilot.schemas import (
     Recommendation,
     RecommendResult,
     ReasoningMetadata,
+    SummaryResult,
 )
 from src.ai.copilot.service import AiCopilotService
 from src.ai.graph.builder import build_graph
@@ -58,15 +60,24 @@ from src.repositories.incident import IncidentRepository
 from src.repositories.permit import PermitRepository
 from src.repositories.sensor import SensorRepository
 from src.repositories.worker import WorkerRepository
-from src.schemas.request.ai_copilot import AiChatRequest, AiExplainRequest, AiQueryRequest, AiRecommendRequest
+from src.schemas.request.ai_copilot import (
+    AiChatRequest,
+    AiExplainRequest,
+    AiQueryRequest,
+    AiRecommendRequest,
+    AiSummaryRequest,
+)
 from src.schemas.response.ai_copilot import (
     AgentTraceResponse,
     AiChatResponse,
     AiExplainResponse,
     AiQueryResponse,
     AiRecommendResponse,
+    AiSummaryResponse,
     RecommendationResponse,
     ReasoningMetadataResponse,
+    UnifiedResponseModel,
+    ZoneRiskFindingResponse,
 )
 from src.services.compound_risk.compound_risk_service import CompoundRiskService
 from src.services.compound_risk.engine import CompoundRiskEngine
@@ -298,6 +309,28 @@ def _recommendation_to_response(recommendation: Recommendation) -> Recommendatio
     return RecommendationResponse(source_agent=recommendation.source_agent, text=recommendation.text, zone=recommendation.zone)
 
 
+def _zone_finding_to_response(finding: ZoneRiskFinding) -> ZoneRiskFindingResponse:
+    return ZoneRiskFindingResponse(
+        zone=finding.zone,
+        risk_level=finding.risk_level,
+        risk_score=finding.risk_score,
+        hazards=finding.hazards,
+        reasoning=finding.reasoning,
+    )
+
+
+def _unified_to_response(unified: UnifiedResponse) -> UnifiedResponseModel:
+    return UnifiedResponseModel(
+        executive_summary=unified.executive_summary,
+        risk_assessment=[_zone_finding_to_response(finding) for finding in unified.risk_assessment],
+        supporting_evidence=unified.supporting_evidence,
+        regulatory_references=unified.regulatory_references,
+        recommended_actions=unified.recommended_actions,
+        confidence_score=unified.confidence_score,
+        agent_errors=unified.agent_errors,
+    )
+
+
 # ── routes ────────────────────────────────────────────────────────────────────
 
 
@@ -366,6 +399,30 @@ def recommend(payload: AiRecommendRequest, service: AiCopilotServiceDep) -> AiRe
     return AiRecommendResponse(
         request_text=result.request_text,
         recommendations=[_recommendation_to_response(item) for item in result.recommendations],
+        reasoning=_reasoning_to_response(result.reasoning),
+    )
+
+
+@router.post(
+    "/summary",
+    summary="Run the AI Supervisor and return a unified six-section response",
+    description=(
+        "Routes the request through the AI Supervisor, then combines the "
+        "Risk, Compliance, Knowledge, and Emergency agents' output into one "
+        "unified response: Executive Summary, Risk Assessment, Supporting "
+        "Evidence, Regulatory References, Recommended Actions, and a "
+        "Confidence Score. No LLM call — every section is derived "
+        "deterministically from the agents' own structured output (see "
+        "src/ai/agents/response_aggregator.py)."
+    ),
+    response_model=AiSummaryResponse,
+    response_description="Unified six-section response aggregated across agents.",
+)
+def summary(payload: AiSummaryRequest, service: AiCopilotServiceDep) -> AiSummaryResponse:
+    result: SummaryResult = service.summary(text=payload.text, params=payload.params)
+    return AiSummaryResponse(
+        request_text=result.request_text,
+        unified=_unified_to_response(result.unified),
         reasoning=_reasoning_to_response(result.reasoning),
     )
 

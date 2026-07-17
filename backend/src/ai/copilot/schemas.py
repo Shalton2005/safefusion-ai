@@ -16,6 +16,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+from src.ai.agents.response_aggregator import UnifiedResponse
+
 
 @dataclass(frozen=True, slots=True)
 class AgentTrace:
@@ -121,4 +123,20 @@ class ChatResult:
 
     reply: str
     explanation: str
+    reasoning: ReasoningMetadata
+
+
+@dataclass(frozen=True, slots=True)
+class SummaryResult:
+    """Result of ``POST /ai/summary`` — the Response Aggregator's unified six-section output.
+
+    Thin wrapper around :class:`~src.ai.agents.response_aggregator.UnifiedResponse`
+    that adds ``request_text`` and ``reasoning``, matching every other
+    Copilot result's shape. No LLM call — the aggregator that builds
+    ``unified`` is purely deterministic (see
+    ``src/ai/agents/response_aggregator.py``).
+    """
+
+    request_text: str
+    unified: UnifiedResponse
     reasoning: ReasoningMetadata

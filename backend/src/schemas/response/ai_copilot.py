@@ -74,3 +74,33 @@ class AiChatResponse(AppBaseModel):
     reply: str
     explanation: str
     reasoning: ReasoningMetadataResponse
+
+
+class ZoneRiskFindingResponse(AppBaseModel):
+    """One zone's risk finding within :class:`UnifiedResponseModel`."""
+
+    zone: str
+    risk_level: str
+    risk_score: float
+    hazards: tuple[str, ...]
+    reasoning: tuple[str, ...]
+
+
+class UnifiedResponseModel(AppBaseModel):
+    """The Response Aggregator's six-section unified output."""
+
+    executive_summary: str
+    risk_assessment: list[ZoneRiskFindingResponse]
+    supporting_evidence: tuple[str, ...]
+    regulatory_references: tuple[str, ...]
+    recommended_actions: tuple[str, ...]
+    confidence_score: float
+    agent_errors: dict[str, str]
+
+
+class AiSummaryResponse(AppBaseModel):
+    """Result payload for ``POST /ai/summary``."""
+
+    request_text: str
+    unified: UnifiedResponseModel
+    reasoning: ReasoningMetadataResponse

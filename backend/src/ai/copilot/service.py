@@ -23,6 +23,7 @@ from __future__ import annotations
 from typing import Any, Protocol
 
 from src.ai.agents.base import AgentRequest, AgentResult
+from src.ai.agents.response_aggregator import aggregate
 from src.ai.agents.supervisor import SupervisorResponse
 from src.ai.copilot.schemas import (
     AgentTrace,
@@ -32,6 +33,7 @@ from src.ai.copilot.schemas import (
     Recommendation,
     RecommendResult,
     ReasoningMetadata,
+    SummaryResult,
 )
 from src.ai.llm.context import GraphContextItem, LlmContext, RagContextItem, RiskContextItem
 from src.ai.llm.service import LlmService
@@ -282,6 +284,22 @@ class AiCopilotService:
         return RecommendResult(
             request_text=text,
             recommendations=_extract_recommendations(supervisor_response),
+            reasoning=_build_reasoning(supervisor_response),
+        )
+
+    def summary(self, *, text: str, params: dict[str, Any] | None = None) -> SummaryResult:
+        """Run the Supervisor and shape its output into the Response Aggregator's six-section unified response.
+
+        No LLM call — :func:`~src.ai.agents.response_aggregator.aggregate`
+        derives every section deterministically from the Supervisor's own
+        ``AgentResult`` list, the same objects :meth:`query` returns raw
+        and :meth:`recommend` partially reshapes.
+        """
+        supervisor_response = run_supervisor(self._graph, AgentRequest(text=text, params=params or {}))
+
+        return SummaryResult(
+            request_text=text,
+            unified=aggregate(list(supervisor_response.results)),
             reasoning=_build_reasoning(supervisor_response),
         )
 
