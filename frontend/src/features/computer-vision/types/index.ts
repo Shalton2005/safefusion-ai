@@ -180,7 +180,14 @@ export interface BoundingBoxDetection {
 
 // ─── AI Timeline ───────────────────────────────────────────────────
 
-export type CvTimelineEventType = 'hazard_detected' | 'ppe_violation' | 'zone_intrusion' | 'camera_status_changed';
+export const CV_TIMELINE_EVENT_TYPES = [
+  'person_detected',
+  'ppe_missing',
+  'fire_detected',
+  'smoke_detected',
+  'restricted_area_entry',
+] as const;
+export type CvTimelineEventType = (typeof CV_TIMELINE_EVENT_TYPES)[number];
 
 /** A single chronological CV event — same shape/intent as `SafetyTimelineEvent`, scoped to computer-vision sources. */
 export interface CvTimelineEvent {
@@ -191,5 +198,7 @@ export interface CvTimelineEvent {
   severity: SeverityLevel;
   timestamp: string;
   zone: string;
-  cameraId: string | null;
+  cameraId: string;
+  /** Human-readable camera name, e.g. "Camera-A01" — denormalised by the backend so the timeline never needs a lookup against `GET /detection/cameras`. */
+  cameraName: string;
 }

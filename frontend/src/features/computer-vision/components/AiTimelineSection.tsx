@@ -22,7 +22,7 @@ export function AiTimelineSection({ zone }: AiTimelineSectionProps) {
     <Card padding="none">
       <CardHeader
         title="AI Timeline"
-        description="Chronological feed of hazard detections, PPE violations, zone intrusions, and camera status changes."
+        description="Chronological feed of person, PPE, fire, smoke, and restricted-area detections across every camera."
         className="px-6 pt-5 pb-0"
       />
       <div className="p-4">

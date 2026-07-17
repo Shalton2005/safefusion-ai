@@ -2,25 +2,28 @@
  * CvTimeline
  *
  * Reusable, presentational vertical timeline of chronological
- * computer-vision events — hazard detections, PPE violations, zone
- * intrusions, and camera status changes. Purely props-driven, same
- * structure as the dashboard's `SafetyTimeline`. Pair with
+ * computer-vision events — person detected, PPE missing, fire
+ * detected, smoke detected, and restricted area entry. Purely
+ * props-driven, same structure as the dashboard's `SafetyTimeline`
+ * (icon marker, connecting line, severity badge). Each entry displays
+ * timestamp, camera, severity, and event type. Pair with
  * `AiTimelineSection` for the fetching wrapper.
  */
 
-import { AlertTriangle, Camera as CameraIcon, HardHat, LogIn } from 'lucide-react';
+import { AlertTriangle, Camera as CameraIcon, DoorOpen, Flame, UserRound } from 'lucide-react';
 import type { ElementType } from 'react';
 import { Badge } from '@/components/ui';
-import { capitalise, formatRelativeTime, formatDateTime } from '@/utils/format';
+import { capitalise, formatRelativeTime, formatDateTime, formatLabel } from '@/utils/format';
 import { SEVERITY_BADGE_VARIANT } from '@/utils/severity';
 import { cn } from '@/lib/cn';
 import type { CvTimelineEvent, CvTimelineEventType } from '../types';
 
 const EVENT_ICON: Record<CvTimelineEventType, ElementType> = {
-  hazard_detected: AlertTriangle,
-  ppe_violation: HardHat,
-  zone_intrusion: LogIn,
-  camera_status_changed: CameraIcon,
+  person_detected: UserRound,
+  ppe_missing: AlertTriangle,
+  fire_detected: Flame,
+  smoke_detected: AlertTriangle,
+  restricted_area_entry: DoorOpen,
 };
 
 const EVENT_ICON_VARIANT_BY_SEVERITY: Record<CvTimelineEvent['severity'], string> = {
@@ -63,9 +66,12 @@ export function CvTimeline({ events, className }: CvTimelineProps) {
                 <p className="text-sm font-semibold text-[var(--sf-text-primary)] leading-snug">
                   {event.label}
                 </p>
-                <Badge variant={SEVERITY_BADGE_VARIANT[event.severity]} size="sm" dot pulsing={event.severity === 'critical'}>
-                  {capitalise(event.severity)}
-                </Badge>
+                <div className="flex items-center gap-1.5 flex-shrink-0">
+                  <Badge variant="outline" size="sm">{formatLabel(event.type)}</Badge>
+                  <Badge variant={SEVERITY_BADGE_VARIANT[event.severity]} size="sm" dot pulsing={event.severity === 'critical'}>
+                    {capitalise(event.severity)}
+                  </Badge>
+                </div>
               </div>
 
               <p className="text-sm text-[var(--sf-text-secondary)] leading-relaxed">
@@ -73,6 +79,10 @@ export function CvTimeline({ events, className }: CvTimelineProps) {
               </p>
 
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[var(--sf-text-tertiary)]">
+                <span className="flex items-center gap-1 truncate">
+                  <CameraIcon className="w-3 h-3 flex-shrink-0" aria-hidden="true" />
+                  {event.cameraName}
+                </span>
                 <span className="truncate">{event.zone}</span>
                 <span title={formatDateTime(event.timestamp)}>{formatRelativeTime(event.timestamp)}</span>
               </div>
