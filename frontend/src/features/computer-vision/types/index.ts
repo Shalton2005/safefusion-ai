@@ -107,6 +107,43 @@ export interface DetectionSummary {
   lastDetectionAt: string | null;
 }
 
+// ─── Detection Overlay ──────────────────────────────────────────────
+
+/**
+ * Object classes the backend's YOLO model is expected to detect and
+ * localise with a bounding box. Distinct from `PpeItemType`/`HazardType`
+ * (which classify compliance state / hazard category for the summary
+ * sections) — this is the raw per-frame object class the overlay draws,
+ * one box per detected instance.
+ */
+export const DETECTION_OBJECT_TYPES = [
+  'helmet',
+  'safety_vest',
+  'person',
+  'fire',
+  'smoke',
+  'vehicle',
+  'restricted_area_entry',
+] as const;
+export type DetectionObjectType = (typeof DETECTION_OBJECT_TYPES)[number];
+
+/** Bounding box in normalised 0-1 frame coordinates, exactly as returned by the backend — never computed client-side. */
+export interface BoundingBox {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/** A single localised detection instance for one frame, as returned by the backend's detection pipeline. */
+export interface BoundingBoxDetection {
+  id: string;
+  type: DetectionObjectType;
+  /** Model confidence, 0-100. */
+  confidence: number;
+  boundingBox: BoundingBox;
+}
+
 // ─── AI Timeline ───────────────────────────────────────────────────
 
 export type CvTimelineEventType = 'hazard_detected' | 'ppe_violation' | 'zone_intrusion' | 'camera_status_changed';

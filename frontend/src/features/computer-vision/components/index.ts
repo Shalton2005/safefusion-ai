@@ -21,3 +21,6 @@ export type { AiTimelineSectionProps } from './AiTimelineSection';
 
 export { CameraDetails }          from './CameraDetails';
 export type { CameraDetailsProps } from './CameraDetails';
+
+export { DetectionOverlay }       from './DetectionOverlay';
+export type { DetectionOverlayProps } from './DetectionOverlay';

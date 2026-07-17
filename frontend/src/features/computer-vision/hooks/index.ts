@@ -12,3 +12,6 @@ export type { UseHazardDetectionsResult } from './useHazardDetections';
 
 export { useCvTimeline }       from './useCvTimeline';
 export type { UseCvTimelineResult } from './useCvTimeline';
+
+export { useFrameDetections }  from './useFrameDetections';
+export type { UseFrameDetectionsResult } from './useFrameDetections';

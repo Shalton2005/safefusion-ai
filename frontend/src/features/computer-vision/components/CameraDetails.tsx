@@ -2,13 +2,16 @@
  * CameraDetails
  *
  * Modal detail panel for a single selected camera — full-size stream
- * preview, status, resolution/fps, and zone metadata. Opened from
+ * preview with `DetectionOverlay` bounding boxes, status,
+ * resolution/fps, and zone metadata. Opened from
  * `LiveCameraGrid`/`CameraTile`.
  */
 
 import { Video, VideoOff } from 'lucide-react';
 import { Badge, Modal } from '@/components/ui';
 import { formatDateTime, formatRelativeTime } from '@/utils/format';
+import { useFrameDetections } from '../hooks';
+import { DetectionOverlay } from './DetectionOverlay';
 import type { Camera, CameraStatus } from '../types';
 
 const STATUS_BADGE_VARIANT: Record<CameraStatus, 'success' | 'default' | 'warning'> = {
@@ -29,6 +32,8 @@ export interface CameraDetailsProps {
 }
 
 export function CameraDetails({ camera, onClose }: CameraDetailsProps) {
+  const { detections } = useFrameDetections(camera?.id);
+
   if (!camera) return null;
   const isLive = camera.status === 'online' && Boolean(camera.streamUrl);
 
@@ -71,6 +76,8 @@ export function CameraDetails({ camera, onClose }: CameraDetailsProps) {
               {camera.fps && <span className="text-xs font-medium text-white">{camera.fps} fps</span>}
             </div>
           )}
+
+          {isLive && <DetectionOverlay detections={detections} />}
         </div>
 
         <dl className="grid grid-cols-2 gap-4">

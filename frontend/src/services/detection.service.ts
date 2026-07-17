@@ -4,7 +4,7 @@
  * API-layer service for the computer-vision detection endpoints:
  * `GET /detection/cameras`, `GET /detection/summary`,
  * `GET /detection/ppe`, `GET /detection/hazards`,
- * `GET /detection/timeline`.
+ * `GET /detection/timeline`, `GET /detection/cameras/{id}/detections`.
  *
  * None of these routes exist on the backend yet — `backend/src/ai/detection/`
  * is currently an empty stub package ("Computer-vision pipelines for
@@ -31,6 +31,7 @@ import type {
   PpeComplianceSummary,
   HazardDetection,
   CvTimelineEvent,
+  BoundingBoxDetection,
 } from '@/features/computer-vision/types';
 
 const base = createService('/detection');
@@ -63,4 +64,8 @@ export const detectionService = {
   /** GET /detection/timeline — chronological feed of CV events for the AI Timeline section. */
   getTimeline: (params?: ZoneScopedParams, options?: RequestOptions) =>
     base.get<CvTimelineEvent[]>('timeline', params, options),
+
+  /** GET /detection/cameras/{id}/detections — bounding-box detections for a camera's current frame, backing `DetectionOverlay`. */
+  getFrameDetections: (cameraId: string, options?: RequestOptions) =>
+    base.get<BoundingBoxDetection[]>(`cameras/${cameraId}/detections`, undefined, options),
 };
