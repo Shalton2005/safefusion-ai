@@ -7,7 +7,7 @@
 // here is either a real backend field or a client-side presentational
 // bucket of one (documented inline where that applies).
 
-import type { SeverityLevel } from '@/constants';
+import type { AlertStatus, SeverityLevel } from '@/constants';
 
 // ─── Camera ────────────────────────────────────────────────────────
 
@@ -86,29 +86,50 @@ export interface PpeViolation {
   detectedAt: string;
 }
 
+/** Bounding box in normalised 0-1 frame coordinates, exactly as returned by the backend — never computed client-side. */
+export interface BoundingBox {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 // ─── Hazard Detection ──────────────────────────────────────────────
 
+/**
+ * `fire`, `smoke`, `unsafe_worker_behaviour`, and `restricted_area_entry`
+ * are localised by the CV pipeline (each carries a `cameraId` and a
+ * `boundingBox`). `gas_leak` is not a CV detection at all — it is the
+ * existing `Incident`/`IncidentType` gas-leak event from the sensor/alert
+ * pipeline (see `@/types`'s `IncidentType`), surfaced here so the Hazard
+ * Detection Panel gives one merged view of every hazard class regardless
+ * of source. `HazardDetection.cameraId`/`boundingBox` are `null` for
+ * `gas_leak` entries — there is no camera or frame position to show.
+ */
 export const HAZARD_TYPES = [
   'fire',
   'smoke',
-  'spill',
-  'unauthorized_zone_entry',
-  'restricted_area_intrusion',
-  'equipment_malfunction',
-  'fall_detected',
+  'gas_leak',
+  'unsafe_worker_behaviour',
+  'restricted_area_entry',
 ] as const;
 export type HazardType = (typeof HAZARD_TYPES)[number];
 
 export interface HazardDetection {
   id: string;
-  cameraId: string;
+  /** `null` for `gas_leak` entries — sourced from the sensor/incident pipeline, not a camera. */
+  cameraId: string | null;
   zone: string;
+  /** Specific location within the zone (e.g. "Zone A – Loading Bay 2"), distinct from the coarser `zone` field. */
+  location: string;
   type: HazardType;
   severity: SeverityLevel;
+  /** Lifecycle status — same vocabulary as `Alert`/`AlertRecord`. */
+  status: AlertStatus;
   confidence: number;
   description: string;
-  /** Bounding box of the detection in the source frame, normalised 0-1. */
-  boundingBox: { x: number; y: number; width: number; height: number } | null;
+  /** Bounding box of the detection in the source frame, normalised 0-1. `null` for non-CV hazards (e.g. `gas_leak`). */
+  boundingBox: BoundingBox | null;
   detectedAt: string;
   /** Snapshot frame captured at detection time, or `null` if unavailable. */
   snapshotUrl: string | null;
@@ -147,14 +168,6 @@ export const DETECTION_OBJECT_TYPES = [
   'restricted_area_entry',
 ] as const;
 export type DetectionObjectType = (typeof DETECTION_OBJECT_TYPES)[number];
-
-/** Bounding box in normalised 0-1 frame coordinates, exactly as returned by the backend — never computed client-side. */
-export interface BoundingBox {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
 
 /** A single localised detection instance for one frame, as returned by the backend's detection pipeline. */
 export interface BoundingBoxDetection {
