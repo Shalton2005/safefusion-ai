@@ -52,9 +52,13 @@ from src.routes import rag as rag_router
 from src.routes import recommendations as recommendations_router
 from src.routes import risk_scores as risk_scores_router
 from src.routes import root as root_router
+from src.routes import sensor_simulator as sensor_simulator_router
 from src.routes import sensors as sensors_router
 from src.routes import status as status_router
+from src.routes import timeline as timeline_router
 from src.routes import workers as workers_router
+from src.services.event_bus.bus import get_default_dispatcher
+from src.services.timeline.subscriber import register_timeline_subscriber
 from src.utils.logger import configure_logging, get_logger
 
 
@@ -69,6 +73,7 @@ OPENAPI_TAGS_METADATA = [
     {"name": "Dashboard", "description": "Aggregated operational metrics and monitoring summaries for the main dashboard."},
     {"name": "Workers", "description": "Worker registry and on-site personnel management endpoints."},
     {"name": "Sensors", "description": "Industrial sensor readings collected from IoT and SCADA inputs."},
+    {"name": "Sensor Simulator", "description": "Generates realistic simulated industrial telemetry (gas, temperature, pressure, humidity, vibration) for demos and testing."},
     {"name": "Permits", "description": "Permit-to-Work records for controlled safety-critical tasks."},
     {"name": "Maintenance", "description": "Maintenance activity records for equipment and plant assets."},
     {"name": "Incidents", "description": "Historical and simulated incident records for investigation and analytics."},
@@ -84,6 +89,7 @@ OPENAPI_TAGS_METADATA = [
     {"name": "RAG", "description": "Retrieval over ingested OISD/Factory Act/DGMS/incident-report document chunks: document search, semantic search, and question-context retrieval. Retrieval only — no LLM call."},
     {"name": "AI Safety Copilot", "description": "LangGraph AI Supervisor-backed query, explain, recommend, and chat endpoints, routing to specialized Risk/Compliance/Knowledge/Graph Knowledge/Emergency agents with LLM-grounded explainability."},
     {"name": "AI Monitoring", "description": "Read-only observability over the AI layer: agent/routing configuration, live Neo4j/Ollama dependency health, aggregated operation performance metrics, and Supervisor workflow shape."},
+    {"name": "Timeline", "description": "Chronological record of every platform event — source, severity, timestamp, and linked AI decision — published on the Unified Event Bus."},
 ]
 
 
@@ -101,8 +107,16 @@ async def _lifespan(_application: FastAPI) -> AsyncIterator[None]:
     opens its connection pool at import time and must be closed explicitly
     when the process exits, mirroring how the PostgreSQL engine's pool is
     torn down implicitly by process exit.
+
+    Also registers the Timeline Service as a catch-all subscriber on the
+    process-wide event dispatcher (see
+    :func:`~src.services.timeline.subscriber.register_timeline_subscriber`)
+    so every event published anywhere on the bus for the lifetime of this
+    process is recorded, without any producer needing to know the
+    timeline exists.
     """
     ensure_constraints()
+    register_timeline_subscriber(get_default_dispatcher())
     yield
     close_driver()
 
@@ -166,6 +180,7 @@ def create_application() -> FastAPI:
     application.include_router(dashboard_router.router, prefix=settings.API_PREFIX)
     application.include_router(workers_router.router, prefix=settings.API_PREFIX)
     application.include_router(sensors_router.router, prefix=settings.API_PREFIX)
+    application.include_router(sensor_simulator_router.router, prefix=settings.API_PREFIX)
     application.include_router(permits_router.router, prefix=settings.API_PREFIX)
     application.include_router(maintenance_router.router, prefix=settings.API_PREFIX)
     application.include_router(incidents_router.router, prefix=settings.API_PREFIX)
@@ -182,6 +197,7 @@ def create_application() -> FastAPI:
     application.include_router(rag_router.router, prefix=settings.API_PREFIX)
     application.include_router(ai_copilot_router.router, prefix=settings.API_PREFIX)
     application.include_router(ai_monitoring_router.router, prefix=settings.API_PREFIX)
+    application.include_router(timeline_router.router, prefix=settings.API_PREFIX)
 
     return application
 

@@ -109,10 +109,12 @@ datasets/raw/
 datasets/processed/
 datasets/external/
 datasets/annotations/
+datasets/generated/
 !datasets/raw/.gitkeep
 !datasets/processed/.gitkeep
 !datasets/external/.gitkeep
 !datasets/annotations/.gitkeep
+!datasets/generated/.gitkeep
 
 # Docker
 .docker/

@@ -111,6 +111,20 @@ COMPOUND_RISK_RULES: dict[str, RiskRuleConfig] = {
         description="Several simultaneous warning-level sensor readings in one zone (e.g. Temperature High).",
         params={"minimum_warning_count": settings.COMPOUND_RISK_MULTIPLE_WARNING_MIN_COUNT},
     ),
+    "degraded_equipment_with_worker_present": RiskRuleConfig(
+        name="degraded_equipment_with_worker_present",
+        points=settings.COMPOUND_RISK_POINTS_DEGRADED_EQUIPMENT_WITH_WORKER,
+        description=(
+            "Equipment health degraded (per maintenance history) in a zone with a worker present."
+        ),
+        params={"equipment_zone_map": dict(settings.EQUIPMENT_ZONE_MAP)},
+    ),
+    "critical_sensor_near_degraded_equipment": RiskRuleConfig(
+        name="critical_sensor_near_degraded_equipment",
+        points=settings.COMPOUND_RISK_POINTS_CRITICAL_SENSOR_NEAR_DEGRADED_EQUIPMENT,
+        description="Critical sensor reading in a zone containing degraded equipment.",
+        params={"equipment_zone_map": dict(settings.EQUIPMENT_ZONE_MAP)},
+    ),
 }
 
 COMPOUND_RISK_LEVEL_BANDS: dict[str, float] = {

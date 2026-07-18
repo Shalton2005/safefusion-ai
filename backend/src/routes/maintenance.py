@@ -15,6 +15,8 @@ from src.schemas.maintenance import (
     MaintenanceLogRead,
     MaintenanceLogUpdate,
 )
+from src.services.event_bus import EventPublisher, EventSource, MaintenanceEventPublisherAdapter
+from src.services.event_bus.bus import get_default_dispatcher
 from src.services.maintenance import MaintenanceLogService
 
 router: APIRouter = APIRouter(prefix="/maintenance", tags=["Maintenance"])
@@ -23,8 +25,17 @@ DbDep = Annotated[Session, Depends(get_db)]
 
 
 def get_maintenance_service(db: DbDep) -> MaintenanceLogService:
-    """Create a service instance with repository dependencies."""
-    return MaintenanceLogService(repository=MaintenanceLogRepository(db))
+    """Create a service instance with repository dependencies.
+
+    Wires maintenance lifecycle hooks to the process-wide event bus — see
+    ``get_sensor_service`` in ``src.routes.sensors`` for the equivalent
+    wiring and rationale.
+    """
+    publisher = EventPublisher(get_default_dispatcher(), source=EventSource.MAINTENANCE)
+    return MaintenanceLogService(
+        repository=MaintenanceLogRepository(db),
+        ai_pipeline=MaintenanceEventPublisherAdapter(publisher),
+    )
 
 
 MaintenanceServiceDep = Annotated[MaintenanceLogService, Depends(get_maintenance_service)]

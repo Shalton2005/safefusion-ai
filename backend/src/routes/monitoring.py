@@ -19,6 +19,7 @@ from src.config.risk_rules import (
 from src.config.settings import settings
 from src.database.session import get_db
 from src.models.enums import PermitStatus, SensorType
+from src.repositories.maintenance import MaintenanceLogRepository
 from src.repositories.permit import PermitRepository
 from src.repositories.risk_score import RiskScoreRepository
 from src.repositories.sensor import SensorRepository
@@ -32,13 +33,16 @@ from src.schemas.response.worker_monitoring import WorkerMonitoringSummaryRespon
 from src.services.compound_risk.compound_risk_service import CompoundRiskService
 from src.services.compound_risk.engine import CompoundRiskEngine
 from src.services.compound_risk.rules import (
+    CriticalSensorNearDegradedEquipmentRule,
     CriticalSensorWithoutActivePermitRule,
     CriticalSensorWithWorkerPresentRule,
+    DegradedEquipmentWithWorkerPresentRule,
     ExpiredPermitWithWorkerPresentRule,
     MultipleWarningSensorsRule,
     RestrictedZoneWithoutActivePermitRule,
 )
 from src.services.compound_risk.schemas import CompoundRiskLevelBands
+from src.services.maintenance_monitoring import EquipmentHealthBand, MaintenanceMonitoringService
 from src.services.permit_validation import PermitValidationRules, PermitValidationService
 from src.services.risk_score_calculation import RiskScoreCalculationService
 from src.services.risk_scoring import (
@@ -95,6 +99,17 @@ def get_worker_monitoring_service(db: DbDep) -> WorkerMonitoringService:
     return WorkerMonitoringService(
         worker_repository=WorkerRepository(db),
         permit_repository=PermitRepository(db),
+    )
+
+
+def get_maintenance_monitoring_service(db: DbDep) -> MaintenanceMonitoringService:
+    """Create the maintenance monitoring (equipment health) service."""
+    return MaintenanceMonitoringService(
+        repository=MaintenanceLogRepository(db),
+        health_band=EquipmentHealthBand(
+            at_risk_corrective_ratio=settings.EQUIPMENT_HEALTH_AT_RISK_CORRECTIVE_RATIO,
+            degraded_corrective_ratio=settings.EQUIPMENT_HEALTH_DEGRADED_CORRECTIVE_RATIO,
+        ),
     )
 
 
@@ -181,6 +196,14 @@ def _build_compound_risk_engine() -> CompoundRiskEngine:
             points=rules["multiple_warning_sensors"].points,
             minimum_warning_count=rules["multiple_warning_sensors"].params["minimum_warning_count"],
         ),
+        DegradedEquipmentWithWorkerPresentRule(
+            points=rules["degraded_equipment_with_worker_present"].points,
+            equipment_zone_map=rules["degraded_equipment_with_worker_present"].params["equipment_zone_map"],
+        ),
+        CriticalSensorNearDegradedEquipmentRule(
+            points=rules["critical_sensor_near_degraded_equipment"].points,
+            equipment_zone_map=rules["critical_sensor_near_degraded_equipment"].params["equipment_zone_map"],
+        ),
     ]
     return CompoundRiskEngine(
         rules=engine_rules,
@@ -197,6 +220,7 @@ def get_compound_risk_service(db: DbDep) -> CompoundRiskService:
         permit_validation=_PermitValidationSummaryAdapter(
             get_permit_validation_service(db), PermitRepository(db)
         ),
+        maintenance_monitoring=get_maintenance_monitoring_service(db),
     )
 
 
@@ -209,6 +233,10 @@ RiskScoreCalculationServiceDep = Annotated[
     Depends(get_risk_score_calculation_service),
 ]
 CompoundRiskServiceDep = Annotated[CompoundRiskService, Depends(get_compound_risk_service)]
+MaintenanceMonitoringServiceDep = Annotated[
+    MaintenanceMonitoringService,
+    Depends(get_maintenance_monitoring_service),
+]
 
 
 @router.get(
@@ -298,6 +326,7 @@ def get_monitoring_summary(
     risk_service: RiskScoreCalculationServiceDep,
     compound_risk_service: CompoundRiskServiceDep,
     permit_repository: PermitRepositoryDep,
+    maintenance_service: MaintenanceMonitoringServiceDep,
 ) -> MonitoringSummaryResponse:
     permits = permit_repository.get_all(skip=0, limit=10_000)
 
@@ -308,12 +337,16 @@ def get_monitoring_summary(
     sensor_summary = sensor_service.get_monitoring_summary()
     worker_summary = worker_service.get_monitoring_summary()
     permit_summary = permit_service.build_validation_summary(permits)
+    maintenance_summary = maintenance_service.get_monitoring_summary()
 
     risk_results = risk_service.calculate_from_summaries(
         sensor_summary=sensor_summary, permit_summary=permit_summary, worker_summary=worker_summary
     )
     compound_risk_results = compound_risk_service.evaluate(
-        sensor_summary=sensor_summary, permit_summary=permit_summary, worker_summary=worker_summary
+        sensor_summary=sensor_summary,
+        permit_summary=permit_summary,
+        worker_summary=worker_summary,
+        maintenance_summary=maintenance_summary,
     )
 
     return MonitoringSummaryResponse(

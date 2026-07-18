@@ -13,6 +13,8 @@ from src.models.enums import PermitStatus
 from src.repositories.permit import PermitRepository
 from src.schemas.permit import PermitRead
 from src.schemas.response.permit_validation import PermitValidationSummaryResponse
+from src.services.event_bus import EventPublisher, EventSource, PermitEventPublisherAdapter
+from src.services.event_bus.bus import get_default_dispatcher
 from src.services.permit import PermitService
 from src.services.permit_validation import PermitValidationRules, PermitValidationService
 
@@ -22,16 +24,23 @@ DbDep = Annotated[Session, Depends(get_db)]
 
 
 def get_permit_service(db: DbDep) -> PermitService:
-    """Create a service instance with repository dependencies."""
+    """Create a service instance with repository dependencies.
+
+    Wires permit lifecycle hooks to the process-wide event bus — see
+    ``get_sensor_service`` in ``src.routes.sensors`` for the equivalent
+    wiring and rationale.
+    """
     rules = PermitValidationRules(
         valid_statuses={PermitStatus(value) for value in settings.PERMIT_VALIDATION_VALID_STATUSES},
         pending_statuses={PermitStatus(value) for value in settings.PERMIT_VALIDATION_PENDING_STATUSES},
         invalid_statuses={PermitStatus(value) for value in settings.PERMIT_VALIDATION_INVALID_STATUSES},
         expired_grace_seconds=settings.PERMIT_VALIDATION_EXPIRED_GRACE_SECONDS,
     )
+    publisher = EventPublisher(get_default_dispatcher(), source=EventSource.PERMIT)
     return PermitService(
         repository=PermitRepository(db),
         validation_service=PermitValidationService(rules=rules),
+        ai_pipeline=PermitEventPublisherAdapter(publisher),
     )
 
 

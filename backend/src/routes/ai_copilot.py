@@ -96,11 +96,14 @@ from src.schemas.response.ai_copilot import (
     UnifiedResponseModel,
     ZoneRiskFindingResponse,
 )
+from src.repositories.maintenance import MaintenanceLogRepository
 from src.services.compound_risk.compound_risk_service import CompoundRiskService
 from src.services.compound_risk.engine import CompoundRiskEngine
 from src.services.compound_risk.rules import (
+    CriticalSensorNearDegradedEquipmentRule,
     CriticalSensorWithoutActivePermitRule,
     CriticalSensorWithWorkerPresentRule,
+    DegradedEquipmentWithWorkerPresentRule,
     ExpiredPermitWithWorkerPresentRule,
     MultipleWarningSensorsRule,
     RestrictedZoneWithoutActivePermitRule,
@@ -113,6 +116,7 @@ from src.services.emergency_response.emergency_response_service import Emergency
 from src.services.emergency_response.engine import EmergencyResponseEngine
 from src.services.emergency_response.rules import ThresholdEmergencyResponseRule
 from src.services.graph_query import GraphQueryService
+from src.services.maintenance_monitoring import EquipmentHealthBand, MaintenanceMonitoringService
 from src.services.permit_validation import PermitValidationRules, PermitValidationService
 from src.services.rag.rag_service import RagService
 from src.services.sensor_monitoring import SensorMonitoringService, SensorThresholdBand
@@ -197,7 +201,9 @@ def _build_compound_risk_engine() -> CompoundRiskEngine:
     """Build the Compound Risk Engine from the centralised rule registry.
 
     Same construction as ``src.routes.monitoring._build_compound_risk_engine``
-    — duplicated locally since that one is route-private.
+    — duplicated locally since that one is route-private. Keep this rule
+    list in sync with that one; a rule added there without being added
+    here silently omits that signal from every AI Copilot endpoint.
     """
     rules = COMPOUND_RISK_RULES
     engine_rules: list = [
@@ -212,8 +218,28 @@ def _build_compound_risk_engine() -> CompoundRiskEngine:
             points=rules["multiple_warning_sensors"].points,
             minimum_warning_count=rules["multiple_warning_sensors"].params["minimum_warning_count"],
         ),
+        DegradedEquipmentWithWorkerPresentRule(
+            points=rules["degraded_equipment_with_worker_present"].points,
+            equipment_zone_map=rules["degraded_equipment_with_worker_present"].params["equipment_zone_map"],
+        ),
+        CriticalSensorNearDegradedEquipmentRule(
+            points=rules["critical_sensor_near_degraded_equipment"].points,
+            equipment_zone_map=rules["critical_sensor_near_degraded_equipment"].params["equipment_zone_map"],
+        ),
     ]
     return CompoundRiskEngine(rules=engine_rules, level_bands=CompoundRiskLevelBands(**COMPOUND_RISK_LEVEL_BANDS))
+
+
+def _build_maintenance_monitoring_service(db: Session) -> MaintenanceMonitoringService:
+    """Same construction as ``src.routes.monitoring.get_maintenance_monitoring_service``
+    — duplicated locally since that one is route-private."""
+    return MaintenanceMonitoringService(
+        repository=MaintenanceLogRepository(db),
+        health_band=EquipmentHealthBand(
+            at_risk_corrective_ratio=settings.EQUIPMENT_HEALTH_AT_RISK_CORRECTIVE_RATIO,
+            degraded_corrective_ratio=settings.EQUIPMENT_HEALTH_DEGRADED_CORRECTIVE_RATIO,
+        ),
+    )
 
 
 def _build_emergency_response_engine() -> EmergencyResponseEngine:
@@ -264,6 +290,7 @@ def get_ai_copilot_service(db: DbDep, graph_session: GraphSessionDep) -> AiCopil
         permit_validation=_PermitValidationSummaryAdapter(
             PermitValidationService(rules=_permit_validation_rules()), PermitRepository(db)
         ),
+        maintenance_monitoring=_build_maintenance_monitoring_service(db),
     )
 
     embedding_provider = OllamaEmbeddingProvider(

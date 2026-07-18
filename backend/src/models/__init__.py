@@ -29,6 +29,7 @@ from src.models.maintenance import MaintenanceLog
 from src.models.permit import Permit
 from src.models.risk_score import RiskScore
 from src.models.sensor import Sensor
+from src.models.timeline_event import TimelineEvent
 from src.models.worker import Worker
 
 __all__: list[str] = [
@@ -41,6 +42,7 @@ __all__: list[str] = [
     "Alert",
     "RiskScore",
     "DocumentEmbedding",
+    "TimelineEvent",
     # Enums
     "WorkerStatus",
     "SensorType",

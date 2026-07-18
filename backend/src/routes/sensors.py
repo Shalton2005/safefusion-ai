@@ -12,6 +12,8 @@ from src.database.session import get_db
 from src.models.enums import SensorType
 from src.repositories.sensor import SensorRepository
 from src.schemas.sensor import SensorRead
+from src.services.event_bus import EventPublisher, EventSource, SensorEventPublisherAdapter
+from src.services.event_bus.bus import get_default_dispatcher
 from src.services.sensor import SensorService
 from src.services.sensor_monitoring import (
     SensorMonitoringService,
@@ -25,8 +27,20 @@ DbDep = Annotated[Session, Depends(get_db)]
 
 
 def get_sensor_service(db: DbDep) -> SensorService:
-    """Create a service instance with repository dependencies."""
-    return SensorService(repository=SensorRepository(db))
+    """Create a service instance with repository dependencies.
+
+    Wires the sensor lifecycle hooks to the process-wide event bus (see
+    ``src.services.event_bus``) via ``SensorEventPublisherAdapter``, so
+    every create/update/delete publishes a unified ``Event`` that any
+    subscriber (alerting, AI pipeline, a future computer-vision
+    correlation step) can consume without ``SensorService`` knowing about
+    the event bus itself.
+    """
+    publisher = EventPublisher(get_default_dispatcher(), source=EventSource.SENSOR)
+    return SensorService(
+        repository=SensorRepository(db),
+        ai_pipeline=SensorEventPublisherAdapter(publisher),
+    )
 
 
 def _sensor_thresholds_from_settings() -> dict[SensorType, SensorThresholdBand]:

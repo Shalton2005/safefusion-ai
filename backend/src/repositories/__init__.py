@@ -15,6 +15,7 @@ from src.repositories.maintenance import MaintenanceLogRepository
 from src.repositories.permit import PermitRepository
 from src.repositories.risk_score import RiskScoreRepository
 from src.repositories.sensor import SensorRepository
+from src.repositories.timeline_event import TimelineEventRepository
 from src.repositories.worker import WorkerRepository
 
 __all__: list[str] = [
@@ -28,4 +29,5 @@ __all__: list[str] = [
     "RiskScoreRepository",
     "DocumentEmbeddingRepository",
     "SimilarityMatch",
+    "TimelineEventRepository",
 ]

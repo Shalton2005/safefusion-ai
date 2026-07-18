@@ -12,6 +12,8 @@ from src.database.session import get_db
 from src.repositories.permit import PermitRepository
 from src.repositories.worker import WorkerRepository
 from src.schemas.worker import WorkerCreate, WorkerRead, WorkerUpdate
+from src.services.event_bus import EventPublisher, EventSource, WorkerEventPublisherAdapter
+from src.services.event_bus.bus import get_default_dispatcher
 from src.services.worker import WorkerService
 from src.services.worker_monitoring import WorkerMonitoringService
 from src.schemas.response.worker_monitoring import WorkerMonitoringSummaryResponse
@@ -22,8 +24,17 @@ DbDep = Annotated[Session, Depends(get_db)]
 
 
 def get_worker_service(db: DbDep) -> WorkerService:
-    """Create a service instance with repository dependencies."""
-    return WorkerService(repository=WorkerRepository(db))
+    """Create a service instance with repository dependencies.
+
+    Wires worker lifecycle hooks to the process-wide event bus — see
+    ``get_sensor_service`` in ``src.routes.sensors`` for the equivalent
+    wiring and rationale.
+    """
+    publisher = EventPublisher(get_default_dispatcher(), source=EventSource.WORKER)
+    return WorkerService(
+        repository=WorkerRepository(db),
+        ai_pipeline=WorkerEventPublisherAdapter(publisher),
+    )
 
 
 def get_worker_monitoring_service(db: DbDep) -> WorkerMonitoringService:

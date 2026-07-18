@@ -2,17 +2,21 @@
 
 from __future__ import annotations
 
+import pytest
+
 from src.models.enums import RiskLevel
 from src.services.compound_risk.compound_risk_service import CompoundRiskService
 from src.services.compound_risk.engine import CompoundRiskEngine
 from src.services.compound_risk.rules import (
+    CriticalSensorNearDegradedEquipmentRule,
     CriticalSensorWithoutActivePermitRule,
     CriticalSensorWithWorkerPresentRule,
+    DegradedEquipmentWithWorkerPresentRule,
     ExpiredPermitWithWorkerPresentRule,
     MultipleWarningSensorsRule,
     RestrictedZoneWithoutActivePermitRule,
 )
-from src.services.compound_risk.schemas import CompoundRiskLevelBands
+from src.services.compound_risk.schemas import CompoundRiskLevelBands, CompoundRiskRuleMatch
 
 
 def _sensor_summary(zone: str, status: str, count: int = 1) -> dict:
@@ -25,6 +29,23 @@ def _permit_summary(zone: str, state: str) -> dict:
 
 def _worker_summary(zone: str, count: int = 1) -> dict:
     return {"workers": [{"assigned_zone": zone} for _ in range(count)]}
+
+
+def _maintenance_summary(equipment_id: str, health_status: str = "degraded") -> dict:
+    return {
+        "equipment": [
+            {
+                "equipment_id": equipment_id,
+                "equipment_name": "Test Equipment",
+                "total_logs": 3,
+                "corrective_logs": 2,
+                "corrective_ratio": 0.67,
+                "has_ongoing_corrective": True,
+                "health_status": health_status,
+                "last_maintenance_at": None,
+            }
+        ]
+    }
 
 
 class TestCriticalSensorWithoutActivePermitRule:
@@ -220,6 +241,14 @@ class _StubPermitValidation:
         return self._summary
 
 
+class _StubMaintenanceMonitoring:
+    def __init__(self, summary: dict | None) -> None:
+        self._summary = summary
+
+    def get_monitoring_summary(self) -> dict | None:
+        return self._summary
+
+
 class TestCompoundRiskService:
     def test_detect_compound_risks_pulls_from_all_three_sources(self) -> None:
         engine = CompoundRiskEngine(rules=[CriticalSensorWithWorkerPresentRule(points=40.0)])
@@ -246,6 +275,49 @@ class TestCompoundRiskService:
         assert len(results) == 1
         assert results[0].zone == "Zone-H"
 
+    def test_detect_compound_risks_pulls_maintenance_summary_when_configured(self) -> None:
+        engine = CompoundRiskEngine(
+            rules=[
+                DegradedEquipmentWithWorkerPresentRule(
+                    points=25.0, equipment_zone_map={"EQ-001": "Zone-J"}
+                )
+            ]
+        )
+        service = CompoundRiskService(
+            engine=engine,
+            worker_monitoring=_StubWorkerMonitoring(_worker_summary("Zone-J")),
+            maintenance_monitoring=_StubMaintenanceMonitoring(_maintenance_summary("EQ-001")),
+        )
+        results = service.detect_compound_risks()
+        assert len(results) == 1
+        assert results[0].zone == "Zone-J"
+
+    def test_service_without_maintenance_monitoring_still_works(self) -> None:
+        """Backward compatibility: a service built the old way (no
+        maintenance_monitoring kwarg) must keep behaving exactly as before."""
+        engine = CompoundRiskEngine(rules=[CriticalSensorWithWorkerPresentRule(points=40.0)])
+        service = CompoundRiskService(
+            engine=engine,
+            sensor_monitoring=_StubSensorMonitoring(_sensor_summary("Zone-K", "critical")),
+            worker_monitoring=_StubWorkerMonitoring(_worker_summary("Zone-K")),
+            permit_validation=_StubPermitValidation(None),
+        )
+        results = service.detect_compound_risks()
+        assert len(results) == 1
+        assert results[0].zone == "Zone-K"
+
+    def test_evaluate_without_maintenance_summary_kwarg_still_works(self) -> None:
+        """Backward compatibility: old 3-kwarg evaluate() calls are unaffected."""
+        engine = CompoundRiskEngine(rules=[MultipleWarningSensorsRule(points=15.0, minimum_warning_count=2)])
+        service = CompoundRiskService(engine=engine)
+        results = service.evaluate(
+            sensor_summary=_sensor_summary("Zone-L", "warning", count=2),
+            worker_summary=None,
+            permit_summary=None,
+        )
+        assert len(results) == 1
+        assert results[0].zone == "Zone-L"
+
 
 class TestZoneCompoundRiskResultExplanation:
     def test_explanation_lists_all_triggered_rules(self) -> None:
@@ -271,3 +343,224 @@ class TestZoneCompoundRiskResultExplanation:
         engine = CompoundRiskEngine(rules=[])
         results = engine.evaluate(sensor_summary=None, permit_summary=None, worker_summary=None)
         assert results == []
+
+
+class TestDegradedEquipmentWithWorkerPresentRule:
+    def test_fires_when_degraded_equipment_and_worker_present(self) -> None:
+        rule = DegradedEquipmentWithWorkerPresentRule(points=25.0, equipment_zone_map={"EQ-001": "Zone-M"})
+        matches = rule.evaluate(
+            sensor_summary=None,
+            permit_summary=None,
+            worker_summary=_worker_summary("Zone-M"),
+            maintenance_summary=_maintenance_summary("EQ-001"),
+        )
+        assert "Zone-M" in matches
+        assert matches["Zone-M"].points == 25.0
+        assert matches["Zone-M"].rule_name == "degraded_equipment_with_worker_present"
+
+    def test_does_not_fire_without_worker(self) -> None:
+        rule = DegradedEquipmentWithWorkerPresentRule(points=25.0, equipment_zone_map={"EQ-001": "Zone-M"})
+        matches = rule.evaluate(
+            sensor_summary=None,
+            permit_summary=None,
+            worker_summary=None,
+            maintenance_summary=_maintenance_summary("EQ-001"),
+        )
+        assert matches == {}
+
+    def test_does_not_fire_when_equipment_healthy(self) -> None:
+        rule = DegradedEquipmentWithWorkerPresentRule(points=25.0, equipment_zone_map={"EQ-001": "Zone-M"})
+        matches = rule.evaluate(
+            sensor_summary=None,
+            permit_summary=None,
+            worker_summary=_worker_summary("Zone-M"),
+            maintenance_summary=_maintenance_summary("EQ-001", health_status="healthy"),
+        )
+        assert matches == {}
+
+    def test_does_not_fire_without_equipment_zone_map_entry(self) -> None:
+        rule = DegradedEquipmentWithWorkerPresentRule(points=25.0, equipment_zone_map={})
+        matches = rule.evaluate(
+            sensor_summary=None,
+            permit_summary=None,
+            worker_summary=_worker_summary("Zone-M"),
+            maintenance_summary=_maintenance_summary("EQ-001"),
+        )
+        assert matches == {}
+
+    def test_match_reports_reduced_confidence(self) -> None:
+        rule = DegradedEquipmentWithWorkerPresentRule(points=25.0, equipment_zone_map={"EQ-001": "Zone-M"})
+        matches = rule.evaluate(
+            sensor_summary=None,
+            permit_summary=None,
+            worker_summary=_worker_summary("Zone-M"),
+            maintenance_summary=_maintenance_summary("EQ-001"),
+        )
+        assert matches["Zone-M"].confidence < 1.0
+
+    def test_match_includes_structured_evidence(self) -> None:
+        rule = DegradedEquipmentWithWorkerPresentRule(points=25.0, equipment_zone_map={"EQ-001": "Zone-M"})
+        matches = rule.evaluate(
+            sensor_summary=None,
+            permit_summary=None,
+            worker_summary=_worker_summary("Zone-M", count=3),
+            maintenance_summary=_maintenance_summary("EQ-001"),
+        )
+        evidence = matches["Zone-M"].evidence
+        assert evidence["worker_count"] == 3
+        assert evidence["degraded_equipment"][0]["equipment_id"] == "EQ-001"
+
+
+class TestCriticalSensorNearDegradedEquipmentRule:
+    def test_fires_when_critical_sensor_and_degraded_equipment_share_zone(self) -> None:
+        rule = CriticalSensorNearDegradedEquipmentRule(points=30.0, equipment_zone_map={"EQ-002": "Zone-N"})
+        matches = rule.evaluate(
+            sensor_summary=_sensor_summary("Zone-N", "critical"),
+            permit_summary=None,
+            worker_summary=None,
+            maintenance_summary=_maintenance_summary("EQ-002"),
+        )
+        assert "Zone-N" in matches
+        assert matches["Zone-N"].confidence < 1.0
+
+    def test_does_not_fire_without_critical_sensor(self) -> None:
+        rule = CriticalSensorNearDegradedEquipmentRule(points=30.0, equipment_zone_map={"EQ-002": "Zone-N"})
+        matches = rule.evaluate(
+            sensor_summary=_sensor_summary("Zone-N", "warning"),
+            permit_summary=None,
+            worker_summary=None,
+            maintenance_summary=_maintenance_summary("EQ-002"),
+        )
+        assert matches == {}
+
+    def test_does_not_fire_without_maintenance_summary(self) -> None:
+        rule = CriticalSensorNearDegradedEquipmentRule(points=30.0, equipment_zone_map={"EQ-002": "Zone-N"})
+        matches = rule.evaluate(
+            sensor_summary=_sensor_summary("Zone-N", "critical"),
+            permit_summary=None,
+            worker_summary=None,
+            maintenance_summary=None,
+        )
+        assert matches == {}
+
+
+class TestCompoundRiskRuleMatchEvidenceAndConfidence:
+    def test_existing_rules_default_to_full_confidence(self) -> None:
+        rule = CriticalSensorWithoutActivePermitRule(points=35.0)
+        matches = rule.evaluate(
+            sensor_summary=_sensor_summary("Zone-O", "critical"),
+            permit_summary=_permit_summary("Zone-O", "expired"),
+            worker_summary=None,
+        )
+        assert matches["Zone-O"].confidence == 1.0
+
+    def test_existing_rules_populate_structured_evidence(self) -> None:
+        rule = CriticalSensorWithoutActivePermitRule(points=35.0)
+        matches = rule.evaluate(
+            sensor_summary=_sensor_summary("Zone-O", "critical"),
+            permit_summary=_permit_summary("Zone-O", "expired"),
+            worker_summary=None,
+        )
+        assert matches["Zone-O"].evidence["sensor_status_counts"]["critical"] == 1
+        assert matches["Zone-O"].evidence["permit_validation_states"] == ["expired"]
+
+    def test_rule_match_default_evidence_is_empty_dict(self) -> None:
+        match = CompoundRiskRuleMatch(rule_name="x", points=1.0, explanation="y")
+        assert match.evidence == {}
+        assert match.confidence == 1.0
+
+
+class TestZoneCompoundRiskResultConfidenceAndEvidence:
+    def test_confidence_defaults_to_full_when_no_rules_triggered(self) -> None:
+        engine = CompoundRiskEngine(rules=[])
+        results = engine.evaluate(sensor_summary=None, permit_summary=None, worker_summary=None)
+        assert results == []
+
+    def test_confidence_is_full_when_only_full_confidence_rules_trigger(self) -> None:
+        engine = CompoundRiskEngine(rules=[CriticalSensorWithoutActivePermitRule(points=35.0)])
+        results = engine.evaluate(
+            sensor_summary=_sensor_summary("Zone-P", "critical"),
+            permit_summary=_permit_summary("Zone-P", "expired"),
+            worker_summary=None,
+        )
+        assert results[0].confidence == 1.0
+
+    def test_confidence_drops_when_a_low_confidence_rule_dominates_the_score(self) -> None:
+        engine = CompoundRiskEngine(
+            rules=[
+                DegradedEquipmentWithWorkerPresentRule(points=90.0, equipment_zone_map={"EQ-003": "Zone-Q"}),
+            ]
+        )
+        results = engine.evaluate(
+            sensor_summary=None,
+            permit_summary=None,
+            worker_summary=_worker_summary("Zone-Q"),
+            maintenance_summary=_maintenance_summary("EQ-003"),
+        )
+        assert results[0].confidence == pytest.approx(0.7, abs=0.001)
+
+    def test_confidence_is_points_weighted_average_across_mixed_rules(self) -> None:
+        engine = CompoundRiskEngine(
+            rules=[
+                CriticalSensorWithoutActivePermitRule(points=50.0),  # confidence 1.0
+                DegradedEquipmentWithWorkerPresentRule(
+                    points=50.0, equipment_zone_map={"EQ-004": "Zone-R"}
+                ),  # confidence 0.7
+            ]
+        )
+        results = engine.evaluate(
+            sensor_summary=_sensor_summary("Zone-R", "critical"),
+            permit_summary=None,
+            worker_summary=_worker_summary("Zone-R"),
+            maintenance_summary=_maintenance_summary("EQ-004"),
+        )
+        # (50*1.0 + 50*0.7) / 100 = 0.85
+        assert results[0].confidence == pytest.approx(0.85, abs=0.001)
+
+    def test_contributing_factors_is_an_alias_for_triggered_rules(self) -> None:
+        engine = CompoundRiskEngine(rules=[CriticalSensorWithoutActivePermitRule(points=35.0)])
+        results = engine.evaluate(
+            sensor_summary=_sensor_summary("Zone-S", "critical"),
+            permit_summary=_permit_summary("Zone-S", "expired"),
+            worker_summary=None,
+        )
+        assert results[0].contributing_factors == results[0].triggered_rules
+
+    def test_evidence_property_keys_by_rule_name(self) -> None:
+        engine = CompoundRiskEngine(rules=[CriticalSensorWithoutActivePermitRule(points=35.0)])
+        results = engine.evaluate(
+            sensor_summary=_sensor_summary("Zone-T", "critical"),
+            permit_summary=_permit_summary("Zone-T", "expired"),
+            worker_summary=None,
+        )
+        assert "critical_sensor_without_active_permit" in results[0].evidence
+
+    def test_evidence_is_empty_dict_when_no_rules_triggered(self) -> None:
+        engine = CompoundRiskEngine(rules=[CriticalSensorWithoutActivePermitRule(points=35.0)])
+        results = engine.evaluate(sensor_summary=None, permit_summary=None, worker_summary=None)
+        assert results == []
+
+
+class TestEngineMaintenanceSummaryBackwardCompatibility:
+    def test_evaluate_without_maintenance_summary_arg_still_works(self) -> None:
+        """Backward compatibility: engines/rules built before maintenance_summary
+        existed keep working when the caller never passes it."""
+        engine = CompoundRiskEngine(rules=[CriticalSensorWithWorkerPresentRule(points=40.0)])
+        results = engine.evaluate(
+            sensor_summary=_sensor_summary("Zone-U", "critical"),
+            permit_summary=None,
+            worker_summary=_worker_summary("Zone-U"),
+        )
+        assert len(results) == 1
+        assert results[0].zone == "Zone-U"
+
+    def test_evaluate_with_maintenance_summary_but_no_maintenance_rules_is_a_no_op(self) -> None:
+        engine = CompoundRiskEngine(rules=[CriticalSensorWithWorkerPresentRule(points=40.0)])
+        results = engine.evaluate(
+            sensor_summary=_sensor_summary("Zone-V", "critical"),
+            permit_summary=None,
+            worker_summary=_worker_summary("Zone-V"),
+            maintenance_summary=_maintenance_summary("EQ-999"),
+        )
+        assert len(results) == 1
+        assert results[0].zone == "Zone-V"
