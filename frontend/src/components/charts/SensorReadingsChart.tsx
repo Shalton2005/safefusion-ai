@@ -21,7 +21,7 @@ import {
 } from 'recharts';
 import { ChartTooltip } from './ChartTooltip';
 
-export interface SensorReadingPoint {
+interface SensorReadingPoint {
   time: string;
   gas: number;
   temperature: number;

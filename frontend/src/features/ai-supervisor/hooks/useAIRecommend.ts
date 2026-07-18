@@ -35,8 +35,17 @@ export function useAIRecommend(zone?: string): UseAIRecommendResult {
       setLoading(true);
       setError(null);
       try {
-        const { data } = await aiService.recommend({ zone }, { signal });
-        setRecommendations(data.recommendations);
+        const { data } = await aiService.recommend({ text: 'recommend', params: { zone } }, { signal });
+        const mapped: AIRecommendation[] = data.recommendations.map((r, i) => ({
+          id: `rec-${i}`,
+          title: 'Recommendation',
+          description: r.text,
+          priority: 'medium',
+          affectedArea: r.zone ?? 'Plant-wide',
+          confidence: 100,
+          actionType: r.source_agent
+        }));
+        setRecommendations(mapped);
       } catch (err) {
         const apiError = ApiError.from(err);
         if (!apiError.isCancelledError) {

@@ -23,7 +23,7 @@ import type {
 } from '@/types';
 
 /** Decision type produced by each agent — one per engine's output shape. */
-export const AGENT_DECISION_TYPE = {
+const AGENT_DECISION_TYPE = {
   compound_risk:      'risk_assessment',
   emergency_response: 'emergency_action',
   recommendation:     'recommendation',
@@ -31,7 +31,7 @@ export const AGENT_DECISION_TYPE = {
 } as const satisfies Record<string, AIDecisionType>;
 
 /** What each decision type means for execution — see `AIDecisionExecutionStatus` doc. */
-export const DECISION_TYPE_EXECUTION_STATUS: Record<AIDecisionType, AIDecisionExecutionStatus> = {
+const DECISION_TYPE_EXECUTION_STATUS: Record<AIDecisionType, AIDecisionExecutionStatus> = {
   risk_assessment:       'logged',
   emergency_action:      'executed',
   recommendation:        'pending',

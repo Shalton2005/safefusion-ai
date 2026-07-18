@@ -17,7 +17,7 @@
 import type { SeverityLevel } from '@/constants';
 
 /** Bucketed priority — reuses the app-wide `SeverityLevel` vocabulary (low/medium/high/critical) and its existing badge colour mapping. */
-export type AIRecommendationPriority = SeverityLevel;
+type AIRecommendationPriority = SeverityLevel;
 
 export interface AIRecommendation {
   id: string;

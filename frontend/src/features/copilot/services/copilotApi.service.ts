@@ -22,7 +22,7 @@ import type { CopilotSourceChunk } from '../types';
 
 export interface CopilotAskRequest {
   question: string;
-  conversationId?: string;
+  history?: { role: string; content: string }[];
 }
 
 export interface CopilotAskResponse {
@@ -35,20 +35,20 @@ export const copilotApiService = {
   /** POST /ai/chat via `aiService.chat` — conversational reply, grounded in whatever sources the backend cites. */
   ask: async (request: CopilotAskRequest, options?: RequestOptions): Promise<CopilotAskResponse> => {
     const { data } = await aiService.chat(
-      { message: request.question, conversationId: request.conversationId },
+      { message: request.question, history: request.history },
       options,
     );
 
     return {
-      conversationId: data.conversationId,
+      conversationId: 'temp',
       reply: data.reply,
-      sources: (data.sources ?? []).map((s) => ({
-        id: s.id,
-        source: s.source,
-        title: s.title,
-        excerpt: s.excerpt,
-        similarity: s.similarity ?? 0,
-      })),
+      sources: data.reasoning.agent_traces.flatMap(t => t.citations.map((c, i) => ({
+        id: `source-${i}`,
+        source: c,
+        title: null,
+        excerpt: '',
+        similarity: 1
+      }))),
     };
   },
 };

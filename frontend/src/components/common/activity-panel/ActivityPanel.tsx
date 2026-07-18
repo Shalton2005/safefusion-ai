@@ -18,12 +18,6 @@
 import { AlertTriangle, Flame, HardHat, FileCheck2 } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { ActivityFeedSection } from './ActivityFeedSection';
-import {
-  RECENT_ALERTS,
-  RECENT_INCIDENTS,
-  WORKER_ACTIVITY,
-  PERMIT_ACTIVITY,
-} from './dummyData';
 import type { ActivityFeedItem } from './types';
 
 export interface ActivityPanelProps {
@@ -37,10 +31,10 @@ export interface ActivityPanelProps {
 }
 
 export function ActivityPanel({
-  alerts = RECENT_ALERTS,
-  incidents = RECENT_INCIDENTS,
-  workerActivity = WORKER_ACTIVITY,
-  permitActivity = PERMIT_ACTIVITY,
+  alerts = [],
+  incidents = [],
+  workerActivity = [],
+  permitActivity = [],
   maxHeight = '100%',
   className,
 }: ActivityPanelProps) {

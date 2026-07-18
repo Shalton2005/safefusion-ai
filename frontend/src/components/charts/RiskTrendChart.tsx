@@ -20,7 +20,7 @@ import {
 } from 'recharts';
 import { ChartTooltip } from './ChartTooltip';
 
-export interface RiskTrendPoint {
+interface RiskTrendPoint {
   date: string;
   score: number;
 }

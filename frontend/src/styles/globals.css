@@ -1,4 +1,4 @@
-﻿/* ═══════════════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════════════
    SafeFusion AI – Global Design System
    Industrial Safety Monitoring Platform
    ═══════════════════════════════════════════════════════════════════ */
@@ -252,6 +252,7 @@
     font-size:        1rem;
     line-height:      1.5;
     min-height:       100dvh;
+    overscroll-behavior-y: none;
     transition:
       background-color var(--sf-duration-base) ease,
       color            var(--sf-duration-base) ease;
@@ -425,11 +426,22 @@
   .page-container {
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
-    padding: 1.5rem;
+    gap: 1rem;
+    padding: 1rem;
     width: 100%;
     min-height: 100%;
     animation: fadeIn 0.2s ease-out both;
+  }
+  @media (min-width: 640px) {
+    .page-container {
+      gap: 1.5rem;
+      padding: 1.5rem;
+    }
+  }
+  @media (min-width: 1024px) {
+    .page-container {
+      padding: 2rem;
+    }
   }
 
   .page-header {

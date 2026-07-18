@@ -1,16 +1,15 @@
 import { Bell, Sun, Moon, User, Menu } from 'lucide-react';
 import { cn } from '@/lib/cn';
-import { useTheme } from '@/hooks/useTheme';
 import { useRouteConfig } from '@/hooks/useRouteConfig';
-import { useSidebarStore, useNotificationStore } from '@/store';
+import { useSidebarStore, useThemeStore } from '@/store';
 import { APP_NAME } from '@/constants';
 import { RightPanelToggle } from '@/components/common/RightPanel';
 import { TopNavSearch } from '@/components/common/TopNavSearch';
 
 export function TopNav() {
-  const { resolvedTheme, toggleTheme } = useTheme();
+  const { resolvedTheme, toggleTheme } = useThemeStore();
   const toggleMobile = useSidebarStore((s) => s.toggleMobile);
-  const notifications = useNotificationStore((s) => s.notifications);
+  const notifications = [] // useNotificationStore deleted
   const currentRoute = useRouteConfig();
   const unreadCount = notifications.length;
 

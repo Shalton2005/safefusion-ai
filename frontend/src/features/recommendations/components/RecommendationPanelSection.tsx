@@ -1,7 +1,6 @@
 import { ClipboardList } from 'lucide-react';
 import { Card, CardHeader, Badge, EmptyState, QueryState } from '@/components/ui';
 import { LastUpdated } from '@/components/common/LastUpdated';
-import { useRecommendations } from '@/features/recommendations/hooks/useRecommendations';
 import { RecommendationPanel } from './RecommendationPanel';
 import type { Recommendation } from '@/types';
 
@@ -64,24 +63,5 @@ export function RecommendationPanelSectionView({
         {!error && <LastUpdated timestamp={lastUpdated} className="px-1" />}
       </div>
     </Card>
-  );
-}
-
-export interface RecommendationPanelSectionProps {
-  className?: string;
-}
-
-/** Standalone, self-fetching `RecommendationPanelSection` — fetches its own `GET /recommendations` data. Use `RecommendationPanelSectionView` instead when the data is already fetched elsewhere on the page. */
-export function RecommendationPanelSection({ className }: RecommendationPanelSectionProps) {
-  const { recommendations, loading, error, lastUpdated, refresh } = useRecommendations();
-  return (
-    <RecommendationPanelSectionView
-      recommendations={recommendations}
-      loading={loading}
-      error={error}
-      lastUpdated={lastUpdated}
-      refresh={refresh}
-      className={className}
-    />
   );
 }

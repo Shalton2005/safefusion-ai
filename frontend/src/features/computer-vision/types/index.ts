@@ -33,11 +33,10 @@ export interface Camera {
 
 // ─── PPE Compliance ────────────────────────────────────────────────
 
-export const PPE_ITEM_TYPES = ['helmet', 'vest', 'gloves', 'goggles', 'mask', 'boots'] as const;
-export type PpeItemType = (typeof PPE_ITEM_TYPES)[number];
+export type PpeItemType = 'helmet' | 'vest' | 'gloves' | 'goggles' | 'mask' | 'boots';
 
 /** Compliance rate for a single PPE item type, backend-computed. */
-export interface PpeItemComplianceRate {
+interface PpeItemComplianceRate {
   item: PpeItemType;
   /** Compliance rate 0-100 for this item across all detected workers. */
   complianceRate: number;
@@ -69,7 +68,7 @@ export interface PpeViolation {
 }
 
 /** Bounding box in normalised 0-1 frame coordinates, exactly as returned by the backend — never computed client-side. */
-export interface BoundingBox {
+interface BoundingBox {
   x: number;
   y: number;
   width: number;
@@ -88,14 +87,7 @@ export interface BoundingBox {
  * of source. `HazardDetection.cameraId`/`boundingBox` are `null` for
  * `gas_leak` entries — there is no camera or frame position to show.
  */
-export const HAZARD_TYPES = [
-  'fire',
-  'smoke',
-  'gas_leak',
-  'unsafe_worker_behaviour',
-  'restricted_area_entry',
-] as const;
-export type HazardType = (typeof HAZARD_TYPES)[number];
+export type HazardType = 'fire' | 'smoke' | 'gas_leak' | 'unsafe_worker_behaviour' | 'restricted_area_entry';
 
 export interface HazardDetection {
   id: string;
@@ -140,16 +132,7 @@ export interface DetectionSummary {
  * sections) — this is the raw per-frame object class the overlay draws,
  * one box per detected instance.
  */
-export const DETECTION_OBJECT_TYPES = [
-  'helmet',
-  'safety_vest',
-  'person',
-  'fire',
-  'smoke',
-  'vehicle',
-  'restricted_area_entry',
-] as const;
-export type DetectionObjectType = (typeof DETECTION_OBJECT_TYPES)[number];
+export type DetectionObjectType = 'helmet' | 'safety_vest' | 'person' | 'fire' | 'smoke' | 'vehicle' | 'restricted_area_entry';
 
 /** A single localised detection instance for one frame, as returned by the backend's detection pipeline. */
 export interface BoundingBoxDetection {
@@ -162,14 +145,7 @@ export interface BoundingBoxDetection {
 
 // ─── AI Timeline ───────────────────────────────────────────────────
 
-export const CV_TIMELINE_EVENT_TYPES = [
-  'person_detected',
-  'ppe_missing',
-  'fire_detected',
-  'smoke_detected',
-  'restricted_area_entry',
-] as const;
-export type CvTimelineEventType = (typeof CV_TIMELINE_EVENT_TYPES)[number];
+export type CvTimelineEventType = 'person_detected' | 'ppe_missing' | 'fire_detected' | 'smoke_detected' | 'restricted_area_entry';
 
 /** A single chronological CV event — same shape/intent as `SafetyTimelineEvent`, scoped to computer-vision sources. */
 export interface CvTimelineEvent {

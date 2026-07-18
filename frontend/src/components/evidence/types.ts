@@ -13,7 +13,7 @@
 import type { Permit, SensorReading, Worker } from '@/types';
 
 /** One knowledge-graph relationship cited as evidence. */
-export interface EvidenceGraphRelationship {
+interface EvidenceGraphRelationship {
   id: string;
   /** Relationship type as returned by the graph API, e.g. "LOCATED_IN". */
   type: string;
@@ -28,7 +28,7 @@ export interface EvidenceGraphRelationship {
 }
 
 /** One document retrieved as supporting evidence (e.g. a RAG chunk). */
-export interface EvidenceDocument {
+interface EvidenceDocument {
   id: string;
   /** Source document name, e.g. "OISD-STD-118". */
   source: string;

@@ -12,7 +12,6 @@
 import { MapPin } from 'lucide-react';
 import { Card, EmptyState, QueryState, Skeleton } from '@/components/ui';
 import { LastUpdated } from '@/components/common/LastUpdated';
-import { useZoneOverview } from '@/features/dashboard/hooks/useZoneOverview';
 import { cn } from '@/lib/cn';
 import type { ZoneOverview as ZoneOverviewData } from '@/types';
 import { ZoneOverview } from './ZoneOverview';
@@ -86,24 +85,5 @@ export function ZoneOverviewSectionView({ zones, loading, error, lastUpdated, re
         </div>
       )}
     </QueryState>
-  );
-}
-
-export interface ZoneOverviewSectionProps {
-  className?: string;
-}
-
-/** Standalone, self-fetching `ZoneOverviewSection` — polls `GET /dashboard/zones` on its own. Use `ZoneOverviewSectionView` instead when the data is already fetched elsewhere on the page. */
-export function ZoneOverviewSection({ className }: ZoneOverviewSectionProps) {
-  const { zones, loading, error, lastUpdated, refresh } = useZoneOverview();
-  return (
-    <ZoneOverviewSectionView
-      zones={zones}
-      loading={loading}
-      error={error}
-      lastUpdated={lastUpdated}
-      refresh={refresh}
-      className={className}
-    />
   );
 }

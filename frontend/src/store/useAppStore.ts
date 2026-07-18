@@ -30,10 +30,10 @@ import env from '@/config/env';
  *  degraded     — partial connectivity (some services unreachable)
  *  disconnected — cannot reach the backend
  */
-export type ConnectionStatus = 'connected' | 'degraded' | 'disconnected';
+type ConnectionStatus = 'connected' | 'degraded' | 'disconnected';
 
 /** Named feature flags controlled at runtime (e.g. from a config endpoint). */
-export type FeatureFlags = Record<string, boolean>;
+type FeatureFlags = Record<string, boolean>;
 
 // ─── Default feature flags ────────────────────────────────────────
 // Set to `true` here to enable a feature globally.

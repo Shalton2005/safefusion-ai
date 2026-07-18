@@ -38,7 +38,7 @@ export interface RequestOptions extends AxiosRequestConfig {
 // ─── Pagination ───────────────────────────────────────────────────
 
 /** Standard pagination query parameters. */
-export interface PaginationParams {
+interface PaginationParams {
   /** 1-based page number. @default 1 */
   page?: number;
   /** Number of items per page. @default 20 */
@@ -52,7 +52,7 @@ export interface PaginationParams {
 // ─── Filter / Search ──────────────────────────────────────────────
 
 /** Generic filter parameters merged into query strings. */
-export interface FilterParams {
+interface FilterParams {
   /** Full-text search query. */
   search?: string;
   /** Arbitrary additional filters. */
@@ -68,34 +68,14 @@ export type ListParams = PaginationParams & FilterParams;
  * Shape returned by the backend for every successful single-resource
  * operation (GET one, POST, PUT, PATCH).
  */
-export interface ApiSuccessResponse<T> {
-  data:    T;
-  message: string;
-  success: true;
-}
 
 /**
  * Shape returned by the backend on validation / application errors.
  */
-export interface ApiErrorResponse {
-  message: string;
-  /** Machine-readable error code (e.g. "RESOURCE_NOT_FOUND"). */
-  code:    string;
-  success: false;
-  /** Field-level validation errors keyed by field name. */
-  details?: Record<string, string[]>;
-}
 
 /**
  * Shape returned by the backend for paginated lists.
  */
-export interface ApiPaginatedResponse<T> {
-  data:       T[];
-  total:      number;
-  page:       number;
-  pageSize:   number;
-  totalPages: number;
-}
 
 // ─── Internal Request Metadata ────────────────────────────────────
 

@@ -24,9 +24,9 @@ import { cn } from '@/lib/cn';
 
 // ─── Types ────────────────────────────────────────────────────────
 
-export type AlertVariant = 'info' | 'success' | 'warning' | 'danger';
+type AlertVariant = 'info' | 'success' | 'warning' | 'danger';
 /** Display mode: tinted background (subtle) or accent bar (accent). @default 'subtle' */
-export type AlertMode    = 'subtle' | 'accent';
+type AlertMode    = 'subtle' | 'accent';
 
 // ─── Props ────────────────────────────────────────────────────────
 

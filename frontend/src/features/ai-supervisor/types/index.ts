@@ -28,15 +28,7 @@ import type {
  * lists agents can show the Supervisor's own aggregate health alongside
  * what it supervises.
  */
-export const AI_AGENT_IDS = [
-  'compound_risk',
-  'emergency_response',
-  'recommendation',
-  'compliance',
-  'knowledge_graph',
-  'supervisor',
-] as const;
-export type AIAgentId = (typeof AI_AGENT_IDS)[number];
+export type AIAgentId = 'compound_risk' | 'emergency_response' | 'recommendation' | 'compliance' | 'knowledge_graph' | 'supervisor';
 
 /**
  * Per-agent lifecycle status, derived entirely from the polling state
@@ -48,12 +40,10 @@ export type AIAgentId = (typeof AI_AGENT_IDS)[number];
  *  - `waiting`   — most recent fetch succeeded with zero findings (healthy, nothing to act on)
  *  - `failed`    — most recent fetch errored
  */
-export const AI_AGENT_STATUSES = ['idle', 'running', 'completed', 'waiting', 'failed'] as const;
-export type AIAgentStatus = (typeof AI_AGENT_STATUSES)[number];
+export type AIAgentStatus = 'idle' | 'running' | 'completed' | 'waiting' | 'failed';
 
 /** Overall AI Supervisor processing state, derived from the loading/error state of all agents. */
-export const AI_SUPERVISOR_PROCESSING_STATES = ['idle', 'processing', 'action_required', 'error'] as const;
-export type AISupervisorProcessingState = (typeof AI_SUPERVISOR_PROCESSING_STATES)[number];
+export type AISupervisorProcessingState = 'idle' | 'processing' | 'action_required' | 'error';
 
 /** Snapshot of a single supervised agent. */
 export interface AIAgentSummary {
@@ -90,13 +80,7 @@ export interface AIAgentSummary {
  * engine's output shape (not a generic label; it names what the
  * engine actually computed).
  */
-export const AI_DECISION_TYPES = [
-  'risk_assessment',
-  'emergency_action',
-  'recommendation',
-  'compliance_violation',
-] as const;
-export type AIDecisionType = (typeof AI_DECISION_TYPES)[number];
+export type AIDecisionType = 'risk_assessment' | 'emergency_action' | 'recommendation' | 'compliance_violation';
 
 /**
  * Whether a decision has actually been carried out. Derived from what
@@ -107,8 +91,7 @@ export type AIDecisionType = (typeof AI_DECISION_TYPES)[number];
  *  - `recommendation`        → 'pending'   (advisory only, awaits an operator)
  *  - `risk_assessment`       → 'logged'    (recorded, no action taken by itself)
  */
-export const AI_DECISION_EXECUTION_STATUSES = ['executed', 'pending', 'flagged', 'logged'] as const;
-export type AIDecisionExecutionStatus = (typeof AI_DECISION_EXECUTION_STATUSES)[number];
+export type AIDecisionExecutionStatus = 'executed' | 'pending' | 'flagged' | 'logged';
 
 /**
  * A single explainable decision surfaced by one of the supervised
@@ -200,26 +183,26 @@ export interface BuildSnapshotInput {
 // shape using only fields already present on it — nothing fabricated.
 
 /** One piece of supporting data behind a decision, e.g. a sensor reading or a risk score. */
-export interface ExplainableEvidenceItem {
+interface ExplainableEvidenceItem {
   label: string;
   value: string;
 }
 
 /** One hazard the decision identified. */
-export interface DetectedHazard {
+interface DetectedHazard {
   label: string;
   severity: SeverityLevel;
   description: string;
 }
 
 /** One safety rule or framework the decision was checked against. */
-export interface ApplicableSafetyRule {
+interface ApplicableSafetyRule {
   code: string;
   description: string;
 }
 
 /** One action recommended (not necessarily executed) as a result of the decision. */
-export interface RecommendedAction {
+interface RecommendedAction {
   label: string;
   rationale: string;
 }
@@ -255,7 +238,7 @@ export interface ExplainableAIData {
 // itself — every field is rendered as received.
 
 /** One rule the reasoning engine reports as triggered. */
-export interface ReasoningTriggeredRule {
+interface ReasoningTriggeredRule {
   id: string;
   /** Rule code/name, e.g. "critical_sensors" or "OISD-STD-118-4.2". */
   name: string;
@@ -263,7 +246,7 @@ export interface ReasoningTriggeredRule {
 }
 
 /** One underlying data point the reasoning cites as evidence, e.g. a sensor reading or a risk score. */
-export interface ReasoningEvidenceSource {
+interface ReasoningEvidenceSource {
   id: string;
   /** What kind of evidence this is, e.g. "Sensor Reading", "Risk Score", "Incident Report". */
   type: string;
@@ -274,7 +257,7 @@ export interface ReasoningEvidenceSource {
 }
 
 /** One regulatory document chunk retrieved to support the reasoning (mirrors RAG retrieval output). */
-export interface ReasoningRetrievedRegulation {
+interface ReasoningRetrievedRegulation {
   id: string;
   /** Source document name, e.g. "OISD-STD-118". */
   source: string;
@@ -285,7 +268,7 @@ export interface ReasoningRetrievedRegulation {
 }
 
 /** One knowledge graph node the reasoning references. */
-export interface ReasoningGraphReference {
+interface ReasoningGraphReference {
   id: string;
   /** Node label, e.g. "Worker", "Zone", "Sensor", "Permit", "Incident". */
   label: string;

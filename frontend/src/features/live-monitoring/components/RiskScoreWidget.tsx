@@ -67,10 +67,10 @@ export function RiskScoreWidget({ score, level, className }: RiskScoreWidgetProp
           {capitalise(level)}
         </Badge>
 
-        {/* Trend placeholder — historical tracking not yet wired up */}
-        <div className="flex items-center gap-1 text-xs font-medium text-[var(--sf-text-tertiary)]">
+        {/* Feature pending backend integration */}
+        <div className="flex items-center gap-1 text-xs font-medium text-[var(--sf-text-tertiary)]" title="Historical risk trend API pending backend integration">
           <Minus className="w-3.5 h-3.5 flex-shrink-0" aria-hidden="true" />
-          <span>Trend unavailable</span>
+          <span>Pending backend integration</span>
         </div>
       </div>
     </div>

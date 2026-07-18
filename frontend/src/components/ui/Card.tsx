@@ -19,10 +19,10 @@ import { cn } from '@/lib/cn';
 // ─── Types ────────────────────────────────────────────────────────
 
 /** Visual surface treatment. @default 'default' */
-export type CardVariant = 'default' | 'elevated' | 'outlined' | 'flat' | 'inset';
+type CardVariant = 'default' | 'elevated' | 'outlined' | 'flat' | 'inset';
 
 /** Inner padding preset. @default 'md' */
-export type CardPadding = 'none' | 'sm' | 'md' | 'lg';
+type CardPadding = 'none' | 'sm' | 'md' | 'lg';
 
 // ─── Style Maps ───────────────────────────────────────────────────
 
@@ -164,33 +164,6 @@ export function CardContent({
   return (
     <div
       className={cn('text-sm text-[var(--sf-text-secondary)]', className)}
-      {...props}
-    >
-      {children}
-    </div>
-  );
-}
-
-// ─── CardFooter ───────────────────────────────────────────────────
-
-export interface CardFooterProps extends HTMLAttributes<HTMLDivElement> {
-  /** @default false — when true, removes the top border */
-  noBorder?: boolean;
-}
-
-export function CardFooter({
-  noBorder = false,
-  className,
-  children,
-  ...props
-}: CardFooterProps) {
-  return (
-    <div
-      className={cn(
-        'mt-4 pt-4 flex items-center justify-between gap-3',
-        !noBorder && 'border-t border-[var(--sf-border-default)]',
-        className,
-      )}
       {...props}
     >
       {children}

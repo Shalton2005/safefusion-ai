@@ -39,12 +39,16 @@ import type {
 } from '@/features/computer-vision/types';
 
 const base = createService('/vision');
+const camerasBase = createService('/cameras');
 
 export interface ZoneScopedParams extends ListParams {
   zone?: string;
 }
 
 export const visionService = {
+  /** GET /cameras/summary — Live summary from the PPE/Computer Vision engine. */
+  getCameraSummary: (options?: RequestOptions) =>
+    camerasBase.get<Record<string, unknown>>('summary', undefined, options),
   /** GET /vision/cameras — every registered camera and its live status. Backs `useCameras`. */
   getCameras: (params?: ZoneScopedParams, options?: RequestOptions) =>
     base.get<Camera[]>('cameras', params, options),

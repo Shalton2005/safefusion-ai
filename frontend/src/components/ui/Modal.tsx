@@ -45,7 +45,7 @@ import { Button } from './Button';
 
 // ─── Types ────────────────────────────────────────────────────────
 
-export type ModalSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'full';
+type ModalSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'full';
 
 // ─── Props ────────────────────────────────────────────────────────
 

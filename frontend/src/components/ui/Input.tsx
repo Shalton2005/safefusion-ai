@@ -31,7 +31,7 @@ import type { Size } from '@/types';
 // ─── Types ────────────────────────────────────────────────────────
 
 /** Visual height / font size of the input field. @default 'md' */
-export type InputFieldSize = Extract<Size, 'sm' | 'md' | 'lg'>;
+type InputFieldSize = Extract<Size, 'sm' | 'md' | 'lg'>;
 
 // ─── Shared props ─────────────────────────────────────────────────
 

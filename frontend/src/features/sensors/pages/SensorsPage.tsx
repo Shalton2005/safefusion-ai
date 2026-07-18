@@ -1,19 +1,12 @@
 import { Radio, Wifi, WifiOff, AlertTriangle } from 'lucide-react';
-import { Card, CardHeader, Badge, PageHeader, Table } from '@/components/ui';
+import { Card, CardHeader, Badge, PageHeader, Table, Skeleton, Alert } from '@/components/ui';
 import type { TableColumn } from '@/components/ui';
-import type { Device } from '@/types';
+import type { Device, DeviceStatus, SensorReading } from '@/types';
 import { SensorMonitoringPanel } from '@/features/sensors/components/SensorMonitoringPanel';
+import { useSensors } from '../hooks/useSensors';
+import { useMemo } from 'react';
 
-const PLACEHOLDER_SENSORS: Device[] = [
-  { id: '1', name: 'Sensor-A01', location: 'Zone A – Floor 1', status: 'online',   type: 'Gas',         lastSeen: new Date().toISOString() },
-  { id: '2', name: 'Sensor-B04', location: 'Zone B – Floor 2', status: 'warning',  type: 'Temperature', lastSeen: new Date(Date.now() - 60000).toISOString() },
-  { id: '3', name: 'Sensor-C02', location: 'Zone C – Exit',    status: 'offline',  type: 'Humidity',    lastSeen: new Date(Date.now() - 3600000).toISOString() },
-  { id: '4', name: 'Sensor-D07', location: 'Zone D – Storage', status: 'critical', type: 'Pressure',    lastSeen: new Date(Date.now() - 30000).toISOString() },
-  { id: '5', name: 'Sensor-A03', location: 'Zone A – Floor 2', status: 'online',   type: 'Gas',         lastSeen: new Date().toISOString() },
-  { id: '6', name: 'Sensor-E01', location: 'Zone E – Loading', status: 'online',   type: 'Motion',      lastSeen: new Date().toISOString() },
-];
-
-const statusConfig: Record<Device['status'], { label: string; variant: 'success' | 'warning' | 'danger' | 'default'; icon: React.ElementType }> = {
+const statusConfig: Record<DeviceStatus, { label: string; variant: 'success' | 'warning' | 'danger' | 'default'; icon: React.ElementType }> = {
   online:   { label: 'Online',   variant: 'success', icon: Wifi },
   offline:  { label: 'Offline',  variant: 'default', icon: WifiOff },
   warning:  { label: 'Warning',  variant: 'warning', icon: AlertTriangle },
@@ -27,14 +20,14 @@ const columns: TableColumn<Device>[] = [
     accessor: 'name',
     render: (v) => <span className="font-medium text-[var(--sf-text-primary)]">{v as string}</span>,
   },
-  { key: 'type',     header: 'Type',     accessor: 'type' },
+  { key: 'type',     header: 'Type',     accessor: 'type', render: (v) => (v as string).charAt(0).toUpperCase() + (v as string).slice(1) },
   { key: 'location', header: 'Location', accessor: 'location' },
   {
     key: 'status',
     header: 'Status',
     accessor: 'status',
     render: (v) => {
-      const cfg = statusConfig[v as Device['status']];
+      const cfg = statusConfig[v as DeviceStatus] || statusConfig.offline;
       return (
         <Badge variant={cfg.variant} dot size="sm">
           {cfg.label}
@@ -55,11 +48,32 @@ const columns: TableColumn<Device>[] = [
 ];
 
 export function SensorsPage() {
+  const { sensors, loading, error } = useSensors();
+
+  // Map backend SensorReading format to the Device UI format expected by the table
+  const mappedDevices: Device[] = useMemo(() => {
+    return sensors.map((s: SensorReading) => {
+      let mappedStatus: DeviceStatus = 'online';
+      if (s.status === 'warning') mappedStatus = 'warning';
+      if (s.status === 'critical') mappedStatus = 'critical';
+
+      return {
+        id: s.id,
+        name: `Sensor-${s.id.substring(0, 5).toUpperCase()}`,
+        location: s.zone,
+        type: s.sensor_type,
+        status: mappedStatus,
+        lastSeen: s.timestamp,
+        metrics: { value: s.value }
+      };
+    });
+  }, [sensors]);
+
   const summary = [
-    { label: 'Online',   count: PLACEHOLDER_SENSORS.filter((s) => s.status === 'online').length,   color: 'text-safe-500' },
-    { label: 'Warning',  count: PLACEHOLDER_SENSORS.filter((s) => s.status === 'warning').length,  color: 'text-caution-500' },
-    { label: 'Critical', count: PLACEHOLDER_SENSORS.filter((s) => s.status === 'critical').length, color: 'text-danger-500' },
-    { label: 'Offline',  count: PLACEHOLDER_SENSORS.filter((s) => s.status === 'offline').length,  color: 'text-[var(--sf-text-tertiary)]' },
+    { label: 'Online',   count: mappedDevices.filter((s) => s.status === 'online').length,   color: 'text-safe-500' },
+    { label: 'Warning',  count: mappedDevices.filter((s) => s.status === 'warning').length,  color: 'text-caution-500' },
+    { label: 'Critical', count: mappedDevices.filter((s) => s.status === 'critical').length, color: 'text-danger-500' },
+    { label: 'Offline',  count: mappedDevices.filter((s) => s.status === 'offline').length,  color: 'text-[var(--sf-text-tertiary)]' },
   ];
 
   return (
@@ -72,7 +86,7 @@ export function SensorsPage() {
         badge={
           <Badge variant="primary" size="sm" dot>
             <Radio className="w-3 h-3 mr-1" />
-            {PLACEHOLDER_SENSORS.length} devices
+            {mappedDevices.length} devices
           </Badge>
         }
       />
@@ -80,7 +94,9 @@ export function SensorsPage() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {summary.map((s) => (
           <Card key={s.label} padding="sm" className="text-center">
-            <p className={`text-2xl font-bold ${s.color}`}>{s.count}</p>
+            <p className={`text-2xl font-bold ${s.color}`}>
+              {loading ? <Skeleton className="h-8 w-12 mx-auto" /> : s.count}
+            </p>
             <p className="text-xs text-[var(--sf-text-tertiary)] mt-0.5">{s.label}</p>
           </Card>
         ))}
@@ -89,11 +105,18 @@ export function SensorsPage() {
       <Card padding="none">
         <CardHeader title="Sensor Inventory" className="px-6 pt-5 pb-0" />
         <div className="p-4">
+          {error && (
+            <Alert variant="danger" title="Failed to load sensors" className="mb-4">
+              {error}
+            </Alert>
+          )}
           <Table<Device>
             columns={columns}
-            data={PLACEHOLDER_SENSORS}
+            data={mappedDevices}
+            loading={loading}
             keyExtractor={(r) => r.id}
             caption="List of monitored sensor hardware"
+            emptyMessage="No sensors found."
           />
         </div>
       </Card>

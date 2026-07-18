@@ -12,11 +12,6 @@
 
 import { History } from 'lucide-react';
 import { Card, CardHeader, EmptyState, QueryState, Skeleton } from '@/components/ui';
-import { safetyTimelineService } from '@/services';
-import { useRecentAlerts } from '@/features/alerts/hooks/useRecentAlerts';
-import { useRecentRiskScores } from '@/features/dashboard/hooks/useRecentRiskScores';
-import { useEmergencyResponse } from '@/features/emergency/hooks/useEmergencyResponse';
-import { useRecommendations } from '@/features/recommendations/hooks/useRecommendations';
 import type { SafetyTimelineEvent } from '@/types';
 import { SafetyTimeline } from './SafetyTimeline';
 
@@ -76,48 +71,5 @@ export function SafetyTimelineSectionView({ events, loading, error, refresh, cla
         </QueryState>
       </div>
     </Card>
-  );
-}
-
-export interface SafetyTimelineSectionProps {
-  /** Maximum number of recent events to display. @default 20 */
-  limit?: number;
-  className?: string;
-}
-
-/**
- * Standalone, self-fetching `SafetyTimelineSection`. Uses the shared
- * `useRecentAlerts()` / `useEmergencyResponse()` / `useRecommendations()`
- * hooks (so it dedupes against any other consumer of those same hooks
- * higher up the tree) plus its own `GET /risk-scores` call, merging all
- * four into the event feed. Use `SafetyTimelineSectionView` instead when
- * a parent already holds this data.
- */
-export function SafetyTimelineSection({ limit = 20, className }: SafetyTimelineSectionProps) {
-  const { alerts, loading: alertsLoading, error: alertsError, refresh: refreshAlerts } = useRecentAlerts({ limit });
-  const { riskScores, loading: riskScoresLoading, error: riskScoresError, refresh: refreshRiskScores } = useRecentRiskScores({ limit });
-  const { actions, loading: actionsLoading, error: actionsError, lastUpdated: actionsUpdated, refresh: refreshActions } = useEmergencyResponse();
-  const { recommendations, loading: recommendationsLoading, error: recommendationsError, lastUpdated: recommendationsUpdated, refresh: refreshRecommendations } = useRecommendations();
-
-  const loading = alertsLoading || riskScoresLoading || actionsLoading || recommendationsLoading;
-  const error = alertsError ?? riskScoresError ?? actionsError ?? recommendationsError;
-  const fetchedAt = (actionsUpdated ?? recommendationsUpdated ?? new Date()).toISOString();
-  const events = safetyTimelineService.mergeTimeline(alerts, riskScores, actions, recommendations, limit, fetchedAt);
-
-  const refresh = () => {
-    refreshAlerts();
-    refreshRiskScores();
-    refreshActions();
-    refreshRecommendations();
-  };
-
-  return (
-    <SafetyTimelineSectionView
-      events={events}
-      loading={loading}
-      error={error}
-      refresh={refresh}
-      className={className}
-    />
   );
 }

@@ -7,11 +7,7 @@ import { PlantSafetyOverviewSectionView } from '@/features/dashboard/components/
 import { ZoneOverviewSectionView } from '@/features/dashboard/components/ZoneOverviewSection';
 import { SafetyTimelineSectionView } from '@/features/dashboard/components/SafetyTimelineSection';
 import { ChartCard, RiskTrendChart, SensorReadingsChart, AlertDistributionChart } from '@/components/charts';
-import {
-  RISK_TREND_DATA,
-  SENSOR_READINGS_DATA,
-  ALERT_DISTRIBUTION_DATA,
-} from '@/features/dashboard/data/chartDummyData';
+// Removed chartDummyData import
 import { WorkerMonitoringPanel } from '@/features/workers/components/WorkerMonitoringPanel';
 import { SensorMonitoringPanel } from '@/features/sensors/components/SensorMonitoringPanel';
 import { AlertsPanelView } from '@/features/alerts/components/AlertsPanel';
@@ -33,17 +29,17 @@ import { useCompoundRiskEngine } from '@/features/risk/hooks/useCompoundRiskEngi
 import { useEmergencyResponse } from '@/features/emergency/hooks/useEmergencyResponse';
 import { useRecommendations } from '@/features/recommendations/hooks/useRecommendations';
 import { useComplianceStatus } from '@/features/compliance/hooks/useComplianceStatus';
+import { useDashboardSummary } from '@/features/dashboard/hooks/useDashboardSummary';
+import { useAnalyticsSummary } from '@/features/analytics/hooks/useAnalyticsSummary';
+import { useRecentSensors } from '@/features/sensors/hooks/useRecentSensors';
 import { usePlantStatusStore } from '@/store';
 import { safetyTimelineService } from '@/services';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useCallback } from 'react';
 
 /** How many recent alerts / risk-score records feed the timeline + incident summary. */
 const TIMELINE_LIMIT = 20;
 
 export function DashboardPage() {
-  // Shared fetches — each backend endpoint is called exactly once per
-  // interval here, and the results are passed down as props to every
-  // section that needs them, instead of each section fetching on its own.
   const alertsData = useRecentAlerts({ limit: 100 });
   const riskScoresData = useRecentRiskScores({ limit: TIMELINE_LIMIT });
   const plantSafetyOverviewData = usePlantSafetyOverview();
@@ -52,13 +48,12 @@ export function DashboardPage() {
   const emergencyData = useEmergencyResponse();
   const recommendationsData = useRecommendations();
   const complianceData = useComplianceStatus();
+  
+  // New API Hooks
+  const dashboardSummaryData = useDashboardSummary();
+  const analyticsSummaryData = useAnalyticsSummary();
+  const recentSensorsData = useRecentSensors({ limit: 100 });
 
-  // Publishes the already-fetched compound risk assessment for the
-  // globally-mounted EmergencyStatusBannerContainer (in DashboardLayout,
-  // above this page's <Outlet />) to reuse via usePlantStatusStore,
-  // instead of it independently re-calling the same non-idempotent
-  // POST /risk-scores/calculate endpoint. Cleared on unmount so a stale
-  // value doesn't leak to other pages after navigating away.
   useEffect(() => {
     if (riskEngineData.assessment) {
       usePlantStatusStore.getState().publish({
@@ -81,14 +76,52 @@ export function DashboardPage() {
       ),
     [alertsData.alerts, riskScoresData.riskScores, emergencyData.actions, emergencyData.lastUpdated, recommendationsData.recommendations, recommendationsData.lastUpdated],
   );
+  
   const timelineLoading = alertsData.loading || riskScoresData.loading || emergencyData.loading || recommendationsData.loading;
   const timelineError = alertsData.error ?? riskScoresData.error ?? emergencyData.error ?? recommendationsData.error;
-  const refreshTimeline = () => {
+  
+  const refreshTimeline = useCallback(() => {
     alertsData.refresh();
     riskScoresData.refresh();
     emergencyData.refresh();
     recommendationsData.refresh();
-  };
+  }, [alertsData, riskScoresData, emergencyData, recommendationsData]);
+
+  // Compute Chart Data dynamically
+  const riskTrendData = useMemo(() => {
+    return [...riskScoresData.riskScores]
+      .sort((a, b) => new Date(a.analyzed_at).getTime() - new Date(b.analyzed_at).getTime())
+      .map(score => ({
+        date: new Date(score.analyzed_at).toLocaleDateString('en-US', { month: 'short', day: '2-digit' }),
+        score: score.risk_score
+      }));
+  }, [riskScoresData.riskScores]);
+
+  const alertDistributionData = useMemo(() => {
+    const counts: Record<string, number> = { Critical: 0, High: 0, Medium: 0, Low: 0 };
+    alertsData.alerts.forEach(alert => {
+      const key = alert.severity.charAt(0).toUpperCase() + alert.severity.slice(1);
+      if (counts[key] !== undefined) counts[key]++;
+      else counts[key] = 1;
+    });
+    return Object.entries(counts).map(([severity, count]) => ({ severity: severity as 'Critical' | 'High' | 'Medium' | 'Low', count })).filter(d => d.count > 0);
+  }, [alertsData.alerts]);
+
+  const sensorReadingsData = useMemo(() => {
+    const points: Record<string, { gas: number[], temperature: number[], pressure: number[] }> = {};
+    recentSensorsData.sensors.forEach(sensor => {
+      const timeStr = new Date(sensor.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+      if (!points[timeStr]) points[timeStr] = { gas: [], temperature: [], pressure: [] };
+      if (sensor.sensor_type === 'gas') points[timeStr].gas.push(sensor.value);
+      else if (sensor.sensor_type === 'temperature') points[timeStr].temperature.push(sensor.value);
+      else if (sensor.sensor_type === 'pressure') points[timeStr].pressure.push(sensor.value);
+    });
+    
+    return Object.entries(points).map(([time, values]) => {
+      const avg = (arr: number[]) => arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : 0;
+      return { time, gas: avg(values.gas), temperature: avg(values.temperature), pressure: avg(values.pressure) };
+    }).sort((a, b) => a.time.localeCompare(b.time));
+  }, [recentSensorsData.sensors]);
 
   return (
     <div className="page-container">
@@ -103,7 +136,12 @@ export function DashboardPage() {
       <CriticalHazardBanner />
 
       {/* KPI cards */}
-      <KpiCardGrid />
+      <KpiCardGrid
+        dashboardSummary={dashboardSummaryData.summary}
+        analyticsSummary={analyticsSummaryData.summary}
+        plantSafetyOverview={plantSafetyOverviewData.overview}
+        loading={dashboardSummaryData.loading || analyticsSummaryData.loading || plantSafetyOverviewData.loading}
+      />
 
       {/* Plant safety overview */}
       <PlantSafetyOverviewSectionView
@@ -151,7 +189,7 @@ export function DashboardPage() {
         description="Overall risk score — last 30 days"
         action={<Badge variant="danger" size="sm" dot pulsing>Live</Badge>}
       >
-        <RiskTrendChart data={RISK_TREND_DATA} />
+        <RiskTrendChart data={riskTrendData} />
       </ChartCard>
 
       {/* Sensor readings */}
@@ -160,13 +198,13 @@ export function DashboardPage() {
         description="Gas, temperature, and pressure — today"
         height={220}
       >
-        <SensorReadingsChart data={SENSOR_READINGS_DATA} />
+        <SensorReadingsChart data={sensorReadingsData} />
       </ChartCard>
 
       {/* Alert distribution */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <ChartCard title="Alert Distribution" description="By severity" className="lg:col-span-1">
-          <AlertDistributionChart data={ALERT_DISTRIBUTION_DATA} />
+          <AlertDistributionChart data={alertDistributionData} />
         </ChartCard>
       </div>
 

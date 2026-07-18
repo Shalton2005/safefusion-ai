@@ -28,7 +28,7 @@ import { cn } from '@/lib/cn';
 
 // ─── Types ────────────────────────────────────────────────────────
 
-export interface BreadcrumbItem {
+interface BreadcrumbItem {
   /** Human-readable label. */
   label: string;
   /**

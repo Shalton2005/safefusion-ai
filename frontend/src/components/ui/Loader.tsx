@@ -28,7 +28,7 @@ import type { Size } from '@/types';
 
 // ─── Types ────────────────────────────────────────────────────────
 
-export type LoaderVariant = 'spinner' | 'dots' | 'bar';
+type LoaderVariant = 'spinner' | 'dots' | 'bar';
 
 // ─── Props ────────────────────────────────────────────────────────
 

@@ -1,7 +1,6 @@
 import { ShieldQuestion } from 'lucide-react';
 import { Card, CardHeader, EmptyState, QueryState, Skeleton } from '@/components/ui';
 import { LastUpdated } from '@/components/common/LastUpdated';
-import { useComplianceStatus } from '@/features/compliance/hooks/useComplianceStatus';
 import { ComplianceDashboard } from './ComplianceDashboard';
 import type { ComplianceStatusSnapshot } from '@/types';
 
@@ -58,24 +57,5 @@ export function ComplianceDashboardSectionView({
         {!error && <LastUpdated timestamp={lastUpdated} className="px-1" />}
       </div>
     </Card>
-  );
-}
-
-export interface ComplianceDashboardSectionProps {
-  className?: string;
-}
-
-/** Standalone, self-fetching `ComplianceDashboardSection` — fetches its own `GET /compliance/status` data. Use `ComplianceDashboardSectionView` instead when the data is already fetched elsewhere on the page. */
-export function ComplianceDashboardSection({ className }: ComplianceDashboardSectionProps) {
-  const { snapshot, loading, error, lastUpdated, refresh } = useComplianceStatus();
-  return (
-    <ComplianceDashboardSectionView
-      snapshot={snapshot}
-      loading={loading}
-      error={error}
-      lastUpdated={lastUpdated}
-      refresh={refresh}
-      className={className}
-    />
   );
 }

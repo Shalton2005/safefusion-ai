@@ -28,7 +28,7 @@ export interface WorkerStatusIndicatorProps {
   zone: string | null;
   /** Current shift. */
   shift: 'Morning' | 'Afternoon' | 'Night';
-  /** PPE compliance — placeholder until live PPE detection is wired up. */
+  /** Current PPE compliance status derived from backend worker profile. */
   ppeCompliant: boolean;
   /** Worker's permit status, when known. Omitted if not yet linked to a permit record. */
   permitStatus?: PermitStatus;

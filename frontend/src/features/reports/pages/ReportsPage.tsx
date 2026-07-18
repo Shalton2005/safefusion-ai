@@ -1,37 +1,10 @@
-import { FileBarChart2, Download, Plus, Clock } from 'lucide-react';
-import { Card, CardHeader, Badge, Table, Button, PageHeader } from '@/components/ui';
+import { useState } from 'react';
+import { FileBarChart2, Clock, Search, Filter } from 'lucide-react';
+import { Card, CardHeader, Badge, Table, Button, PageHeader, Input, Alert } from '@/components/ui';
 import type { TableColumn } from '@/components/ui';
 import type { Report } from '@/types';
 import { formatDateTime } from '@/utils/format';
-
-const MOCK_REPORTS: Report[] = [
-  {
-    id: '1',
-    title: 'Monthly Safety Report – June 2026',
-    type: 'Monthly',
-    generatedAt: new Date(Date.now() - 24 * 3600 * 1000).toISOString(),
-    generatedBy: 'System',
-    status: 'ready',
-    downloadUrl: '#',
-  },
-  {
-    id: '2',
-    title: 'Incident Analysis Q2 2026',
-    type: 'Quarterly',
-    generatedAt: new Date(Date.now() - 2 * 24 * 3600 * 1000).toISOString(),
-    generatedBy: 'Admin',
-    status: 'ready',
-    downloadUrl: '#',
-  },
-  {
-    id: '3',
-    title: 'Equipment Inspection – Zone A',
-    type: 'Custom',
-    generatedAt: new Date().toISOString(),
-    generatedBy: 'Supervisor',
-    status: 'pending',
-  },
-];
+import { useReports } from '@/features/reports/hooks/useReports';
 
 const columns: TableColumn<Report>[] = [
   {
@@ -72,49 +45,89 @@ const columns: TableColumn<Report>[] = [
       </Badge>
     ),
   },
-  {
-    key: 'actions',
-    header: '',
-    accessor: 'downloadUrl',
-    align: 'right',
-    render: (v) =>
-      v ? (
-        <Button
-          variant="ghost"
-          size="xs"
-          leftIcon={<Download className="w-3.5 h-3.5" />}
-          onClick={(e) => e.stopPropagation()}
-        >
-          Download
-        </Button>
-      ) : null,
-  },
 ];
 
 export function ReportsPage() {
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const limit = 10;
+  const skip = (page - 1) * limit;
+
+  const { reports, total, loading, error } = useReports({ limit, skip, search });
+
+  const totalPages = Math.ceil(total / limit) || 1;
+
   return (
     <div className="page-container">
       <PageHeader
         title="Reports"
-        description="Generate and download safety compliance reports."
-        actions={
-          <Button leftIcon={<Plus className="w-4 h-4" />}>
-            Generate Report
-          </Button>
-        }
+        description="View and track safety compliance, risks, and incident reports."
         border={false}
         className="px-0 pt-0"
       />
 
       <Card padding="none">
-        <CardHeader title="Report History" className="px-6 pt-5 pb-0" />
+        <CardHeader 
+          title="Report History" 
+          className="px-6 pt-5 pb-4 border-b border-[var(--color-border)]"
+          action={
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" />
+                <Input
+                  placeholder="Search reports..."
+                  value={search}
+                  onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+                  className="pl-9 w-64"
+                />
+              </div>
+              <Button variant="outline" leftIcon={<Filter className="w-4 h-4" />}>
+                Filter
+              </Button>
+            </div>
+          }
+        />
         <div className="p-4">
+          {error && (
+            <Alert variant="danger" title="Failed to load reports" className="mb-4">
+              {error}
+            </Alert>
+          )}
+
           <Table<Report>
             columns={columns}
-            data={MOCK_REPORTS}
+            data={reports}
             keyExtractor={(r) => r.id}
             caption="Report history"
+            loading={loading}
+            emptyMessage={search ? "No reports match your search criteria." : "No reports have been generated yet."}
           />
+          
+          {total > 0 && (
+            <div className="flex items-center justify-between mt-4 px-2">
+              <span className="text-sm text-[var(--color-text-muted)]">
+                Showing {skip + 1} to {Math.min(skip + limit, total)} of {total} reports
+              </span>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  disabled={page === 1 || loading}
+                  onClick={() => setPage(p => p - 1)}
+                >
+                  Previous
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  disabled={page === totalPages || loading}
+                  onClick={() => setPage(p => p + 1)}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </Card>
     </div>

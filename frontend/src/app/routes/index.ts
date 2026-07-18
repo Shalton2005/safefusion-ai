@@ -9,10 +9,7 @@
  */
 
 export type {
-  RouteMetadata,
-  AppRouteDefinition,
   NavRouteItem,
-  RoutePartitions,
 } from './types';
 
 export { appRouteDefinitions }  from './appRoutes';

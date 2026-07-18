@@ -19,12 +19,6 @@ export interface PaginatedResponse<T = unknown> {
   totalPages: number;
 }
 
-export interface ApiError {
-  message: string;
-  code?: string;
-  statusCode?: number;
-  details?: Record<string, string[]>;
-}
 
 // ─── User / Auth ───────────────────────────────────────────────────
 export interface User {
@@ -213,23 +207,15 @@ export interface RiskScoreCalculationResult {
 export type RiskStatus = 'safe' | 'warning' | 'critical';
 
 // ─── Emergency Response (GET /emergency/actions) ───────────────────
-export const EMERGENCY_ACTION_TYPES = [
-  'notify_safety_officer',
-  'notify_control_room',
-  'stop_work',
-  'isolate_equipment',
-  'evacuate_area',
-  'generate_incident',
-] as const;
-export type EmergencyActionType = (typeof EMERGENCY_ACTION_TYPES)[number];
+export type EmergencyActionType = 'notify_safety_officer' | 'notify_control_room' | 'stop_work' | 'isolate_equipment' | 'evacuate_area' | 'generate_incident';
 
-export interface EmergencyActionMatch {
+interface EmergencyActionMatch {
   action: EmergencyActionType;
   triggered_by_rule: string;
   explanation: string;
 }
 
-export interface ZoneEmergencyResponseResult {
+interface ZoneEmergencyResponseResult {
   zone: string;
   risk_score: number;
   risk_level: SeverityLevel;
@@ -254,7 +240,7 @@ export interface EmergencyActionItem {
 }
 
 // ─── Emergency Status (GET /emergency/status) ───────────────────────
-export interface ZoneEmergencyStatus {
+interface ZoneEmergencyStatus {
   zone: string;
   risk_score: number;
   risk_level: SeverityLevel;
@@ -274,8 +260,7 @@ export interface EmergencyStatus {
  * precedence; otherwise it buckets the Compound Risk engine's overall
  * `risk_level` for the highest-risk zone.
  */
-export const PLANT_STATUSES = ['normal', 'warning', 'critical', 'emergency'] as const;
-export type PlantStatus = (typeof PLANT_STATUSES)[number];
+export type PlantStatus = 'normal' | 'warning' | 'critical' | 'emergency';
 
 /** Aggregated compound risk assessment for the `CompoundRiskCard`. */
 export interface CompoundRiskAssessment {
@@ -375,7 +360,7 @@ export interface DashboardSummary {
 }
 
 // ─── Dashboard Full Payload (GET /dashboard) ───────────────────────
-export interface ZoneSensorSummary {
+interface ZoneSensorSummary {
   zone: string;
   normal_count: number;
   warning_count: number;
@@ -411,11 +396,9 @@ export interface ZoneOverview {
 }
 
 // ─── Compliance (GET /compliance/status) ───────────────────────────
-export const COMPLIANCE_FRAMEWORKS = ['factory_act', 'oisd', 'dgms'] as const;
-export type ComplianceFramework = (typeof COMPLIANCE_FRAMEWORKS)[number];
+export type ComplianceFramework = 'factory_act' | 'oisd' | 'dgms';
 
-export const COMPLIANCE_STATUSES = ['compliant', 'non_compliant'] as const;
-export type ComplianceStatus = (typeof COMPLIANCE_STATUSES)[number];
+export type ComplianceStatus = 'compliant' | 'non_compliant';
 
 export interface ComplianceStatusSnapshot {
   status: ComplianceStatus;
@@ -425,7 +408,7 @@ export interface ComplianceStatusSnapshot {
 }
 
 // ─── Compliance Evaluation (POST /compliance/evaluate, GET /compliance/incidents/{id}) ───
-export interface ComplianceViolation {
+interface ComplianceViolation {
   rule_code: string;
   framework: ComplianceFramework;
   title: string;
@@ -443,8 +426,7 @@ export interface IncidentComplianceResult {
 }
 
 // ─── Recommendations (GET /recommendations) ────────────────────────
-export const RECOMMENDATION_SOURCES = ['compound_risk', 'emergency_response', 'compliance'] as const;
-export type RecommendationSource = (typeof RECOMMENDATION_SOURCES)[number];
+export type RecommendationSource = 'compound_risk' | 'emergency_response' | 'compliance';
 
 export interface Recommendation {
   source: RecommendationSource;
@@ -461,7 +443,7 @@ export interface RecommendationResult {
 }
 
 // ─── Incident Report (GET /incident-reports/{incident_id}) ─────────
-export interface ReportSummary {
+interface ReportSummary {
   incident_id: string;
   zone: string;
   incident_type: IncidentType;
@@ -470,32 +452,32 @@ export interface ReportSummary {
   root_cause: string | null;
 }
 
-export interface TimelineEvent {
+interface TimelineEvent {
   timestamp: string;
   label: string;
   description: string;
 }
 
-export interface DetectedRisk {
+interface DetectedRisk {
   zone: string;
   risk_score: number;
   risk_level: SeverityLevel;
   explanation: string;
 }
 
-export interface IncidentTriggeredRule {
+interface IncidentTriggeredRule {
   rule_name: string;
   points: number;
   explanation: string;
 }
 
-export interface EmergencyActionEntry {
+interface EmergencyActionEntry {
   action: EmergencyActionType;
   triggered_by_rule: string;
   explanation: string;
 }
 
-export interface ComplianceNote {
+interface ComplianceNote {
   rule_code: string;
   framework: ComplianceFramework;
   title: string;
@@ -552,13 +534,6 @@ export interface KnowledgeGraphVisualization {
 }
 
 // ─── Navigation ────────────────────────────────────────────────────
-export interface NavItem {
-  label: string;
-  path: string;
-  icon?: React.ElementType;
-  badge?: string | number;
-  children?: NavItem[];
-}
 
 // ─── UI Helpers ────────────────────────────────────────────────────
 export type Size    = 'xs' | 'sm' | 'md' | 'lg' | 'xl';

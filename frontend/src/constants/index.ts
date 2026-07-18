@@ -10,9 +10,8 @@ export const LS_COPILOT_KEY  = 'safefusion:copilot-conversations';
 export const DASHBOARD_REFRESH_INTERVAL = 10000;
 
 // Severity levels
-export const SEVERITY_LEVELS = ['low', 'medium', 'high', 'critical'] as const;
-export type SeverityLevel = (typeof SEVERITY_LEVELS)[number];
+export type SeverityLevel = 'low' | 'medium' | 'high' | 'critical';
+export const SEVERITY_LEVELS: SeverityLevel[] = ['low', 'medium', 'high', 'critical'];
 
 // Alert status
-export const ALERT_STATUSES = ['active', 'acknowledged', 'resolved'] as const;
-export type AlertStatus = (typeof ALERT_STATUSES)[number];
+export type AlertStatus = 'active' | 'acknowledged' | 'resolved';

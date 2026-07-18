@@ -193,8 +193,12 @@ export const useCopilotStore = create<CopilotStoreState>()(
 
         const requestId = ++latestRequestId;
 
+        const history = get().messages
+          .filter(m => m.status === 'complete' || m.status === 'error')
+          .map((m) => ({ role: m.role, content: m.content }));
+
         try {
-          const response = await copilotApiService.ask({ question: trimmed });
+          const response = await copilotApiService.ask({ question: trimmed, history });
           if (requestId !== latestRequestId) return;
 
           const messages = get().messages.map((m) =>
@@ -229,9 +233,18 @@ export const useCopilotStore = create<CopilotStoreState>()(
         const requestId = ++latestRequestId;
         set({ recommendationsLoading: true, recommendationsError: null });
         try {
-          const { data } = await aiService.recommend({ zone });
+          const { data } = await aiService.recommend({ text: 'recommend', params: { zone } });
           if (requestId !== latestRequestId) return;
-          set({ recommendations: data.recommendations, recommendationsLoading: false });
+          const mapped: AIRecommendation[] = data.recommendations.map((r, i) => ({
+            id: `rec-${i}`,
+            title: 'Recommendation',
+            description: r.text,
+            priority: 'medium',
+            affectedArea: r.zone ?? 'Plant-wide',
+            confidence: 100,
+            actionType: r.source_agent
+          }));
+          set({ recommendations: mapped, recommendationsLoading: false });
         } catch (err) {
           if (requestId !== latestRequestId) return;
           set({ recommendations: [], recommendationsError: ApiError.from(err).toUserMessage(), recommendationsLoading: false });
@@ -242,9 +255,10 @@ export const useCopilotStore = create<CopilotStoreState>()(
         const requestId = ++latestRequestId;
         set({ reasoningLoading: true, reasoningError: null });
         try {
-          const { data } = await aiService.explain({ decisionId });
+          const { data } = await aiService.explain({ text: 'explain', params: { decisionId } });
           if (requestId !== latestRequestId) return;
-          set({ reasoning: data, reasoningLoading: false });
+          const reasoningData: AIReasoningData = data.report;
+          set({ reasoning: reasoningData, reasoningLoading: false });
         } catch (err) {
           if (requestId !== latestRequestId) return;
           set({ reasoning: null, reasoningError: ApiError.from(err).toUserMessage(), reasoningLoading: false });

@@ -12,7 +12,6 @@
 import { HardHat, Radio, FileCheck2, Bell, Gauge, ShieldOff } from 'lucide-react';
 import { EmptyState, QueryState, StatCard } from '@/components/ui';
 import { LastUpdated } from '@/components/common/LastUpdated';
-import { usePlantSafetyOverview } from '@/features/dashboard/hooks/usePlantSafetyOverview';
 import { cn } from '@/lib/cn';
 import type { PlantSafetyOverview as PlantSafetyOverviewData } from '@/types';
 import { PlantSafetyOverview } from './PlantSafetyOverview';
@@ -80,24 +79,5 @@ export function PlantSafetyOverviewSectionView({ overview, loading, error, lastU
         </div>
       )}
     </QueryState>
-  );
-}
-
-export interface PlantSafetyOverviewSectionProps {
-  className?: string;
-}
-
-/** Standalone, self-fetching `PlantSafetyOverviewSection` — polls `GET /dashboard` on its own. Use `PlantSafetyOverviewSectionView` instead when the data is already fetched elsewhere on the page. */
-export function PlantSafetyOverviewSection({ className }: PlantSafetyOverviewSectionProps) {
-  const { overview, loading, error, lastUpdated, refresh } = usePlantSafetyOverview();
-  return (
-    <PlantSafetyOverviewSectionView
-      overview={overview}
-      loading={loading}
-      error={error}
-      lastUpdated={lastUpdated}
-      refresh={refresh}
-      className={className}
-    />
   );
 }

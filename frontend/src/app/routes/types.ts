@@ -14,7 +14,7 @@ import type { LazyExoticComponent, ComponentType, ElementType } from 'react';
  * Pure metadata about a route.
  * No React components – safe to import in any module.
  */
-export interface RouteMetadata {
+interface RouteMetadata {
   /** Stable unique identifier (used for active-state detection, testing) */
   readonly id: string;
   /** URL path (e.g. '/dashboard') */
@@ -73,9 +73,3 @@ export type NavRouteItem = Pick<
  * Groups of routes partitioned by access level.
  * Used by `buildRouter()` to wrap in the correct layout.
  */
-export interface RoutePartitions {
-  /** Routes rendered inside DashboardLayout + ProtectedRoute */
-  protected: AppRouteDefinition[];
-  /** Routes rendered inside AuthLayout (login, forgot-password, etc.) */
-  public: AppRouteDefinition[];
-}

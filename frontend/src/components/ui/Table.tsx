@@ -51,7 +51,10 @@ export function Table<TRow = Record<string, unknown>>({
   };
 
   return (
-    <div className={cn('overflow-x-auto rounded-card border border-[var(--color-border)]', className)}>
+    <div
+      className={cn('overflow-x-auto rounded-xl border border-[var(--sf-border-default)]', className)}
+      style={{ WebkitOverflowScrolling: 'touch' }}
+    >
       <table className="w-full text-sm border-collapse">
         {caption && (
           <caption className="sr-only">{caption}</caption>
@@ -59,14 +62,14 @@ export function Table<TRow = Record<string, unknown>>({
 
         {/* Head */}
         <thead>
-          <tr className="bg-[var(--color-bg-secondary)] border-b border-[var(--color-border)]">
+          <tr className="bg-[var(--sf-surface-sunken)] border-b border-[var(--sf-border-default)]">
             {columns.map((col) => (
               <th
                 key={col.key}
                 scope="col"
                 style={{ width: col.width }}
                 className={cn(
-                  'px-4 py-3 font-semibold text-[var(--color-text-muted)] text-xs uppercase tracking-wider',
+                  'px-4 py-3 font-semibold text-[var(--sf-text-tertiary)] text-xs uppercase tracking-wider',
                   col.align === 'center' && 'text-center',
                   col.align === 'right'  && 'text-right',
                   !col.align             && 'text-left',
@@ -91,7 +94,7 @@ export function Table<TRow = Record<string, unknown>>({
               <td
                 colSpan={columns.length}
                 role="status"
-                className="py-12 text-center text-[var(--color-text-muted)]"
+                className="py-12 text-center text-[var(--sf-text-tertiary)]"
               >
                 {emptyMessage}
               </td>
@@ -114,8 +117,8 @@ export function Table<TRow = Record<string, unknown>>({
                     : undefined
                 }
                 className={cn(
-                  'border-b border-[var(--color-border)] last:border-0',
-                  'bg-[var(--color-bg-card)] hover:bg-[var(--color-bg-secondary)]',
+                  'border-b border-[var(--sf-border-default)] last:border-0',
+                  'bg-[var(--sf-surface-card)] hover:bg-[var(--sf-surface-raised)]',
                   'transition-colors duration-100',
                   onRowClick && 'cursor-pointer',
                   onRowClick && 'focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-inset',
@@ -125,7 +128,7 @@ export function Table<TRow = Record<string, unknown>>({
                   <td
                     key={col.key}
                     className={cn(
-                      'px-4 py-3 text-[var(--color-text-secondary)]',
+                      'px-4 py-3 text-[var(--sf-text-secondary)]',
                       col.align === 'center' && 'text-center',
                       col.align === 'right'  && 'text-right',
                     )}

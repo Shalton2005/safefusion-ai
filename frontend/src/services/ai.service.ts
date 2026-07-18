@@ -26,58 +26,91 @@
 import { createService } from './base.service';
 import type { RequestOptions } from '@/api/types';
 import type { AIReasoningData } from '@/features/ai-supervisor/types';
-import type { AIRecommendation } from '@/components/recommendations';
 
 const base = createService('/ai');
 
+export interface AgentTraceResponse {
+  agent: string;
+  ok: boolean;
+  summary: string;
+  citations: string[];
+  error: string | null;
+}
+
+export interface ReasoningMetadataResponse {
+  route: string[];
+  agent_traces: AgentTraceResponse[];
+  model: string | null;
+  warnings: string[];
+}
+
 // ─── POST /ai/chat ──────────────────────────────────────────────────
+
+export interface AIChatMessage {
+  role: string;
+  content: string;
+}
 
 export interface AIChatRequest {
   message: string;
-  /** Existing conversation id, when continuing a thread. Omitted for a new conversation. */
-  conversationId?: string;
+  history?: AIChatMessage[];
+  params?: Record<string, unknown>;
 }
 
 export interface AIChatResponse {
-  conversationId: string;
-  /** The assistant's generated reply. */
   reply: string;
-  /** Supporting sources the reply is grounded in, if the backend reports any. */
-  sources?: Array<{ id: string; source: string; title: string | null; excerpt: string; similarity: number | null }>;
+  explanation: string;
+  reasoning: ReasoningMetadataResponse;
 }
 
 // ─── POST /ai/query ─────────────────────────────────────────────────
 
 export interface AIQueryRequest {
-  question: string;
-  limit?: number;
+  text: string;
+  params?: Record<string, unknown>;
 }
 
 export interface AIQueryResponse {
-  question: string;
-  results: Array<{ id: string; source: string; title: string | null; excerpt: string; similarity: number | null }>;
+  request_text: string;
+  summary: string;
+  agent_data: Record<string, unknown>;
+  reasoning: ReasoningMetadataResponse;
 }
 
 // ─── POST /ai/explain ───────────────────────────────────────────────
 
 export interface AIExplainRequest {
-  /** Id of the decision/conclusion to explain (e.g. an `AIDecision.id`). */
-  decisionId: string;
+  text: string;
+  params?: Record<string, unknown>;
+}
+
+export interface AIExplainabilityResponse {
+  request_text: string;
+  report: AIReasoningData;
+  reasoning: ReasoningMetadataResponse;
 }
 
 // ─── POST /ai/recommend ─────────────────────────────────────────────
 
 export interface AIRecommendRequest {
-  /** Zone or area to scope recommendations to. Omitted for plant-wide recommendations. */
-  zone?: string;
+  text: string;
+  params?: Record<string, unknown>;
+}
+
+export interface RecommendationResponse {
+  source_agent: string;
+  text: string;
+  zone: string | null;
 }
 
 export interface AIRecommendResponse {
-  recommendations: AIRecommendation[];
+  request_text: string;
+  recommendations: RecommendationResponse[];
+  reasoning: ReasoningMetadataResponse;
 }
 
 export const aiService = {
-  /** POST /ai/chat — conversational reply, optionally continuing `conversationId`. */
+  /** POST /ai/chat — conversational reply. */
   chat: (request: AIChatRequest, options?: RequestOptions) =>
     base.post<AIChatResponse, AIChatRequest>('chat', request, options),
 
@@ -85,11 +118,11 @@ export const aiService = {
   query: (request: AIQueryRequest, options?: RequestOptions) =>
     base.post<AIQueryResponse, AIQueryRequest>('query', request, options),
 
-  /** POST /ai/explain — full reasoning breakdown for a decision (see `AIReasoningPanel`). */
+  /** POST /ai/explainability — full reasoning breakdown for a decision. */
   explain: (request: AIExplainRequest, options?: RequestOptions) =>
-    base.post<AIReasoningData, AIExplainRequest>('explain', request, options),
+    base.post<AIExplainabilityResponse, AIExplainRequest>('explainability', request, options),
 
-  /** POST /ai/recommend — AI-surfaced recommendations, optionally scoped to a zone (see `AIRecommendationCardGrid`). */
-  recommend: (request: AIRecommendRequest = {}, options?: RequestOptions) =>
+  /** POST /ai/recommend — AI-surfaced recommendations. */
+  recommend: (request: AIRecommendRequest = { text: '' }, options?: RequestOptions) =>
     base.post<AIRecommendResponse, AIRecommendRequest>('recommend', request, options),
 };

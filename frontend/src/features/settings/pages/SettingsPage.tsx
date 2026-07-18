@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { User, Bell, Shield, Palette, Database, ChevronRight } from 'lucide-react';
 import { Card, CardHeader, Button, Input, Badge, PageHeader } from '@/components/ui';
-import { useTheme } from '@/hooks/useTheme';
+import { useThemeStore } from '@/store';
 import { cn } from '@/lib/cn';
 import type { Theme } from '@/types';
 
@@ -23,7 +23,7 @@ const THEME_OPTIONS: { value: Theme; label: string; description: string }[] = [
 
 export function SettingsPage() {
   const [activeSection, setActiveSection] = useState<SettingsSection>('appearance');
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme } = useThemeStore();
 
   return (
     <div className="page-container">

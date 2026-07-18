@@ -11,7 +11,7 @@
  */
 
 import { X, CheckCircle2, AlertCircle, Info, TriangleAlert } from 'lucide-react';
-import { useNotificationStore, type NotificationType } from '@/store';
+import { useNotificationStore, type NotificationType } from '@/store/useNotificationStore';
 import { cn } from '@/lib/cn';
 
 // ─── Per-type visual config ───────────────────────────────────────
@@ -60,8 +60,8 @@ function ToastItem({ id, type, title, message }: ToastItemProps) {
 
   return (
     <div
-      role="status"
-      aria-live="polite"
+      role={type === 'error' ? 'alert' : 'status'}
+      aria-live={type === 'error' ? 'assertive' : 'polite'}
       className={cn(
         'relative flex items-start gap-3 p-4 pl-5',
         'rounded-xl border border-[var(--sf-border-strong)]',

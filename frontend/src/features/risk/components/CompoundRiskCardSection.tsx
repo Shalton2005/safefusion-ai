@@ -11,7 +11,6 @@
 
 import { QueryState, Skeleton } from '@/components/ui';
 import { LastUpdated } from '@/components/common/LastUpdated';
-import { useCompoundRiskEngine } from '@/features/risk/hooks/useCompoundRiskEngine';
 import { cn } from '@/lib/cn';
 import type { CompoundRiskAssessment } from '@/types';
 import { CompoundRiskCard } from './CompoundRiskCard';
@@ -54,24 +53,5 @@ export function CompoundRiskCardSectionView({ assessment, loading, error, lastUp
         </div>
       )}
     </QueryState>
-  );
-}
-
-export interface CompoundRiskCardSectionProps {
-  className?: string;
-}
-
-/** Standalone, self-fetching `CompoundRiskCardSection` — runs its own engine call. Use `CompoundRiskCardSectionView` instead when the result is already fetched elsewhere on the page. */
-export function CompoundRiskCardSection({ className }: CompoundRiskCardSectionProps) {
-  const { assessment, loading, error, lastUpdated, refresh } = useCompoundRiskEngine();
-  return (
-    <CompoundRiskCardSectionView
-      assessment={assessment}
-      loading={loading}
-      error={error}
-      lastUpdated={lastUpdated}
-      refresh={refresh}
-      className={className}
-    />
   );
 }

@@ -1,58 +1,50 @@
 import { FileCheck2, Clock, XCircle } from 'lucide-react';
-import { Card, CardHeader, Badge, PageHeader, Table } from '@/components/ui';
+import { Card, CardHeader, Badge, PageHeader, Table, Skeleton, Alert } from '@/components/ui';
 import type { TableColumn } from '@/components/ui';
 import { PermitDashboardPanel } from '@/features/permits/components/PermitDashboardPanel';
-
-interface Permit {
-  id: string;
-  title: string;
-  type: string;
-  zone: string;
-  requestedBy: string;
-  status: 'approved' | 'pending' | 'rejected' | 'expired';
-  expiresAt: string;
-}
-
-const PLACEHOLDER_PERMITS: Permit[] = [
-  { id: '1', title: 'Hot Work – Zone A',        type: 'Hot Work',    zone: 'Zone A', requestedBy: 'Tom Hardwick', status: 'approved', expiresAt: '2026-07-15' },
-  { id: '2', title: 'Confined Space Entry',     type: 'Confined Space', zone: 'Zone D', requestedBy: 'Priya Nair', status: 'pending',  expiresAt: '2026-07-10' },
-  { id: '3', title: 'Working at Height',        type: 'Height',      zone: 'Zone B', requestedBy: 'Jane Cooper',  status: 'approved', expiresAt: '2026-07-20' },
-  { id: '4', title: 'Excavation Permit',        type: 'Excavation',  zone: 'Zone C', requestedBy: 'Ana Delgado',  status: 'rejected', expiresAt: '—' },
-  { id: '5', title: 'Electrical Isolation',     type: 'Electrical',  zone: 'Zone A', requestedBy: 'Marcus Lee',   status: 'expired',  expiresAt: '2026-06-30' },
-];
+import type { Permit } from '@/types';
+import { usePermits } from '../hooks/usePermits';
 
 const statusVariant: Record<Permit['status'], 'success' | 'warning' | 'danger' | 'default'> = {
-  approved: 'success',
-  pending:  'warning',
-  rejected: 'danger',
-  expired:  'default',
+  active: 'success',
+  suspended: 'warning',
+  closed: 'default',
 };
 
 const columns: TableColumn<Permit>[] = [
   {
-    key: 'title',
-    header: 'Permit',
-    accessor: 'title',
-    render: (v) => <span className="font-medium text-[var(--sf-text-primary)]">{v as string}</span>,
+    key: 'permit_type',
+    header: 'Type',
+    accessor: 'permit_type',
+    render: (v) => <span className="font-medium text-[var(--sf-text-primary)]">{(v as string).replace('_', ' ')}</span>,
   },
-  { key: 'type',        header: 'Type',         accessor: 'type' },
   { key: 'zone',        header: 'Zone',         accessor: 'zone' },
-  { key: 'requestedBy', header: 'Requested By', accessor: 'requestedBy' },
+  { key: 'issued_by', header: 'Issued By', accessor: 'issued_by' },
+  { key: 'assigned_team', header: 'Team', accessor: 'assigned_team' },
   {
     key: 'status',
     header: 'Status',
     accessor: 'status',
     render: (v) => (
-      <Badge variant={statusVariant[v as Permit['status']]} size="sm" dot>
+      <Badge variant={statusVariant[v as Permit['status']] || 'default'} size="sm" dot>
         {v as string}
       </Badge>
     ),
   },
-  { key: 'expiresAt', header: 'Expires', accessor: 'expiresAt' },
+  { 
+    key: 'end_time', 
+    header: 'Expires', 
+    accessor: 'end_time',
+    render: (v) => <span className="text-[var(--sf-text-tertiary)] text-xs">{new Date(v as string).toLocaleDateString()}</span>
+  },
 ];
 
 export function PermitsPage() {
-  const pending = PLACEHOLDER_PERMITS.filter((p) => p.status === 'pending').length;
+  const { permits, loading, error } = usePermits();
+
+  const activeCount = permits.filter((p) => p.status === 'active').length;
+  const suspendedCount = permits.filter((p) => p.status === 'suspended').length;
+  const closedCount = permits.filter((p) => p.status === 'closed').length;
 
   return (
     <div className="page-container">
@@ -62,9 +54,9 @@ export function PermitsPage() {
         border={false}
         className="px-0 pt-0"
         badge={
-          pending > 0 ? (
-            <Badge variant="warning" size="sm" dot>
-              {pending} pending
+          activeCount > 0 ? (
+            <Badge variant="primary" size="sm" dot>
+              {activeCount} active
             </Badge>
           ) : undefined
         }
@@ -74,32 +66,41 @@ export function PermitsPage() {
         <Card padding="sm" className="text-center">
           <FileCheck2 className="w-5 h-5 mx-auto text-safe-500" />
           <p className="mt-2 text-2xl font-bold text-[var(--sf-text-primary)]">
-            {PLACEHOLDER_PERMITS.filter((p) => p.status === 'approved').length}
+            {loading ? <Skeleton className="h-8 w-16 mx-auto" /> : activeCount}
           </p>
-          <p className="text-xs text-[var(--sf-text-tertiary)] mt-0.5">Approved</p>
+          <p className="text-xs text-[var(--sf-text-tertiary)] mt-0.5">Active Permits</p>
         </Card>
         <Card padding="sm" className="text-center">
           <Clock className="w-5 h-5 mx-auto text-caution-500" />
-          <p className="mt-2 text-2xl font-bold text-[var(--sf-text-primary)]">{pending}</p>
-          <p className="text-xs text-[var(--sf-text-tertiary)] mt-0.5">Pending Review</p>
+          <p className="mt-2 text-2xl font-bold text-[var(--sf-text-primary)]">
+            {loading ? <Skeleton className="h-8 w-16 mx-auto" /> : suspendedCount}
+          </p>
+          <p className="text-xs text-[var(--sf-text-tertiary)] mt-0.5">Suspended</p>
         </Card>
         <Card padding="sm" className="text-center">
           <XCircle className="w-5 h-5 mx-auto text-danger-500" />
           <p className="mt-2 text-2xl font-bold text-[var(--sf-text-primary)]">
-            {PLACEHOLDER_PERMITS.filter((p) => p.status === 'rejected' || p.status === 'expired').length}
+            {loading ? <Skeleton className="h-8 w-16 mx-auto" /> : closedCount}
           </p>
-          <p className="text-xs text-[var(--sf-text-tertiary)] mt-0.5">Rejected / Expired</p>
+          <p className="text-xs text-[var(--sf-text-tertiary)] mt-0.5">Closed</p>
         </Card>
       </div>
 
       <Card padding="none">
-        <CardHeader title="Permit Requests" className="px-6 pt-5 pb-0" />
+        <CardHeader title="Permit Records" className="px-6 pt-5 pb-0" />
         <div className="p-4">
+          {error && (
+            <Alert variant="danger" title="Failed to load permits" className="mb-4">
+              {error}
+            </Alert>
+          )}
           <Table<Permit>
             columns={columns}
-            data={PLACEHOLDER_PERMITS}
+            data={permits}
+            loading={loading}
             keyExtractor={(r) => r.id}
-            caption="List of work permit requests"
+            caption="List of work permit records"
+            emptyMessage="No permits found."
           />
         </div>
       </Card>

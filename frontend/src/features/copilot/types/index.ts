@@ -1,10 +1,10 @@
 // ─── AI Safety Copilot — domain types ─────────────────────────────
 
 /** Who authored a given message in a conversation. */
-export type CopilotMessageRole = 'user' | 'assistant';
+type CopilotMessageRole = 'user' | 'assistant';
 
 /** Lifecycle state of an assistant message as it streams in. */
-export type CopilotMessageStatus = 'pending' | 'complete' | 'error';
+type CopilotMessageStatus = 'pending' | 'complete' | 'error';
 
 /** A supporting document chunk the copilot's answer is grounded in. */
 export interface CopilotSourceChunk {

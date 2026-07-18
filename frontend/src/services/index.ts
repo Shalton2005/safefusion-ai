@@ -15,7 +15,6 @@ export { emergencyResponseService } from './emergencyResponse.service';
 export { graphService } from './graph.service';
 export { incidentReportService } from './incidentReport.service';
 export { incidentsService } from './incidents.service';
-export { monitoringService }from './monitoring.service';
 export { permitsService }   from './permits.service';
 export { recommendationService } from './recommendation.service';
 export { reportsService }   from './reports.service';

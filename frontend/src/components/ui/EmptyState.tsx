@@ -26,7 +26,7 @@ import { cn } from '@/lib/cn';
 
 // ─── Types ────────────────────────────────────────────────────────
 
-export type EmptyStateSize = 'sm' | 'md' | 'lg';
+type EmptyStateSize = 'sm' | 'md' | 'lg';
 
 // ─── Props ────────────────────────────────────────────────────────
 

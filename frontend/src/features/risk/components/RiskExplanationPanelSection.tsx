@@ -13,7 +13,6 @@
 import { ShieldOff } from 'lucide-react';
 import { EmptyState, QueryState, Skeleton } from '@/components/ui';
 import { LastUpdated } from '@/components/common/LastUpdated';
-import { useCompoundRiskEngine } from '@/features/risk/hooks/useCompoundRiskEngine';
 import { cn } from '@/lib/cn';
 import type { RiskExplanation } from '@/types';
 import { RiskExplanationPanel } from './RiskExplanationPanel';
@@ -74,24 +73,5 @@ export function RiskExplanationPanelSectionView({ explanation, loading, error, l
         )
       }
     </QueryState>
-  );
-}
-
-export interface RiskExplanationPanelSectionProps {
-  className?: string;
-}
-
-/** Standalone, self-fetching `RiskExplanationPanelSection` — runs its own engine call. Use `RiskExplanationPanelSectionView` instead when the result is already fetched elsewhere on the page. */
-export function RiskExplanationPanelSection({ className }: RiskExplanationPanelSectionProps) {
-  const { explanation, loading, error, lastUpdated, refresh } = useCompoundRiskEngine();
-  return (
-    <RiskExplanationPanelSectionView
-      explanation={explanation}
-      loading={loading}
-      error={error}
-      lastUpdated={lastUpdated}
-      refresh={refresh}
-      className={className}
-    />
   );
 }

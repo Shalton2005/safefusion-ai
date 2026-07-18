@@ -1,7 +1,6 @@
 import { ShieldAlert } from 'lucide-react';
 import { Card, CardHeader, Badge, EmptyState, QueryState } from '@/components/ui';
 import { LastUpdated } from '@/components/common/LastUpdated';
-import { useEmergencyResponse } from '@/features/emergency/hooks/useEmergencyResponse';
 import { EmergencyResponsePanel } from './EmergencyResponsePanel';
 import type { EmergencyActionItem } from '@/types';
 
@@ -65,24 +64,5 @@ export function EmergencyResponsePanelSectionView({
         {!error && <LastUpdated timestamp={lastUpdated} className="px-1" />}
       </div>
     </Card>
-  );
-}
-
-export interface EmergencyResponsePanelSectionProps {
-  className?: string;
-}
-
-/** Standalone, self-fetching `EmergencyResponsePanelSection` — fetches its own `GET /emergency/actions` data. Use `EmergencyResponsePanelSectionView` instead when the data is already fetched elsewhere on the page. */
-export function EmergencyResponsePanelSection({ className }: EmergencyResponsePanelSectionProps) {
-  const { actions, loading, error, lastUpdated, refresh } = useEmergencyResponse();
-  return (
-    <EmergencyResponsePanelSectionView
-      actions={actions}
-      loading={loading}
-      error={error}
-      lastUpdated={lastUpdated}
-      refresh={refresh}
-      className={className}
-    />
   );
 }

@@ -48,10 +48,10 @@ export function useAIExplain(decisionId: string | null): UseAIExplainResult {
     setError(null);
 
     aiService
-      .explain({ decisionId }, { signal })
+      .explain({ text: 'explain', params: { decisionId } }, { signal })
       .then(({ data: response }) => {
         if (requestId !== requestIdRef.current) return;
-        setData(response);
+        setData(response.report);
         setLoading(false);
       })
       .catch((err) => {

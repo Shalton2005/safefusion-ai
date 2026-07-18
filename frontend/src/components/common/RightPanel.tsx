@@ -4,10 +4,25 @@ import { cn } from '@/lib/cn';
 import { useRightPanelStore } from '@/store';
 import { ActivityPanel } from '@/components/common/activity-panel';
 
+import { formatRelativeTime } from '@/utils/format';
+import { useRecentAlerts } from '@/features/alerts/hooks/useRecentAlerts';
+import type { ActivityFeedItem } from '@/components/common/activity-panel/types';
+
 export function RightPanel() {
   const open = useRightPanelStore((s) => s.open);
   const setOpen = useRightPanelStore((s) => s.setOpen);
   const headingId = useId();
+
+  const alertsData = useRecentAlerts({ limit: 10 });
+
+  const alertsFeed = alertsData.alerts.map((a): ActivityFeedItem => ({
+    id: a.id,
+    title: a.alert_type,
+    description: a.message,
+    time: formatRelativeTime(a.generated_at),
+    badgeLabel: a.zone,
+    tone: a.severity === 'critical' ? 'danger' : a.severity === 'high' ? 'warning' : 'primary',
+  }));
 
   if (!open) return null;
 
@@ -30,7 +45,7 @@ export function RightPanel() {
         </button>
       </div>
 
-      <ActivityPanel className="flex-1" maxHeight="none" />
+      <ActivityPanel alerts={alertsFeed} className="flex-1" maxHeight="none" />
     </aside>
   );
 }

@@ -33,4 +33,4 @@ export function incidentReportPath(incidentId: string): string {
   return `/incidents/${incidentId}/report`;
 }
 
-export type AppRoute = (typeof ROUTES)[keyof typeof ROUTES];
+

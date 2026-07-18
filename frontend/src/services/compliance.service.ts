@@ -17,4 +17,13 @@ export const complianceService = {
   /** Compliance evaluation for a single incident (`GET /compliance/incidents/{id}`). */
   getIncidentCompliance: (id: string, options?: RequestOptions) =>
     base.get<IncidentComplianceResult>(`incidents/${id}`, undefined, options),
+
+  /** Evaluate all detected incidents for compliance (`POST /compliance/evaluate`). */
+  evaluateAll: async (
+    params?: { skip?: number; limit?: number },
+    options?: RequestOptions,
+  ): Promise<{ results: Record<string, unknown>[] }> => {
+    const { data } = await base.post<{ results: Record<string, unknown>[] }>('evaluate', undefined, { ...options, params });
+    return data;
+  },
 };

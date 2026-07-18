@@ -1,28 +1,22 @@
-import { MapPin, Factory } from 'lucide-react';
-import { Card, CardHeader, Badge } from '@/components/ui';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import { MapContainer, TileLayer, Marker, Popup, Tooltip } from 'react-leaflet';
+import MarkerClusterGroup from 'react-leaflet-cluster';
+import { Card, CardHeader, Badge, Skeleton, Alert } from '@/components/ui';
 import { CardHeaderLink } from '@/components/common/CardHeaderLink';
 import { ROUTES } from '@/constants/routes';
+import { useThemeStore } from '@/store/useThemeStore';
 import { cn } from '@/lib/cn';
 import { SEVERITY_BADGE_VARIANT } from '@/utils/severity';
 import type { SeverityLevel } from '@/constants';
+import { useIncidentMapData } from '../hooks/useIncidentMapData';
+import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from './zoneCoordinates';
 
-// ─── Placeholder plant zone data ───────────────────────────────────
-// Static, illustrative only — no backend integration until the Leaflet
-// map layer replaces this placeholder.
-
-interface PlantZone {
-  name: string;
-  risk: SeverityLevel;
-}
-
-const PLANT_ZONES: PlantZone[] = [
-  { name: 'Tank-Farm',    risk: 'high' },
-  { name: 'Boiler-Area',  risk: 'critical' },
-  { name: 'Zone-A',       risk: 'medium' },
-  { name: 'Zone-B',       risk: 'low' },
-  { name: 'Zone-C',       risk: 'medium' },
-  { name: 'Zone-D',       risk: 'low' },
-];
+// Map tile layers for light and dark modes
+const TILE_LAYERS = {
+  light: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+  dark:  'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+};
 
 const RISK_LEGEND: { level: SeverityLevel; label: string }[] = [
   { level: 'low',      label: 'Low' },
@@ -38,24 +32,58 @@ const riskDotClass: Record<SeverityLevel, string> = {
   critical: 'bg-danger-500',
 };
 
-const riskBorderClass: Record<SeverityLevel, string> = {
-  low:      'border-safe-500/40',
-  medium:   'border-primary-500/40',
-  high:     'border-caution-500/40',
-  critical: 'border-danger-500/40',
-};
+// Component to dynamically switch tile layers based on theme without remounting the map
+function ThemeTileLayer() {
+  const { resolvedTheme } = useThemeStore();
+  const tileUrl = resolvedTheme === 'dark' ? TILE_LAYERS.dark : TILE_LAYERS.light;
+  
+  return (
+    <TileLayer
+      url={tileUrl}
+      attribution='&copy; <a href="https://carto.com/">CartoDB</a>'
+    />
+  );
+}
+
+// Function to create a custom HTML marker icon based on severity
+function createSeverityIcon(severity: SeverityLevel) {
+  const colorMap = {
+    low: '#10b981', // safe-500
+    medium: '#3b82f6', // primary-500
+    high: '#f59e0b', // caution-500
+    critical: '#ef4444' // danger-500
+  };
+  
+  const color = colorMap[severity] || colorMap.low;
+  
+  return L.divIcon({
+    className: 'custom-incident-marker',
+    html: `<div style="
+      background-color: ${color}; 
+      width: 14px; 
+      height: 14px; 
+      border-radius: 50%; 
+      border: 2px solid white;
+      box-shadow: 0 0 4px rgba(0,0,0,0.5);
+    "></div>`,
+    iconSize: [14, 14],
+    iconAnchor: [7, 7]
+  });
+}
 
 export function SafetyHeatmapContainer() {
+  const { incidents, loading, error } = useIncidentMapData();
+
   return (
     <Card padding="none">
       <CardHeader
         title="Safety Heatmap"
-        description="Plant-wide risk overview by zone."
+        description="Live incident cluster mapping across zones."
         className="px-6 pt-5 pb-0"
         action={
           <div className="flex items-center gap-3">
             <Badge variant="ghost" size="sm">
-              Map view coming soon
+              Live Map
             </Badge>
             <CardHeaderLink to={ROUTES.LIVE_MONITORING} label="View Live Monitoring" />
           </div>
@@ -73,62 +101,63 @@ export function SafetyHeatmapContainer() {
           ))}
         </div>
 
-        {/* Map placeholder — reserves space for the future Leaflet layer */}
+        {error && (
+          <Alert variant="danger" title="Failed to load map data">
+            {error}
+          </Alert>
+        )}
+
+        {/* Interactive Map */}
         <div
           className={cn(
             'relative w-full aspect-video sm:aspect-[16/7] rounded-xl overflow-hidden',
-            'border-2 border-dashed border-[var(--sf-border-default)]',
-            'bg-[var(--sf-surface-sunken)]',
+            'border-2 border-[var(--sf-border-default)]',
+            'bg-[var(--sf-surface-sunken)] z-0'
           )}
-          role="img"
-          aria-label="Industrial plant map placeholder — interactive map will render here"
         >
-          {/* Faint industrial-plant silhouette backdrop */}
-          <div className="absolute inset-0 flex items-center justify-center opacity-[0.07]">
-            <Factory className="w-32 h-32 sm:w-48 sm:h-48 text-[var(--sf-text-primary)]" aria-hidden="true" />
-          </div>
-
-          {/* Plant zone markers scattered across the placeholder canvas */}
-          <div className="absolute inset-0 grid grid-cols-2 sm:grid-cols-3 gap-3 p-5 sm:p-8">
-            {PLANT_ZONES.map((zone) => (
-              <div key={zone.name} className="flex items-center justify-center">
-                <div
-                  className={cn(
-                    'flex items-center gap-1.5 rounded-full border bg-[var(--sf-surface-card)]/90 backdrop-blur-sm',
-                    'px-2.5 py-1 shadow-sf-card',
-                    riskBorderClass[zone.risk],
-                  )}
-                >
-                  <MapPin className={cn('w-3 h-3 flex-shrink-0', riskDotClass[zone.risk].replace('bg-', 'text-'))} aria-hidden="true" />
-                  <span className="text-2xs font-medium text-[var(--sf-text-primary)] whitespace-nowrap">
-                    {zone.name}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Overlay caption */}
-          <div className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-2 py-2 bg-[var(--sf-surface-base)]/70 backdrop-blur-sm">
-            <span className="text-xs text-[var(--sf-text-tertiary)]">
-              Interactive plant map (Leaflet) will render here
-            </span>
-          </div>
-        </div>
-
-        {/* Plant zones list */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-          {PLANT_ZONES.map((zone) => (
-            <div
-              key={zone.name}
-              className="flex items-center justify-between gap-2 rounded-lg border border-[var(--sf-border-default)] bg-[var(--sf-surface-raised)] px-3 py-2"
+          {loading ? (
+            <Skeleton className="w-full h-full" />
+          ) : (
+            <MapContainer 
+              center={DEFAULT_MAP_CENTER} 
+              zoom={DEFAULT_MAP_ZOOM} 
+              scrollWheelZoom={false}
+              style={{ height: '100%', width: '100%', zIndex: 0 }}
             >
-              <span className="text-xs font-medium text-[var(--sf-text-primary)] truncate">{zone.name}</span>
-              <Badge variant={SEVERITY_BADGE_VARIANT[zone.risk]} size="sm" dot>
-                {zone.risk}
-              </Badge>
-            </div>
-          ))}
+              <ThemeTileLayer />
+              
+              <MarkerClusterGroup
+                chunkedLoading
+                maxClusterRadius={40}
+              >
+                {incidents.map((incident) => (
+                  <Marker 
+                    key={incident.id} 
+                    position={[incident.lat, incident.lng]}
+                    icon={createSeverityIcon(incident.severity)}
+                  >
+                    <Tooltip direction="top" offset={[0, -10]} opacity={1}>
+                      <span className="font-medium text-xs">{incident.incident_type}</span>
+                    </Tooltip>
+                    <Popup className="incident-popup">
+                      <div className="flex flex-col gap-1 min-w-[200px]">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-sm text-[var(--sf-text-primary)]">{incident.zone}</span>
+                          <Badge variant={SEVERITY_BADGE_VARIANT[incident.severity]} size="sm">{incident.severity}</Badge>
+                        </div>
+                        <span className="text-xs text-[var(--sf-text-tertiary)] font-mono">
+                          {new Date(incident.occurred_at).toLocaleString()}
+                        </span>
+                        <p className="text-xs text-[var(--sf-text-secondary)] mt-1 break-words">
+                          {incident.description}
+                        </p>
+                      </div>
+                    </Popup>
+                  </Marker>
+                ))}
+              </MarkerClusterGroup>
+            </MapContainer>
+          )}
         </div>
       </div>
     </Card>

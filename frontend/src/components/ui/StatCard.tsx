@@ -35,7 +35,7 @@ import { Skeleton } from './Loader';
 export type TrendDirection = 'up' | 'down' | 'stable';
 
 /** Background colour applied to the icon container. */
-export type StatCardIconVariant =
+type StatCardIconVariant =
   | 'primary'
   | 'success'
   | 'warning'

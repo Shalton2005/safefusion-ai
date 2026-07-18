@@ -1,49 +1,13 @@
 import { Bell, Filter } from 'lucide-react';
 import { Card, CardHeader, Badge, Table, Button, PageHeader } from '@/components/ui';
 import type { TableColumn } from '@/components/ui';
-import type { Alert } from '@/types';
+import type { AlertRecord } from '@/types';
 import { formatRelativeTime } from '@/utils/format';
 import { SEVERITY_BADGE_VARIANT } from '@/utils/severity';
 import { AlertsPanel } from '@/features/alerts/components/AlertsPanel';
 import { RecentIncidentsPanel } from '@/features/alerts/components/RecentIncidentsPanel';
-
-const MOCK_ALERTS: Alert[] = [
-  {
-    id: '1',
-    title: 'Gas leak detected',
-    description: 'H₂S concentration above threshold in Zone A',
-    severity: 'critical',
-    status: 'active',
-    deviceId: '1',
-    deviceName: 'Sensor-A01',
-    location: 'Zone A – Floor 1',
-    triggeredAt: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
-  },
-  {
-    id: '2',
-    title: 'Temperature spike',
-    description: 'Ambient temperature exceeded 85°C',
-    severity: 'high',
-    status: 'acknowledged',
-    deviceId: '2',
-    deviceName: 'Sensor-B04',
-    location: 'Zone B – Floor 2',
-    triggeredAt: new Date(Date.now() - 20 * 60 * 1000).toISOString(),
-    acknowledgedAt: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
-  },
-  {
-    id: '3',
-    title: 'Pressure drop',
-    description: 'Pressure fell below minimum operating level',
-    severity: 'medium',
-    status: 'resolved',
-    deviceId: '4',
-    deviceName: 'Sensor-D07',
-    location: 'Zone D – Storage',
-    triggeredAt: new Date(Date.now() - 2 * 3600 * 1000).toISOString(),
-    resolvedAt: new Date(Date.now() - 90 * 60 * 1000).toISOString(),
-  },
-];
+import { useRecentAlerts } from '@/features/alerts/hooks/useRecentAlerts';
+import { useMemo } from 'react';
 
 const statusVariant: Record<string, 'danger' | 'warning' | 'success'> = {
   active:       'danger',
@@ -51,16 +15,16 @@ const statusVariant: Record<string, 'danger' | 'warning' | 'success'> = {
   resolved:     'success',
 };
 
-const columns: TableColumn<Alert>[] = [
+const columns: TableColumn<AlertRecord>[] = [
   {
-    key: 'title',
+    key: 'alert_type',
     header: 'Alert',
-    accessor: 'title',
+    accessor: 'alert_type',
     render: (v, row) => (
       <div>
         <p className="font-medium text-[var(--color-text-primary)]">{v as string}</p>
         <p className="text-xs text-[var(--color-text-muted)] mt-0.5 truncate max-w-xs">
-          {row.description}
+          {row.message}
         </p>
       </div>
     ),
@@ -70,7 +34,7 @@ const columns: TableColumn<Alert>[] = [
     header: 'Severity',
     accessor: 'severity',
     render: (v) => (
-      <Badge variant={SEVERITY_BADGE_VARIANT[v as Alert['severity']]} dot size="sm">
+      <Badge variant={SEVERITY_BADGE_VARIANT[v as AlertRecord['severity']]} dot size="sm">
         {(v as string).charAt(0).toUpperCase() + (v as string).slice(1)}
       </Badge>
     ),
@@ -85,12 +49,12 @@ const columns: TableColumn<Alert>[] = [
       </Badge>
     ),
   },
-  { key: 'deviceName', header: 'Device',   accessor: 'deviceName' },
-  { key: 'location',   header: 'Location', accessor: 'location' },
+  { key: 'source', header: 'Device',   accessor: 'source' },
+  { key: 'zone',   header: 'Location', accessor: 'zone' },
   {
-    key: 'triggeredAt',
+    key: 'generated_at',
     header: 'Triggered',
-    accessor: 'triggeredAt',
+    accessor: 'generated_at',
     render: (v) => (
       <span className="text-xs text-[var(--color-text-muted)]">
         {formatRelativeTime(v as string)}
@@ -100,6 +64,18 @@ const columns: TableColumn<Alert>[] = [
 ];
 
 export function AlertsPage() {
+  const { alerts } = useRecentAlerts({ limit: 50 });
+
+  const summary = useMemo(() => {
+    const counts = { all: alerts.length, active: 0, acknowledged: 0, resolved: 0 };
+    alerts.forEach(a => {
+      if (a.status === 'active') counts.active++;
+      else if (a.status === 'acknowledged') counts.acknowledged++;
+      else if (a.status === 'resolved') counts.resolved++;
+    });
+    return counts;
+  }, [alerts]);
+
   return (
     <div className="page-container">
       <PageHeader
@@ -112,7 +88,7 @@ export function AlertsPage() {
             </Button>
             <Badge variant="danger" dot>
               <Bell className="w-3 h-3 mr-1" />
-              7 Active
+              {summary.active} Active
             </Badge>
           </>
         }
@@ -123,10 +99,10 @@ export function AlertsPage() {
       {/* Summary badges */}
       <div className="flex flex-wrap gap-2">
         {[
-          { label: 'All',          count: 18, variant: 'outline' as const },
-          { label: 'Active',       count: 7,  variant: 'danger'  as const },
-          { label: 'Acknowledged', count: 5,  variant: 'warning' as const },
-          { label: 'Resolved',     count: 6,  variant: 'success' as const },
+          { label: 'All',          count: summary.all,          variant: 'outline' as const },
+          { label: 'Active',       count: summary.active,       variant: 'danger'  as const },
+          { label: 'Acknowledged', count: summary.acknowledged, variant: 'warning' as const },
+          { label: 'Resolved',     count: summary.resolved,     variant: 'success' as const },
         ].map((s) => (
           <Badge key={s.label} variant={s.variant} size="md">
             {s.label} ({s.count})
@@ -137,9 +113,9 @@ export function AlertsPage() {
       <Card padding="none">
         <CardHeader title="Alert Log" className="px-6 pt-5 pb-0" />
         <div className="p-4">
-          <Table<Alert>
+          <Table<AlertRecord>
             columns={columns}
-            data={MOCK_ALERTS}
+            data={alerts}
             keyExtractor={(r) => r.id}
             caption="Safety alert log"
           />

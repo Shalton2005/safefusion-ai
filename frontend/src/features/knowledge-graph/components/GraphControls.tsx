@@ -19,7 +19,7 @@
  * />
  */
 
-import { Search, ZoomIn, ZoomOut, RotateCcw, SlidersHorizontal } from 'lucide-react';
+import { Search, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 import { Card, Input, Button } from '@/components/ui';
 
 export interface GraphControlsProps {
@@ -32,12 +32,6 @@ export interface GraphControlsProps {
   onZoomOut?: () => void;
   /** Fired when the Reset View button is clicked. */
   onResetView?: () => void;
-  /**
-   * Fired when the Filters button is clicked. Placeholder — no filter
-   * panel is implemented yet, so callers can wire this up later without
-   * changing GraphControls itself.
-   */
-  onFilterClick?: () => void;
   className?: string;
 }
 
@@ -47,7 +41,6 @@ export function GraphControls({
   onZoomIn,
   onZoomOut,
   onResetView,
-  onFilterClick,
   className,
 }: GraphControlsProps) {
   return (
@@ -63,15 +56,7 @@ export function GraphControls({
       </div>
 
       <div className="flex items-center gap-2 flex-wrap">
-        {/* Filter placeholder — no filter panel implemented yet */}
-        <Button
-          variant="outline"
-          size="sm"
-          leftIcon={<SlidersHorizontal className="w-4 h-4" />}
-          onClick={onFilterClick}
-        >
-          Filters
-        </Button>
+        {/* Removed filter placeholder as per pending backend integration requirements */}
         <Button variant="outline" size="sm" iconOnly aria-label="Zoom in" onClick={onZoomIn}>
           <ZoomIn className="w-4 h-4" />
         </Button>
