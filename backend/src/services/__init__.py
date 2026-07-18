@@ -9,6 +9,7 @@ other domain components.
 from src.services.alert import AlertService
 from src.services.alert_generation import AlertGenerationService
 from src.services.alert_rules import AlertRuleEngine
+from src.services.computer_vision import CameraMonitoringService, PPEComplianceEngine
 from src.services.demo_scenarios import DemoScenarioRunner
 from src.services.event_bus import EventDispatcher, EventPublisher
 from src.services.incident import IncidentService
@@ -48,4 +49,6 @@ __all__: list[str] = [
 	"RiskScoreEngine",
 	"WorkerMonitoringService",
 	"TimelineService",
+	"PPEComplianceEngine",
+	"CameraMonitoringService",
 ]

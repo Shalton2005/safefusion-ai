@@ -5,15 +5,17 @@ Deterministic post-processing step over the results the
 input :mod:`~src.ai.agents.response_aggregator` consumes. It makes **no
 LLM call** and reaches no engine or service directly; every field is
 derived purely from each agent's own
-:class:`~src.ai.agents.base.AgentResult`.
+:class:`~src.ai.agents.base.AgentResult`, plus (optionally) camera
+evidence — see below.
 
 Distinct from :mod:`~src.ai.agents.response_aggregator`: that module
 builds an operator-facing unified response (what to *do*); this module
 builds an audit/explainability report (why the system said what it
-said) — evidence, graph relationships, retrieved regulations, and a
-per-agent contribution breakdown, serializable straight to JSON for a
-"why" panel or compliance log. The two are siblings reading the same
-``AgentResult`` list, not a layering of one over the other.
+said) — evidence, graph relationships, retrieved regulations, a per-agent
+contribution breakdown, and (Day 14) camera evidence, serializable
+straight to JSON for a "why" panel or compliance log. The two are
+siblings reading the same ``AgentResult`` list, not a layering of one
+over the other.
 
 Modularity: each report section is a self-contained function keyed off
 ``AgentResult.agent`` (a lookup table, not branching) — the same pattern
@@ -30,6 +32,17 @@ concept: each executed agent's equal share of attention in this report
 (not the confidence engine's per-*factor* weighting, which combines
 multiple agents into factors like "retrieval relevance" that don't map
 1:1 onto a single agent).
+
+Camera evidence (Day 14): Computer Vision findings are not produced by a
+Supervisor agent (see :mod:`~src.ai.agents.camera_evidence`'s module
+docstring for why), so they can't be read off an ``AgentResult`` the way
+every other section here is. ``explain()`` accepts an optional
+``zone_compound_risk_results`` parameter instead — when supplied, any
+camera-sourced compound-risk rule matches it contains are folded into a
+``camera_evidence`` section via
+:func:`~src.ai.agents.camera_evidence.build_camera_evidence`. Omitting it
+(the default) leaves ``camera_evidence`` empty, so every existing caller
+of ``explain(results)`` keeps working unchanged.
 """
 
 from __future__ import annotations
@@ -39,9 +52,11 @@ from dataclasses import asdict, dataclass, field
 from typing import Any
 
 from src.ai.agents.base import AgentResult
+from src.ai.agents.camera_evidence import CameraEvidenceSection, build_camera_evidence
 from src.ai.agents.compliance_agent import ComplianceAssessment
 from src.ai.agents.graph_knowledge_agent import GraphKnowledgeResult
 from src.ai.confidence import default_confidence_engine
+from src.services.compound_risk.schemas import ZoneCompoundRiskResult
 
 COMPLIANCE_AGENT = "compliance"
 KNOWLEDGE_AGENT = "knowledge"
@@ -119,6 +134,11 @@ class ExplainabilityReport:
             what it contributed.
         confidence: 0.0-1.0 overall confidence in the explanation, from
             :func:`~src.ai.confidence.default_confidence_engine`.
+        camera_evidence: Camera-sourced compound-risk findings (Day 14) —
+            empty unless the caller passed ``zone_compound_risk_results``
+            to :func:`explain`. See
+            :mod:`~src.ai.agents.camera_evidence` for why this is a
+            distinct, non-``AgentResult``-backed section.
     """
 
     summary: str
@@ -127,6 +147,7 @@ class ExplainabilityReport:
     retrieved_regulations: tuple[RegulationReference, ...]
     agent_contributions: tuple[AgentContribution, ...]
     confidence: float
+    camera_evidence: CameraEvidenceSection = field(default_factory=CameraEvidenceSection)
 
     def to_dict(self) -> dict[str, Any]:
         """Plain-dict form, ready for ``json.dumps`` or a Pydantic response model."""
@@ -140,7 +161,10 @@ class ExplainabilityReport:
 # ── Public entry point ──────────────────────────────────────────────────────
 
 
-def explain(results: list[AgentResult]) -> ExplainabilityReport:
+def explain(
+    results: list[AgentResult],
+    zone_compound_risk_results: list[ZoneCompoundRiskResult] | None = None,
+) -> ExplainabilityReport:
     """Build an :class:`ExplainabilityReport` from a list of agent results.
 
     Args:
@@ -148,6 +172,13 @@ def explain(results: list[AgentResult]) -> ExplainabilityReport:
             ``src/ai/agents/supervisor.py``) — every agent the supervisor
             executed for one request, in execution order, including
             failed results.
+        zone_compound_risk_results: Optional Compound Risk Engine output
+            (typically ``CompoundRiskService.detect_compound_risks()``)
+            for the zone(s) this request concerns. When supplied, any
+            camera-sourced triggered rules within it populate the
+            report's ``camera_evidence`` section (see
+            :mod:`~src.ai.agents.camera_evidence`). Omitted by default so
+            existing callers that only have agent results are unaffected.
     """
     by_agent = {result.agent: result for result in results}
 
@@ -158,6 +189,7 @@ def explain(results: list[AgentResult]) -> ExplainabilityReport:
         retrieved_regulations=tuple(_section_regulations(by_agent.get(COMPLIANCE_AGENT))),
         agent_contributions=tuple(_section_agent_contributions(results)),
         confidence=default_confidence_engine().score(results).overall_score,
+        camera_evidence=build_camera_evidence(zone_compound_risk_results or []),
     )
 
 

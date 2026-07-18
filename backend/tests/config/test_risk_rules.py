@@ -44,6 +44,8 @@ class TestCompoundRiskRules:
             "multiple_warning_sensors",
             "degraded_equipment_with_worker_present",
             "critical_sensor_near_degraded_equipment",
+            "camera_critical_detection_without_active_permit",
+            "ppe_violation_with_worker_present",
         }
         assert set(COMPOUND_RISK_RULES) == expected
 

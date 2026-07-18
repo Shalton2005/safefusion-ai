@@ -9,6 +9,8 @@ from src.ai.agents.compliance_agent import ComplianceAssessment
 from src.ai.agents.explainability_service import explain
 from src.ai.agents.graph_knowledge_agent import GraphKnowledgeResult, GraphRelationship
 from src.ai.agents.risk_agent import Hazard, RiskAssessment
+from src.models.enums import RiskLevel
+from src.services.compound_risk.schemas import CompoundRiskRuleMatch, ZoneCompoundRiskResult
 
 
 def _risk_result(zone: str = "Boiler-Area", score: float = 85.0) -> AgentResult:
@@ -122,3 +124,43 @@ class TestExplain:
         report = explain([])
 
         assert report.confidence == 0.0
+
+    def test_camera_evidence_defaults_to_empty_when_not_supplied(self) -> None:
+        """Backward compatibility: existing explain(results) callers are unaffected."""
+        report = explain([_risk_result()])
+
+        assert report.camera_evidence.has_camera_evidence is False
+        assert report.camera_evidence.items == ()
+
+    def test_camera_evidence_populated_from_zone_compound_risk_results(self) -> None:
+        camera_match = CompoundRiskRuleMatch(
+            rule_name="camera_critical_detection_without_active_permit",
+            points=35.0,
+            explanation="Zone 'Boiler-Area' has 1 critical camera/PPE finding(s) with no valid active permit.",
+            evidence={"camera_severity_counts": {"critical": 1}},
+        )
+        zone_result = ZoneCompoundRiskResult(
+            zone="Boiler-Area", risk_score=35.0, risk_level=RiskLevel.MEDIUM, triggered_rules=[camera_match]
+        )
+
+        report = explain([_risk_result()], zone_compound_risk_results=[zone_result])
+
+        assert report.camera_evidence.has_camera_evidence is True
+        item = report.camera_evidence.items[0]
+        assert item.zone == "Boiler-Area"
+        assert item.related_regulation == "factory_act_ppe_compliance"
+
+    def test_camera_evidence_serializes_in_to_dict_and_to_json(self) -> None:
+        camera_match = CompoundRiskRuleMatch(
+            rule_name="ppe_violation_with_worker_present", points=20.0, explanation="worker exposed"
+        )
+        zone_result = ZoneCompoundRiskResult(
+            zone="Zone-A", risk_score=20.0, risk_level=RiskLevel.LOW, triggered_rules=[camera_match]
+        )
+        report = explain([], zone_compound_risk_results=[zone_result])
+
+        as_dict = report.to_dict()
+        assert as_dict["camera_evidence"]["items"][0]["zone"] == "Zone-A"
+
+        parsed = json.loads(report.to_json())
+        assert parsed["camera_evidence"]["items"][0]["rule_name"] == "ppe_violation_with_worker_present"

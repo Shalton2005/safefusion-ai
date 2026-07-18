@@ -125,6 +125,23 @@ COMPOUND_RISK_RULES: dict[str, RiskRuleConfig] = {
         description="Critical sensor reading in a zone containing degraded equipment.",
         params={"equipment_zone_map": dict(settings.EQUIPMENT_ZONE_MAP)},
     ),
+    "camera_critical_detection_without_active_permit": RiskRuleConfig(
+        name="camera_critical_detection_without_active_permit",
+        points=settings.COMPOUND_RISK_POINTS_CAMERA_CRITICAL_WITHOUT_PERMIT,
+        description=(
+            "Critical-severity Computer Vision / PPE finding (e.g. smoke detected) in a "
+            "zone with no valid active permit."
+        ),
+    ),
+    "ppe_violation_with_worker_present": RiskRuleConfig(
+        name="ppe_violation_with_worker_present",
+        points=settings.COMPOUND_RISK_POINTS_PPE_VIOLATION_WITH_WORKER,
+        description=(
+            "Camera-detected PPE/safety finding (missing helmet/vest, forklift proximity) "
+            "in a zone with a worker currently present."
+        ),
+        params={"minimum_severity_rank": settings.COMPOUND_RISK_PPE_VIOLATION_MIN_SEVERITY_RANK},
+    ),
 }
 
 COMPOUND_RISK_LEVEL_BANDS: dict[str, float] = {

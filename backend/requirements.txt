@@ -27,3 +27,9 @@ pgvector==0.5.0
 # Agent orchestration (LangGraph) — see src/ai/graph
 langgraph==1.0.4
 langchain-anthropic==1.4.8
+
+# Computer Vision / PPE compliance (Day 14) — see src/services/computer_vision.
+# Optional: only required to construct UltralyticsYoloAdapter (lazy-imported).
+# FakeYoloAdapter and the rest of the CV/PPE/compound-risk pipeline work
+# without this installed — see src/services/computer_vision/inference.py.
+ultralytics==8.3.75

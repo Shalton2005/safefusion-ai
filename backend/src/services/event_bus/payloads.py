@@ -61,16 +61,29 @@ class MaintenanceEventPayload(EventPayload):
 
 @dataclass(frozen=True)
 class ComputerVisionEventPayload(EventPayload):
-    """Placeholder shape for a future Computer Vision pipeline.
+    """Payload for a Computer Vision / PPE Compliance Engine finding.
 
+    Produced by ``src.services.computer_vision``'s
+    ``CameraEventPublisherAdapter`` from one
+    ``src.services.computer_vision.compliance_schemas.PPESafetyEvent``.
     Modeled on the kind of frame-level detection output a PPE-compliance
-    or intrusion-detection CV model would emit: what was detected, where,
-    and how confident the model was. Not wired to any producer yet — this
-    exists so the event bus's schema/dispatcher already support Computer
-    Vision without a breaking change when that pipeline is built.
+    or intrusion-detection CV model emits: what was detected, where, and
+    how confident the model was.
+
+    Attributes:
+        status: The PPE compliance rule's severity, lowercased (e.g.
+            ``"critical"``, ``"high"``) — mirrors every other domain
+            payload's ``status`` field (see
+            ``src.services.timeline.classification._STATUS_SEVERITY``),
+            so the Timeline Service classifies CV events by the same
+            mechanism as sensor/permit/worker/maintenance events instead
+            of needing CV-specific handling.
     """
 
     camera_id: str
     detection_label: str
     confidence: float
+    status: str
     bounding_box: tuple[float, float, float, float] | None = None
+    zone: str | None = None
+    rule_name: str | None = None

@@ -1,10 +1,11 @@
 """Configurable compound risk rules for SafeFusion AI.
 
-Each rule inspects the sensor, worker, permit, and maintenance-derived
-equipment-health monitoring summaries *together* and looks for zones where
-multiple conditions co-occur — signals that are individually unremarkable
-but jointly indicate elevated risk (e.g. a critical sensor reading in a
-zone with no active permit).
+Each rule inspects the sensor, worker, permit, maintenance-derived
+equipment-health, and Computer Vision / PPE compliance monitoring
+summaries *together* and looks for zones where multiple conditions
+co-occur — signals that are individually unremarkable but jointly
+indicate elevated risk (e.g. a critical sensor reading in a zone with no
+active permit).
 
 Rules are pure, stateless, and pluggable: new rules can be added without
 touching the engine or other rules, following the same ``Protocol``
@@ -68,6 +69,38 @@ def _degraded_equipment(maintenance_summary: dict | None) -> list[dict]:
     ]
 
 
+def _camera_events_by_zone(camera_summary: dict | None) -> dict[str, list[dict]]:
+    """Return {zone: [camera/PPE event rows]} from a CameraMonitoringService summary.
+
+    Rows with no ``zone`` (a camera not yet correlated to a plant zone)
+    are dropped, mirroring how ``_degraded_equipment_by_zone`` drops
+    equipment absent from its zone map — a rule can only correlate what
+    it can attribute to a zone.
+    """
+    by_zone: dict[str, list[dict]] = {}
+    if not camera_summary:
+        return by_zone
+    for row in camera_summary.get("events", []):
+        zone = row.get("zone")
+        if not zone:
+            continue
+        by_zone.setdefault(zone, []).append(row)
+    return by_zone
+
+
+def _camera_zone_severity_counts(camera_summary: dict | None) -> dict[str, dict[str, int]]:
+    """Return {zone: {"low": n, "medium": n, "high": n, "critical": n, "total": n}}."""
+    totals: dict[str, dict[str, int]] = {}
+    for zone, rows in _camera_events_by_zone(camera_summary).items():
+        counts = totals.setdefault(zone, {"low": 0, "medium": 0, "high": 0, "critical": 0, "total": 0})
+        for row in rows:
+            counts["total"] += 1
+            severity = row.get("severity")
+            if severity in counts:
+                counts[severity] += 1
+    return totals
+
+
 class CompoundRiskRule(Protocol):
     """Contract implemented by every compound risk rule.
 
@@ -75,11 +108,11 @@ class CompoundRiskRule(Protocol):
     mapping of zone -> match for zones where its compound condition is
     satisfied. Zones with no match are omitted.
 
-    ``maintenance_summary`` was added after the first three parameters —
-    every existing rule accepts and may ignore it, so adding this
-    parameter did not change how any pre-existing rule is called by
-    ``CompoundRiskEngine.evaluate()``, which always passes all four
-    positionally in this fixed order.
+    ``maintenance_summary`` and ``camera_summary`` were each added after
+    the original three parameters — every existing rule accepts and may
+    ignore them, so adding these parameters did not change how any
+    pre-existing rule is called by ``CompoundRiskEngine.evaluate()``,
+    which always passes all five positionally in this fixed order.
     """
 
     def evaluate(
@@ -88,6 +121,7 @@ class CompoundRiskRule(Protocol):
         permit_summary: dict | None,
         worker_summary: dict | None,
         maintenance_summary: dict | None = None,
+        camera_summary: dict | None = None,
     ) -> dict[str, CompoundRiskRuleMatch]: ...
 
 
@@ -108,6 +142,7 @@ class CriticalSensorWithoutActivePermitRule:
         permit_summary: dict | None,
         worker_summary: dict | None,
         maintenance_summary: dict | None = None,
+        camera_summary: dict | None = None,
     ) -> dict[str, CompoundRiskRuleMatch]:
         sensor_zones = _sensor_zone_status_counts(sensor_summary)
         permit_zones = _permit_zones_by_state(permit_summary)
@@ -150,6 +185,7 @@ class ExpiredPermitWithWorkerPresentRule:
         permit_summary: dict | None,
         worker_summary: dict | None,
         maintenance_summary: dict | None = None,
+        camera_summary: dict | None = None,
     ) -> dict[str, CompoundRiskRuleMatch]:
         permit_zones = _permit_zones_by_state(permit_summary)
         worker_counts = _worker_counts_by_zone(worker_summary)
@@ -192,6 +228,7 @@ class CriticalSensorWithWorkerPresentRule:
         permit_summary: dict | None,
         worker_summary: dict | None,
         maintenance_summary: dict | None = None,
+        camera_summary: dict | None = None,
     ) -> dict[str, CompoundRiskRuleMatch]:
         sensor_zones = _sensor_zone_status_counts(sensor_summary)
         worker_counts = _worker_counts_by_zone(worker_summary)
@@ -235,6 +272,7 @@ class RestrictedZoneWithoutActivePermitRule:
         permit_summary: dict | None,
         worker_summary: dict | None,
         maintenance_summary: dict | None = None,
+        camera_summary: dict | None = None,
     ) -> dict[str, CompoundRiskRuleMatch]:
         if not self._restricted_zones:
             return {}
@@ -283,6 +321,7 @@ class MultipleWarningSensorsRule:
         permit_summary: dict | None,
         worker_summary: dict | None,
         maintenance_summary: dict | None = None,
+        camera_summary: dict | None = None,
     ) -> dict[str, CompoundRiskRuleMatch]:
         sensor_zones = _sensor_zone_status_counts(sensor_summary)
 
@@ -355,6 +394,7 @@ class DegradedEquipmentWithWorkerPresentRule:
         permit_summary: dict | None,
         worker_summary: dict | None,
         maintenance_summary: dict | None = None,
+        camera_summary: dict | None = None,
     ) -> dict[str, CompoundRiskRuleMatch]:
         degraded_by_zone = _degraded_equipment_by_zone(maintenance_summary, self._equipment_zone_map)
         if not degraded_by_zone:
@@ -408,6 +448,7 @@ class CriticalSensorNearDegradedEquipmentRule:
         permit_summary: dict | None,
         worker_summary: dict | None,
         maintenance_summary: dict | None = None,
+        camera_summary: dict | None = None,
     ) -> dict[str, CompoundRiskRuleMatch]:
         degraded_by_zone = _degraded_equipment_by_zone(maintenance_summary, self._equipment_zone_map)
         if not degraded_by_zone:
@@ -431,5 +472,110 @@ class CriticalSensorNearDegradedEquipmentRule:
                 ),
                 evidence={"sensor_status_counts": counts, "degraded_equipment": degraded_rows},
                 confidence=self._CONFIDENCE,
+            )
+        return matches
+
+
+class CameraCriticalDetectionWithoutActivePermitRule:
+    """Fires when a zone has a critical-severity camera/PPE finding but no valid permit.
+
+    Mirrors ``CriticalSensorWithoutActivePermitRule`` for the Computer
+    Vision channel: a critical PPE Compliance Engine finding (e.g. smoke
+    detected) in a zone with no authorized, valid work permit means
+    nobody is formally accountable for responding to it under a
+    controlled procedure — the same gap the sensor-based rule closes,
+    now for camera-observed hazards.
+    """
+
+    def __init__(self, points: float) -> None:
+        self._points = points
+
+    def evaluate(
+        self,
+        sensor_summary: dict | None,
+        permit_summary: dict | None,
+        worker_summary: dict | None,
+        maintenance_summary: dict | None = None,
+        camera_summary: dict | None = None,
+    ) -> dict[str, CompoundRiskRuleMatch]:
+        camera_zones = _camera_zone_severity_counts(camera_summary)
+        permit_zones = _permit_zones_by_state(permit_summary)
+
+        matches: dict[str, CompoundRiskRuleMatch] = {}
+        for zone, counts in camera_zones.items():
+            if counts["critical"] == 0:
+                continue
+            has_valid_permit = "valid" in permit_zones.get(zone, set())
+            if has_valid_permit:
+                continue
+            matches[zone] = CompoundRiskRuleMatch(
+                rule_name="camera_critical_detection_without_active_permit",
+                points=self._points,
+                explanation=(
+                    f"Zone '{zone}' has {counts['critical']} critical camera/PPE finding(s) "
+                    "with no valid active permit covering the zone."
+                ),
+                evidence={
+                    "camera_severity_counts": counts,
+                    "permit_validation_states": sorted(permit_zones.get(zone, set())),
+                },
+            )
+        return matches
+
+
+class PPEViolationWithWorkerPresentRule:
+    """Fires when a zone has a PPE compliance violation confirmed by worker presence.
+
+    A camera-detected PPE violation (missing helmet/vest) is only a risk
+    if someone is actually exposed to it right now — cross-checking
+    against ``worker_summary`` confirms the camera's finding isn't a
+    stale frame or an empty zone, the same corroboration
+    ``CriticalSensorWithWorkerPresentRule`` provides for sensor readings.
+    """
+
+    def __init__(self, points: float, minimum_severity_rank: int = 1) -> None:
+        """Args:
+        minimum_severity_rank: Minimum camera-finding severity to
+            consider, using the same 0=low..3=critical ordering as
+            ``src.services.compound_risk.schemas``. Defaults to
+            ``1`` (medium) so routine low-confidence findings alone
+            don't trigger a compound match.
+        """
+        self._points = points
+        self._minimum_severity_rank = minimum_severity_rank
+
+    def evaluate(
+        self,
+        sensor_summary: dict | None,
+        permit_summary: dict | None,
+        worker_summary: dict | None,
+        maintenance_summary: dict | None = None,
+        camera_summary: dict | None = None,
+    ) -> dict[str, CompoundRiskRuleMatch]:
+        camera_events_by_zone = _camera_events_by_zone(camera_summary)
+        if not camera_events_by_zone:
+            return {}
+
+        worker_counts = _worker_counts_by_zone(worker_summary)
+        severity_rank = {"low": 0, "medium": 1, "high": 2, "critical": 3}
+
+        matches: dict[str, CompoundRiskRuleMatch] = {}
+        for zone, rows in camera_events_by_zone.items():
+            worker_count = worker_counts.get(zone, 0)
+            if worker_count == 0:
+                continue
+            relevant_rows = [
+                row for row in rows if severity_rank.get(row.get("severity"), 0) >= self._minimum_severity_rank
+            ]
+            if not relevant_rows:
+                continue
+            matches[zone] = CompoundRiskRuleMatch(
+                rule_name="ppe_violation_with_worker_present",
+                points=self._points,
+                explanation=(
+                    f"Zone '{zone}' has {len(relevant_rows)} camera-detected PPE/safety "
+                    f"finding(s) with {worker_count} worker(s) currently present."
+                ),
+                evidence={"camera_events": relevant_rows, "worker_count": worker_count},
             )
         return matches

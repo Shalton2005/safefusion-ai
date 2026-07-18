@@ -37,6 +37,7 @@ from src.routes import ai_copilot as ai_copilot_router
 from src.routes import ai_monitoring as ai_monitoring_router
 from src.routes import alerts as alerts_router
 from src.routes import compliance as compliance_router
+from src.routes import computer_vision as computer_vision_router
 from src.routes import dashboard as dashboard_router
 from src.routes import emergency as emergency_router
 from src.routes import emergency_response as emergency_response_router
@@ -90,6 +91,7 @@ OPENAPI_TAGS_METADATA = [
     {"name": "AI Safety Copilot", "description": "LangGraph AI Supervisor-backed query, explain, recommend, and chat endpoints, routing to specialized Risk/Compliance/Knowledge/Graph Knowledge/Emergency agents with LLM-grounded explainability."},
     {"name": "AI Monitoring", "description": "Read-only observability over the AI layer: agent/routing configuration, live Neo4j/Ollama dependency health, aggregated operation performance metrics, and Supervisor workflow shape."},
     {"name": "Timeline", "description": "Chronological record of every platform event — source, severity, timestamp, and linked AI decision — published on the Unified Event Bus."},
+    {"name": "Computer Vision", "description": "Pretrained-YOLO PPE compliance detection (helmet, safety vest, forklift proximity, smoke): ingests per-frame detections, evaluates the PPE Compliance Engine, publishes safety events to the Unified Event Bus, and exposes camera monitoring for compound-risk correlation."},
 ]
 
 
@@ -198,6 +200,7 @@ def create_application() -> FastAPI:
     application.include_router(ai_copilot_router.router, prefix=settings.API_PREFIX)
     application.include_router(ai_monitoring_router.router, prefix=settings.API_PREFIX)
     application.include_router(timeline_router.router, prefix=settings.API_PREFIX)
+    application.include_router(computer_vision_router.router, prefix=settings.API_PREFIX)
 
     return application
 

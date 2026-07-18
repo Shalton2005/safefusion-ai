@@ -25,6 +25,7 @@ class CompoundRiskEngine:
         permit_summary: dict | None = None,
         worker_summary: dict | None = None,
         maintenance_summary: dict | None = None,
+        camera_summary: dict | None = None,
     ) -> list[ZoneCompoundRiskResult]:
         """Run every configured rule and return a compound risk result per affected zone.
 
@@ -41,11 +42,19 @@ class CompoundRiskEngine:
                 Optional and keyword-only in practice (added after the
                 first three) so existing positional-free callers are
                 unaffected by its addition.
+            camera_summary: PPE/Computer Vision compliance findings, as
+                returned by
+                ``src.services.computer_vision.camera_monitoring.CameraMonitoringService.get_monitoring_summary()``.
+                Same trailing-optional-parameter treatment as
+                ``maintenance_summary`` — existing callers that don't pass
+                it are unaffected.
         """
         matches_by_zone: dict[str, list] = {}
 
         for rule in self.rules:
-            rule_matches = rule.evaluate(sensor_summary, permit_summary, worker_summary, maintenance_summary)
+            rule_matches = rule.evaluate(
+                sensor_summary, permit_summary, worker_summary, maintenance_summary, camera_summary
+            )
             for zone, match in rule_matches.items():
                 matches_by_zone.setdefault(zone, []).append(match)
 

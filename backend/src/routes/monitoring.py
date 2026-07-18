@@ -33,15 +33,21 @@ from src.schemas.response.worker_monitoring import WorkerMonitoringSummaryRespon
 from src.services.compound_risk.compound_risk_service import CompoundRiskService
 from src.services.compound_risk.engine import CompoundRiskEngine
 from src.services.compound_risk.rules import (
+    CameraCriticalDetectionWithoutActivePermitRule,
     CriticalSensorNearDegradedEquipmentRule,
     CriticalSensorWithoutActivePermitRule,
     CriticalSensorWithWorkerPresentRule,
     DegradedEquipmentWithWorkerPresentRule,
     ExpiredPermitWithWorkerPresentRule,
     MultipleWarningSensorsRule,
+    PPEViolationWithWorkerPresentRule,
     RestrictedZoneWithoutActivePermitRule,
 )
 from src.services.compound_risk.schemas import CompoundRiskLevelBands
+from src.services.computer_vision.camera_monitoring import (
+    CameraMonitoringService,
+    get_default_camera_monitoring_service,
+)
 from src.services.maintenance_monitoring import EquipmentHealthBand, MaintenanceMonitoringService
 from src.services.permit_validation import PermitValidationRules, PermitValidationService
 from src.services.risk_score_calculation import RiskScoreCalculationService
@@ -111,6 +117,17 @@ def get_maintenance_monitoring_service(db: DbDep) -> MaintenanceMonitoringServic
             degraded_corrective_ratio=settings.EQUIPMENT_HEALTH_DEGRADED_CORRECTIVE_RATIO,
         ),
     )
+
+
+def get_camera_monitoring_service() -> CameraMonitoringService:
+    """Return the process-wide Camera Monitoring service.
+
+    Unlike the DB-backed monitoring sources above, this has no per-request
+    session to open — it shares one in-memory instance across the whole
+    process (see ``get_default_camera_monitoring_service``'s docstring),
+    the same way the Unified Event Bus shares one default dispatcher.
+    """
+    return get_default_camera_monitoring_service()
 
 
 def _permit_validation_rules() -> PermitValidationRules:
@@ -204,6 +221,13 @@ def _build_compound_risk_engine() -> CompoundRiskEngine:
             points=rules["critical_sensor_near_degraded_equipment"].points,
             equipment_zone_map=rules["critical_sensor_near_degraded_equipment"].params["equipment_zone_map"],
         ),
+        CameraCriticalDetectionWithoutActivePermitRule(
+            points=rules["camera_critical_detection_without_active_permit"].points,
+        ),
+        PPEViolationWithWorkerPresentRule(
+            points=rules["ppe_violation_with_worker_present"].points,
+            minimum_severity_rank=rules["ppe_violation_with_worker_present"].params["minimum_severity_rank"],
+        ),
     ]
     return CompoundRiskEngine(
         rules=engine_rules,
@@ -221,6 +245,7 @@ def get_compound_risk_service(db: DbDep) -> CompoundRiskService:
             get_permit_validation_service(db), PermitRepository(db)
         ),
         maintenance_monitoring=get_maintenance_monitoring_service(db),
+        camera_monitoring=get_camera_monitoring_service(),
     )
 
 
@@ -236,6 +261,10 @@ CompoundRiskServiceDep = Annotated[CompoundRiskService, Depends(get_compound_ris
 MaintenanceMonitoringServiceDep = Annotated[
     MaintenanceMonitoringService,
     Depends(get_maintenance_monitoring_service),
+]
+CameraMonitoringServiceDep = Annotated[
+    CameraMonitoringService,
+    Depends(get_camera_monitoring_service),
 ]
 
 
@@ -327,6 +356,7 @@ def get_monitoring_summary(
     compound_risk_service: CompoundRiskServiceDep,
     permit_repository: PermitRepositoryDep,
     maintenance_service: MaintenanceMonitoringServiceDep,
+    camera_service: CameraMonitoringServiceDep,
 ) -> MonitoringSummaryResponse:
     permits = permit_repository.get_all(skip=0, limit=10_000)
 
@@ -338,6 +368,7 @@ def get_monitoring_summary(
     worker_summary = worker_service.get_monitoring_summary()
     permit_summary = permit_service.build_validation_summary(permits)
     maintenance_summary = maintenance_service.get_monitoring_summary()
+    camera_summary = camera_service.get_monitoring_summary()
 
     risk_results = risk_service.calculate_from_summaries(
         sensor_summary=sensor_summary, permit_summary=permit_summary, worker_summary=worker_summary
@@ -347,6 +378,7 @@ def get_monitoring_summary(
         permit_summary=permit_summary,
         worker_summary=worker_summary,
         maintenance_summary=maintenance_summary,
+        camera_summary=camera_summary,
     )
 
     return MonitoringSummaryResponse(

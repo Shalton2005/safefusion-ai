@@ -145,6 +145,13 @@ class Settings(BaseSettings):
     COMPOUND_RISK_MULTIPLE_WARNING_MIN_COUNT: int = 2
     COMPOUND_RISK_POINTS_DEGRADED_EQUIPMENT_WITH_WORKER: float = 25.0
     COMPOUND_RISK_POINTS_CRITICAL_SENSOR_NEAR_DEGRADED_EQUIPMENT: float = 30.0
+    # Computer Vision / PPE compliance correlation (Day 14) — see
+    # src.services.computer_vision and src.services.compound_risk.rules.
+    COMPOUND_RISK_POINTS_CAMERA_CRITICAL_WITHOUT_PERMIT: float = 35.0
+    COMPOUND_RISK_POINTS_PPE_VIOLATION_WITH_WORKER: float = 20.0
+    # 0=low, 1=medium, 2=high, 3=critical — minimum camera-finding severity
+    # PPEViolationWithWorkerPresentRule considers (see rules.py).
+    COMPOUND_RISK_PPE_VIOLATION_MIN_SEVERITY_RANK: int = 1
 
     COMPOUND_RISK_LEVEL_LOW_MAX: float = 20.0
     COMPOUND_RISK_LEVEL_MEDIUM_MAX: float = 45.0

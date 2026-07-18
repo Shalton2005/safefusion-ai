@@ -56,20 +56,25 @@ class TestMaintenanceEventPayload:
 
 
 class TestComputerVisionEventPayload:
-    def test_placeholder_payload_serializes_with_optional_bounding_box(self) -> None:
+    def test_payload_serializes_with_optional_bounding_box(self) -> None:
         payload = ComputerVisionEventPayload(
             camera_id="CAM-01",
             detection_label="missing_ppe",
             confidence=0.92,
+            status="high",
             bounding_box=(0.1, 0.2, 0.3, 0.4),
         )
         result = payload.as_dict()
         assert result["camera_id"] == "CAM-01"
         assert result["confidence"] == 0.92
+        assert result["status"] == "high"
         assert result["bounding_box"] == (0.1, 0.2, 0.3, 0.4)
 
-    def test_bounding_box_defaults_to_none(self) -> None:
+    def test_bounding_box_and_zone_and_rule_name_default_to_none(self) -> None:
         payload = ComputerVisionEventPayload(
-            camera_id="CAM-02", detection_label="intrusion", confidence=0.5
+            camera_id="CAM-02", detection_label="intrusion", confidence=0.5, status="critical"
         )
-        assert payload.as_dict()["bounding_box"] is None
+        result = payload.as_dict()
+        assert result["bounding_box"] is None
+        assert result["zone"] is None
+        assert result["rule_name"] is None

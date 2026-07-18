@@ -8,12 +8,14 @@ from src.models.enums import RiskLevel
 from src.services.compound_risk.compound_risk_service import CompoundRiskService
 from src.services.compound_risk.engine import CompoundRiskEngine
 from src.services.compound_risk.rules import (
+    CameraCriticalDetectionWithoutActivePermitRule,
     CriticalSensorNearDegradedEquipmentRule,
     CriticalSensorWithoutActivePermitRule,
     CriticalSensorWithWorkerPresentRule,
     DegradedEquipmentWithWorkerPresentRule,
     ExpiredPermitWithWorkerPresentRule,
     MultipleWarningSensorsRule,
+    PPEViolationWithWorkerPresentRule,
     RestrictedZoneWithoutActivePermitRule,
 )
 from src.services.compound_risk.schemas import CompoundRiskLevelBands, CompoundRiskRuleMatch
@@ -43,6 +45,22 @@ def _maintenance_summary(equipment_id: str, health_status: str = "degraded") -> 
                 "has_ongoing_corrective": True,
                 "health_status": health_status,
                 "last_maintenance_at": None,
+            }
+        ]
+    }
+
+
+def _camera_summary(zone: str, severity: str = "critical", rule_name: str = "smoke_detected") -> dict:
+    return {
+        "events": [
+            {
+                "camera_id": "CAM-1",
+                "zone": zone,
+                "rule_name": rule_name,
+                "label": "smoke",
+                "severity": severity,
+                "confidence": 0.9,
+                "explanation": "test finding",
             }
         ]
     }
@@ -249,6 +267,14 @@ class _StubMaintenanceMonitoring:
         return self._summary
 
 
+class _StubCameraMonitoring:
+    def __init__(self, summary: dict | None) -> None:
+        self._summary = summary
+
+    def get_monitoring_summary(self) -> dict | None:
+        return self._summary
+
+
 class TestCompoundRiskService:
     def test_detect_compound_risks_pulls_from_all_three_sources(self) -> None:
         engine = CompoundRiskEngine(rules=[CriticalSensorWithWorkerPresentRule(points=40.0)])
@@ -317,6 +343,45 @@ class TestCompoundRiskService:
         )
         assert len(results) == 1
         assert results[0].zone == "Zone-L"
+
+    def test_detect_compound_risks_pulls_camera_summary_when_configured(self) -> None:
+        engine = CompoundRiskEngine(
+            rules=[CameraCriticalDetectionWithoutActivePermitRule(points=35.0)]
+        )
+        service = CompoundRiskService(
+            engine=engine,
+            permit_validation=_StubPermitValidation(_permit_summary("Zone-M", "expired")),
+            camera_monitoring=_StubCameraMonitoring(_camera_summary("Zone-M")),
+        )
+        results = service.detect_compound_risks()
+        assert len(results) == 1
+        assert results[0].zone == "Zone-M"
+
+    def test_service_without_camera_monitoring_still_works(self) -> None:
+        """Backward compatibility: a service built without camera_monitoring
+        must keep behaving exactly as before this parameter existed."""
+        engine = CompoundRiskEngine(rules=[CriticalSensorWithWorkerPresentRule(points=40.0)])
+        service = CompoundRiskService(
+            engine=engine,
+            sensor_monitoring=_StubSensorMonitoring(_sensor_summary("Zone-N", "critical")),
+            worker_monitoring=_StubWorkerMonitoring(_worker_summary("Zone-N")),
+        )
+        results = service.detect_compound_risks()
+        assert len(results) == 1
+        assert results[0].zone == "Zone-N"
+
+    def test_evaluate_without_camera_summary_kwarg_still_works(self) -> None:
+        """Backward compatibility: old 4-kwarg evaluate() calls are unaffected."""
+        engine = CompoundRiskEngine(rules=[MultipleWarningSensorsRule(points=15.0, minimum_warning_count=2)])
+        service = CompoundRiskService(engine=engine)
+        results = service.evaluate(
+            sensor_summary=_sensor_summary("Zone-O", "warning", count=2),
+            worker_summary=None,
+            permit_summary=None,
+            maintenance_summary=None,
+        )
+        assert len(results) == 1
+        assert results[0].zone == "Zone-O"
 
 
 class TestZoneCompoundRiskResultExplanation:
@@ -564,3 +629,124 @@ class TestEngineMaintenanceSummaryBackwardCompatibility:
         )
         assert len(results) == 1
         assert results[0].zone == "Zone-V"
+
+
+class TestCameraCriticalDetectionWithoutActivePermitRule:
+    def test_fires_when_critical_camera_finding_and_no_valid_permit(self) -> None:
+        rule = CameraCriticalDetectionWithoutActivePermitRule(points=35.0)
+        matches = rule.evaluate(
+            sensor_summary=None,
+            permit_summary=_permit_summary("Zone-W", "expired"),
+            worker_summary=None,
+            camera_summary=_camera_summary("Zone-W"),
+        )
+        assert "Zone-W" in matches
+        assert matches["Zone-W"].points == 35.0
+        assert matches["Zone-W"].rule_name == "camera_critical_detection_without_active_permit"
+
+    def test_does_not_fire_when_valid_permit_present(self) -> None:
+        rule = CameraCriticalDetectionWithoutActivePermitRule(points=35.0)
+        matches = rule.evaluate(
+            sensor_summary=None,
+            permit_summary=_permit_summary("Zone-W", "valid"),
+            worker_summary=None,
+            camera_summary=_camera_summary("Zone-W"),
+        )
+        assert matches == {}
+
+    def test_does_not_fire_without_critical_camera_finding(self) -> None:
+        rule = CameraCriticalDetectionWithoutActivePermitRule(points=35.0)
+        matches = rule.evaluate(
+            sensor_summary=None,
+            permit_summary=None,
+            worker_summary=None,
+            camera_summary=_camera_summary("Zone-W", severity="medium"),
+        )
+        assert matches == {}
+
+    def test_does_not_fire_without_camera_summary(self) -> None:
+        rule = CameraCriticalDetectionWithoutActivePermitRule(points=35.0)
+        matches = rule.evaluate(sensor_summary=None, permit_summary=None, worker_summary=None)
+        assert matches == {}
+
+    def test_match_includes_camera_evidence(self) -> None:
+        rule = CameraCriticalDetectionWithoutActivePermitRule(points=35.0)
+        matches = rule.evaluate(
+            sensor_summary=None,
+            permit_summary=_permit_summary("Zone-W", "expired"),
+            worker_summary=None,
+            camera_summary=_camera_summary("Zone-W"),
+        )
+        assert matches["Zone-W"].evidence["camera_severity_counts"]["critical"] == 1
+
+
+class TestPPEViolationWithWorkerPresentRule:
+    def test_fires_when_finding_and_worker_present(self) -> None:
+        rule = PPEViolationWithWorkerPresentRule(points=20.0)
+        matches = rule.evaluate(
+            sensor_summary=None,
+            permit_summary=None,
+            worker_summary=_worker_summary("Zone-X"),
+            camera_summary=_camera_summary("Zone-X", severity="high", rule_name="missing_helmet"),
+        )
+        assert "Zone-X" in matches
+        assert matches["Zone-X"].rule_name == "ppe_violation_with_worker_present"
+
+    def test_does_not_fire_without_worker(self) -> None:
+        rule = PPEViolationWithWorkerPresentRule(points=20.0)
+        matches = rule.evaluate(
+            sensor_summary=None,
+            permit_summary=None,
+            worker_summary=None,
+            camera_summary=_camera_summary("Zone-X", severity="high"),
+        )
+        assert matches == {}
+
+    def test_does_not_fire_below_minimum_severity(self) -> None:
+        rule = PPEViolationWithWorkerPresentRule(points=20.0, minimum_severity_rank=2)
+        matches = rule.evaluate(
+            sensor_summary=None,
+            permit_summary=None,
+            worker_summary=_worker_summary("Zone-X"),
+            camera_summary=_camera_summary("Zone-X", severity="low"),
+        )
+        assert matches == {}
+
+    def test_does_not_fire_without_camera_summary(self) -> None:
+        rule = PPEViolationWithWorkerPresentRule(points=20.0)
+        matches = rule.evaluate(
+            sensor_summary=None, permit_summary=None, worker_summary=_worker_summary("Zone-X")
+        )
+        assert matches == {}
+
+
+class TestCameraSummaryIntegration:
+    def test_engine_evaluate_accepts_camera_summary_and_returns_confidence(self) -> None:
+        engine = CompoundRiskEngine(
+            rules=[
+                CameraCriticalDetectionWithoutActivePermitRule(points=35.0),
+                PPEViolationWithWorkerPresentRule(points=20.0),
+            ]
+        )
+        results = engine.evaluate(
+            sensor_summary=None,
+            permit_summary=_permit_summary("Zone-Y", "expired"),
+            worker_summary=_worker_summary("Zone-Y"),
+            camera_summary=_camera_summary("Zone-Y"),
+        )
+        assert len(results) == 1
+        assert results[0].zone == "Zone-Y"
+        assert results[0].risk_score == 55.0
+        assert results[0].confidence == 1.0
+
+    def test_evaluate_without_camera_summary_still_works(self) -> None:
+        """Backward compatibility: callers built before camera_summary existed
+        keep working when they never pass it."""
+        engine = CompoundRiskEngine(rules=[CriticalSensorWithWorkerPresentRule(points=40.0)])
+        results = engine.evaluate(
+            sensor_summary=_sensor_summary("Zone-Z", "critical"),
+            permit_summary=None,
+            worker_summary=_worker_summary("Zone-Z"),
+        )
+        assert len(results) == 1
+        assert results[0].zone == "Zone-Z"
