@@ -36,13 +36,14 @@ export const allRouteDefinitions: AppRouteDefinition[] = [
 
 export const navRoutes: NavRouteItem[] = appRouteDefinitions
   .filter((r) => r.showInNav)
-  .map(({ id, path, label, icon, showInNav, badge }) => ({
+  .map(({ id, path, label, icon, showInNav, badge, section }) => ({
     id,
     path,
     label,
     icon,
     showInNav,
     badge,
+    section,
   }));
 
 // ─── Path → metadata lookup map ──────────────────────────────────

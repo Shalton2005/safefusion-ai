@@ -81,17 +81,22 @@ apiClient.interceptors.response.use(
     const retryCount  = config?._retryCount ?? 0;
 
     if (config && shouldRetry(apiError, retryCount)) {
-      config._retryCount = retryCount + 1;
+      const nextRetryCount = retryCount + 1;
 
       const delay = RETRY_DELAY * 2 ** retryCount; // 1s → 2s
 
       await new Promise<void>((resolve) => setTimeout(resolve, delay));
 
       if (env.isDev) {
-        console.debug(`[API] Retrying request (attempt ${config._retryCount})…`);
+        console.debug(`[API] Retrying request (attempt ${nextRetryCount})…`);
       }
 
-      return apiClient.request(config);
+      // Axios internally merges/clones the config passed to `request()`, so
+      // mutating `config._retryCount` in place and relying on that same
+      // object reference reaching this interceptor again on the next
+      // failure does NOT reliably carry the count forward — it must be
+      // set on the config object actually being dispatched.
+      return apiClient.request({ ...config, _retryCount: nextRetryCount });
     }
 
     return handleResponseError(apiError);

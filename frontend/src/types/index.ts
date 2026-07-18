@@ -483,7 +483,7 @@ export interface DetectedRisk {
   explanation: string;
 }
 
-export interface TriggeredRule {
+export interface IncidentTriggeredRule {
   rule_name: string;
   points: number;
   explanation: string;
@@ -507,7 +507,7 @@ export interface IncidentReportData {
   summary: ReportSummary;
   timeline: TimelineEvent[];
   detected_risks: DetectedRisk[];
-  triggered_rules: TriggeredRule[];
+  triggered_rules: IncidentTriggeredRule[];
   emergency_actions: EmergencyActionEntry[];
   compliance_notes: ComplianceNote[];
   compliance_status: ComplianceStatus | null;

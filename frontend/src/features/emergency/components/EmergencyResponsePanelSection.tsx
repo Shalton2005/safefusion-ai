@@ -1,5 +1,5 @@
-import { ShieldAlert, RotateCw } from 'lucide-react';
-import { Card, CardHeader, Badge, EmptyState, Alert as AlertBanner, Button } from '@/components/ui';
+import { ShieldAlert } from 'lucide-react';
+import { Card, CardHeader, Badge, EmptyState, QueryState } from '@/components/ui';
 import { LastUpdated } from '@/components/common/LastUpdated';
 import { useEmergencyResponse } from '@/features/emergency/hooks/useEmergencyResponse';
 import { EmergencyResponsePanel } from './EmergencyResponsePanel';
@@ -45,27 +45,23 @@ export function EmergencyResponsePanelSectionView({
         }
       />
       <div className="p-4 flex flex-col gap-2">
-        {error ? (
-          <AlertBanner
-            variant="danger"
-            title="Failed to load emergency actions"
-            actions={
-              <Button size="sm" variant="outline" onClick={refresh} leftIcon={<RotateCw className="w-3.5 h-3.5" />}>
-                Retry
-              </Button>
-            }
-          >
-            {error}
-          </AlertBanner>
-        ) : !loading && actions.length === 0 ? (
-          <EmptyState
-            icon={ShieldAlert}
-            title="No emergency actions"
-            description="No emergency actions have been dispatched. All zones are within safe thresholds."
-          />
-        ) : (
-          <EmergencyResponsePanel actions={actions} />
-        )}
+        <QueryState
+          loading={loading}
+          error={error}
+          data={actions}
+          onRetry={refresh}
+          errorTitle="Failed to load emergency actions"
+          isEmpty={(a) => a.length === 0}
+          emptyState={
+            <EmptyState
+              icon={ShieldAlert}
+              title="No emergency actions"
+              description="No emergency actions have been dispatched. All zones are within safe thresholds."
+            />
+          }
+        >
+          {(actionData) => <EmergencyResponsePanel actions={actionData} />}
+        </QueryState>
         {!error && <LastUpdated timestamp={lastUpdated} className="px-1" />}
       </div>
     </Card>

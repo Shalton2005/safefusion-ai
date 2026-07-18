@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Waypoints, RotateCw } from 'lucide-react';
-import { PageHeader, Badge, Alert, Button, EmptyState, Loader } from '@/components/ui';
+import { Waypoints } from 'lucide-react';
+import { PageHeader, Badge, EmptyState, Loader, QueryState } from '@/components/ui';
 import { GraphControls } from '@/features/knowledge-graph/components/GraphControls';
 import {
   GraphVisualization,
@@ -11,6 +11,7 @@ import { GraphLegend } from '@/features/knowledge-graph/components/GraphLegend';
 import { useKnowledgeGraph } from '@/features/knowledge-graph/hooks/useKnowledgeGraph';
 import { useGraphSelectionStore } from '@/features/knowledge-graph/store/useGraphSelectionStore';
 import { adaptGraphNode, adaptGraphEdge } from '@/features/knowledge-graph/utils/adaptGraphData';
+import type { KnowledgeGraphNode } from '@/types';
 
 export function KnowledgeGraphPage() {
   const { nodes, relationships, metadata, loading, error, refresh } = useKnowledgeGraph();
@@ -39,8 +40,6 @@ export function KnowledgeGraphPage() {
     return graphEdges.filter((edge) => visibleIds.has(edge.source) && visibleIds.has(edge.target));
   }, [graphEdges, graphNodes.length, visibleNodes]);
 
-  const isEmpty = !loading && !error && nodes.length === 0;
-
   return (
     <div className="page-container">
       <PageHeader
@@ -65,46 +64,43 @@ export function KnowledgeGraphPage() {
         onResetView={() => graphRef.current?.resetView()}
       />
 
-      {error && (
-        <Alert
-          variant="danger"
-          title="Failed to load knowledge graph"
-          actions={
-            <Button size="sm" variant="outline" onClick={refresh} leftIcon={<RotateCw className="w-3.5 h-3.5" />}>
-              Retry
-            </Button>
-          }
-        >
-          {error}
-        </Alert>
-      )}
-
       {/* Graph + side panels */}
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_20rem] gap-4 items-start">
         {/* Graph visualization area */}
         <div className="h-[28rem] lg:h-[36rem] rounded-xl border border-[var(--sf-border-default)] bg-[var(--sf-surface-sunken)] overflow-hidden">
-          {loading ? (
-            <div className="w-full h-full flex items-center justify-center">
-              <Loader size="lg" label="Loading knowledge graph…" />
-            </div>
-          ) : isEmpty ? (
-            <div className="w-full h-full flex items-center justify-center">
-              <EmptyState
-                icon={Waypoints}
-                title="No graph data"
-                description="No nodes or relationships have been ingested into the knowledge graph yet."
+          <QueryState<KnowledgeGraphNode[]>
+            loading={loading}
+            error={error}
+            data={nodes}
+            onRetry={refresh}
+            errorTitle="Failed to load knowledge graph"
+            isEmpty={(d) => d.length === 0}
+            emptyState={
+              <div className="w-full h-full flex items-center justify-center">
+                <EmptyState
+                  icon={Waypoints}
+                  title="No graph data"
+                  description="No nodes or relationships have been ingested into the knowledge graph yet."
+                />
+              </div>
+            }
+            loadingFallback={
+              <div className="w-full h-full flex items-center justify-center">
+                <Loader size="lg" label="Loading knowledge graph…" />
+              </div>
+            }
+          >
+            {() => (
+              <GraphVisualization
+                ref={graphRef}
+                className="h-full border-0 rounded-none"
+                nodes={visibleNodes}
+                edges={visibleEdges}
+                selectedNodeId={selectedNode?.id ?? null}
+                onNodeSelect={select}
               />
-            </div>
-          ) : !error ? (
-            <GraphVisualization
-              ref={graphRef}
-              className="h-full border-0 rounded-none"
-              nodes={visibleNodes}
-              edges={visibleEdges}
-              selectedNodeId={selectedNode?.id ?? null}
-              onNodeSelect={select}
-            />
-          ) : null}
+            )}
+          </QueryState>
         </div>
 
         {/* Details panel + legend */}

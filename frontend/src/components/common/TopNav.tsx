@@ -9,8 +9,8 @@ import { TopNavSearch } from '@/components/common/TopNavSearch';
 
 export function TopNav() {
   const { resolvedTheme, toggleTheme } = useTheme();
-  const { toggleMobile } = useSidebarStore();
-  const { notifications } = useNotificationStore();
+  const toggleMobile = useSidebarStore((s) => s.toggleMobile);
+  const notifications = useNotificationStore((s) => s.notifications);
   const currentRoute = useRouteConfig();
   const unreadCount = notifications.length;
 

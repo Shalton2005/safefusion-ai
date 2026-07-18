@@ -1,6 +1,5 @@
 import { useRef, useState } from 'react';
-import { RotateCw } from 'lucide-react';
-import { Alert, Button, Skeleton } from '@/components/ui';
+import { Skeleton, QueryState } from '@/components/ui';
 import { LastUpdated } from '@/components/common/LastUpdated';
 import { dashboardService } from '@/services';
 import { ApiError } from '@/api/errors';
@@ -48,30 +47,21 @@ export function OverallRiskScoreSection() {
 
   const { lastUpdated, refresh } = usePolling(fetchSummary, DASHBOARD_REFRESH_INTERVAL);
 
-  if (error) {
-    return (
-      <Alert
-        variant="danger"
-        title="Failed to load risk score"
-        actions={
-          <Button size="sm" variant="outline" onClick={refresh} leftIcon={<RotateCw className="w-3.5 h-3.5" />}>
-            Retry
-          </Button>
-        }
-      >
-        {error}
-      </Alert>
-    );
-  }
-
-  if (loading || !summary) {
-    return <Skeleton className="h-[9.5rem] rounded-xl" />;
-  }
-
   return (
-    <div className="flex flex-col gap-1.5">
-      <RiskScoreWidget score={summary.score} level={summary.level} />
-      <LastUpdated timestamp={lastUpdated} className="px-1" />
-    </div>
+    <QueryState
+      loading={loading}
+      error={error}
+      data={summary}
+      onRetry={refresh}
+      errorTitle="Failed to load risk score"
+      loadingFallback={<Skeleton className="h-[9.5rem] rounded-xl" />}
+    >
+      {(data) => (
+        <div className="flex flex-col gap-1.5">
+          <RiskScoreWidget score={data.score} level={data.level} />
+          <LastUpdated timestamp={lastUpdated} className="px-1" />
+        </div>
+      )}
+    </QueryState>
   );
 }

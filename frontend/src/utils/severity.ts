@@ -1,5 +1,23 @@
 import type { SeverityLevel, AlertStatus } from '@/constants';
 import type { IncidentType, EmergencyActionType, ComplianceFramework, ComplianceStatus, RecommendationSource, PlantStatus } from '@/types';
+import type { BadgeVariant } from '@/components/ui';
+
+/**
+ * Dot-marker background class for each `Badge` variant. Exported so
+ * standalone status markers (e.g. a timeline's severity dot) can
+ * match `Badge`'s own colours exactly instead of redefining their
+ * own variant→colour mapping.
+ */
+export const BADGE_DOT_CLASS: Record<BadgeVariant, string> = {
+  default:   'bg-[var(--sf-text-tertiary)]',
+  primary:   'bg-primary-400',
+  secondary: 'bg-[var(--sf-text-tertiary)]',
+  success:   'bg-safe-500',
+  warning:   'bg-caution-500',
+  danger:    'bg-danger-500',
+  ghost:     'bg-[var(--sf-text-tertiary)]',
+  outline:   'bg-[var(--sf-text-primary)]',
+};
 
 /** Badge colour variant for each severity level. Single source of truth — reuse instead of redefining per component. */
 export const SEVERITY_BADGE_VARIANT: Record<SeverityLevel, 'success' | 'primary' | 'warning' | 'danger'> = {
@@ -107,18 +125,10 @@ export const PLANT_STATUS_LABEL: Record<PlantStatus, string> = {
   emergency: 'Emergency',
 };
 
-/** Badge colour variant for each plant status. Single source of truth — reuse instead of redefining per component. */
-export const PLANT_STATUS_BADGE_VARIANT: Record<PlantStatus, 'success' | 'warning' | 'danger'> = {
-  normal:    'success',
-  warning:   'warning',
-  critical:  'danger',
-  emergency: 'danger',
-};
-
 /**
  * Banner surface classes for each plant status — a stronger, full-width
- * treatment than a `Badge`, so this is defined here rather than reusing
- * `PLANT_STATUS_BADGE_VARIANT`'s palette directly.
+ * treatment than a `Badge`, defined directly per status rather than
+ * derived from a badge-variant map.
  */
 export const PLANT_STATUS_BANNER_CLASSES: Record<PlantStatus, string> = {
   normal:    'bg-safe-500/10 border-safe-500/30 text-safe-700 dark:text-safe-400',

@@ -2,9 +2,9 @@
  * useRecentAlerts
  *
  * Fetches `GET /alerts` exactly once per interval and shares the result —
- * so `AlertsPanel`, `IncidentSummarySection`, and anything else needing
- * the same alert feed can consume one fetch instead of each firing its
- * own request against the same endpoint.
+ * so `AlertsPanel` and anything else needing the same alert feed can
+ * consume one fetch instead of each firing its own request against the
+ * same endpoint.
  *
  * @example
  * const { alerts, loading, error, refresh } = useRecentAlerts({ limit: 100 });

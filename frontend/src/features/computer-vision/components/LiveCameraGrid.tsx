@@ -5,8 +5,8 @@
  * preview. Selecting a tile opens `CameraDetails` for that camera.
  */
 
-import { RotateCw, Video } from 'lucide-react';
-import { Alert, Button, Card, CardHeader, EmptyState } from '@/components/ui';
+import { Video } from 'lucide-react';
+import { Card, CardHeader, EmptyState, QueryState } from '@/components/ui';
 import { useCameras } from '../hooks';
 import { CameraTile } from './CameraTile';
 import type { Camera } from '../types';
@@ -36,37 +36,36 @@ export function LiveCameraGrid({ zone, onSelectCamera }: LiveCameraGridProps) {
       />
 
       <div className="p-4">
-        {error ? (
-          <Alert
-            variant="danger"
-            title="Failed to load cameras"
-            actions={
-              <Button size="sm" variant="outline" onClick={refetch} leftIcon={<RotateCw className="w-3.5 h-3.5" />}>
-                Retry
-              </Button>
-            }
-          >
-            {error}
-          </Alert>
-        ) : loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" aria-busy="true" aria-label="Loading cameras">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <CameraTile key={i} loading />
-            ))}
-          </div>
-        ) : cameras.length === 0 ? (
-          <EmptyState
-            icon={Video}
-            title="No cameras registered"
-            description="No CCTV cameras have been configured for this plant yet."
-          />
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {cameras.map((camera) => (
-              <CameraTile key={camera.id} camera={camera} onSelect={onSelectCamera} />
-            ))}
-          </div>
-        )}
+        <QueryState<Camera[]>
+          loading={loading}
+          error={error}
+          data={cameras}
+          onRetry={refetch}
+          errorTitle="Failed to load cameras"
+          isEmpty={(d) => d.length === 0}
+          emptyState={
+            <EmptyState
+              icon={Video}
+              title="No cameras registered"
+              description="No CCTV cameras have been configured for this plant yet."
+            />
+          }
+          loadingFallback={
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" aria-busy="true" aria-label="Loading cameras">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <CameraTile key={i} loading />
+              ))}
+            </div>
+          }
+        >
+          {(data) => (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {data.map((camera) => (
+                <CameraTile key={camera.id} camera={camera} onSelect={onSelectCamera} />
+              ))}
+            </div>
+          )}
+        </QueryState>
       </div>
     </Card>
   );

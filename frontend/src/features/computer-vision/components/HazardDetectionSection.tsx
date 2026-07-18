@@ -7,14 +7,14 @@
  * timestamp, location, and lifecycle status.
  */
 
-import { AlertTriangle, Droplet, Flame, ShieldAlert, UserX, DoorOpen, RotateCw } from 'lucide-react';
+import { AlertTriangle, Droplet, Flame, ShieldAlert, UserX, DoorOpen } from 'lucide-react';
 import type { ElementType } from 'react';
-import { Alert, Badge, Button, Card, CardContent, CardHeader, EmptyState, Skeleton } from '@/components/ui';
+import { Badge, Card, CardContent, CardHeader, EmptyState, QueryState, Skeleton } from '@/components/ui';
 import { formatLabel, formatRelativeTime, formatDateTime } from '@/utils/format';
 import { SEVERITY_BADGE_VARIANT, ALERT_STATUS_BADGE_VARIANT } from '@/utils/severity';
 import { cn } from '@/lib/cn';
 import { useHazardDetections } from '../hooks';
-import type { HazardType } from '../types';
+import type { HazardDetection, HazardType } from '../types';
 
 export interface HazardDetectionSectionProps {
   zone?: string;
@@ -54,74 +54,73 @@ export function HazardDetectionSection({ zone }: HazardDetectionSectionProps) {
       />
 
       <CardContent className="p-4">
-        {error ? (
-          <Alert
-            variant="danger"
-            title="Failed to load hazard detections"
-            actions={
-              <Button size="sm" variant="outline" onClick={refetch} leftIcon={<RotateCw className="w-3.5 h-3.5" />}>
-                Retry
-              </Button>
-            }
-          >
-            {error}
-          </Alert>
-        ) : loading ? (
-          <div className="space-y-3" aria-busy="true" aria-label="Loading hazard detections">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <Skeleton key={i} className="h-20 rounded-lg" />
-            ))}
-          </div>
-        ) : hazards.length === 0 ? (
-          <EmptyState
-            icon={ShieldAlert}
-            title="No hazards detected"
-            description="No active hazard detections across any monitored zone."
-          />
-        ) : (
-          <ul className="flex flex-col gap-3">
-            {hazards.map((hazard) => {
-              const Icon = HAZARD_ICON[hazard.type];
-              return (
-                <li
-                  key={hazard.id}
-                  className="flex items-start gap-3 p-3 rounded-lg border border-[var(--sf-border-default)] bg-[var(--sf-surface-raised)] motion-safe:animate-fade-in"
-                >
-                  <div
-                    className={cn(
-                      'flex items-center justify-center w-8 h-8 rounded-full flex-shrink-0 bg-danger-500/15 text-danger-500',
-                      hazard.severity === 'critical' && hazard.status === 'active' && 'motion-safe:animate-pulse-slow',
-                    )}
+        <QueryState<HazardDetection[]>
+          loading={loading}
+          error={error}
+          data={hazards}
+          onRetry={refetch}
+          errorTitle="Failed to load hazard detections"
+          isEmpty={(d) => d.length === 0}
+          emptyState={
+            <EmptyState
+              icon={ShieldAlert}
+              title="No hazards detected"
+              description="No active hazard detections across any monitored zone."
+            />
+          }
+          loadingFallback={
+            <div className="space-y-3" aria-busy="true" aria-label="Loading hazard detections">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <Skeleton key={i} className="h-20 rounded-lg" />
+              ))}
+            </div>
+          }
+        >
+          {(data) => (
+            <ul className="flex flex-col gap-3">
+              {data.map((hazard) => {
+                const Icon = HAZARD_ICON[hazard.type];
+                return (
+                  <li
+                    key={hazard.id}
+                    className="flex items-start gap-3 p-3 rounded-lg border border-[var(--sf-border-default)] bg-[var(--sf-surface-raised)] motion-safe:animate-fade-in"
                   >
-                    <Icon className="w-4 h-4" aria-hidden="true" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2 flex-wrap">
-                      <p className="text-sm font-semibold text-[var(--sf-text-primary)]">
-                        {formatLabel(hazard.type)}
+                    <div
+                      className={cn(
+                        'flex items-center justify-center w-8 h-8 rounded-full flex-shrink-0 bg-danger-500/15 text-danger-500',
+                        hazard.severity === 'critical' && hazard.status === 'active' && 'motion-safe:animate-pulse-slow',
+                      )}
+                    >
+                      <Icon className="w-4 h-4" aria-hidden="true" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2 flex-wrap">
+                        <p className="text-sm font-semibold text-[var(--sf-text-primary)]">
+                          {formatLabel(hazard.type)}
+                        </p>
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                          <Badge variant={SEVERITY_BADGE_VARIANT[hazard.severity]} size="sm" dot pulsing={hazard.severity === 'critical'}>
+                            {formatLabel(hazard.severity)}
+                          </Badge>
+                          <Badge variant={ALERT_STATUS_BADGE_VARIANT[hazard.status]} size="sm">
+                            {STATUS_LABEL[hazard.status]}
+                          </Badge>
+                        </div>
+                      </div>
+                      <p className="text-sm text-[var(--sf-text-secondary)] leading-relaxed">
+                        {hazard.description}
                       </p>
-                      <div className="flex items-center gap-1.5 flex-shrink-0">
-                        <Badge variant={SEVERITY_BADGE_VARIANT[hazard.severity]} size="sm" dot pulsing={hazard.severity === 'critical'}>
-                          {formatLabel(hazard.severity)}
-                        </Badge>
-                        <Badge variant={ALERT_STATUS_BADGE_VARIANT[hazard.status]} size="sm">
-                          {STATUS_LABEL[hazard.status]}
-                        </Badge>
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-xs text-[var(--sf-text-tertiary)]">
+                        <span>{hazard.location}</span>
+                        <span title={formatDateTime(hazard.detectedAt)}>{formatRelativeTime(hazard.detectedAt)}</span>
                       </div>
                     </div>
-                    <p className="text-sm text-[var(--sf-text-secondary)] leading-relaxed">
-                      {hazard.description}
-                    </p>
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-xs text-[var(--sf-text-tertiary)]">
-                      <span>{hazard.location}</span>
-                      <span title={formatDateTime(hazard.detectedAt)}>{formatRelativeTime(hazard.detectedAt)}</span>
-                    </div>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </QueryState>
       </CardContent>
     </Card>
   );

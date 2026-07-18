@@ -10,8 +10,8 @@
  * <SafetyTimelineSection />
  */
 
-import { History, RotateCw } from 'lucide-react';
-import { Card, CardHeader, Alert, Button, EmptyState, Skeleton } from '@/components/ui';
+import { History } from 'lucide-react';
+import { Card, CardHeader, EmptyState, QueryState, Skeleton } from '@/components/ui';
 import { safetyTimelineService } from '@/services';
 import { useRecentAlerts } from '@/features/alerts/hooks/useRecentAlerts';
 import { useRecentRiskScores } from '@/features/dashboard/hooks/useRecentRiskScores';
@@ -43,40 +43,37 @@ export function SafetyTimelineSectionView({ events, loading, error, refresh, cla
         className="px-6 pt-5 pb-0"
       />
       <div className="p-4">
-        {error ? (
-          <Alert
-            variant="danger"
-            title="Failed to load safety timeline"
-            actions={
-              <Button size="sm" variant="outline" onClick={refresh} leftIcon={<RotateCw className="w-3.5 h-3.5" />}>
-                Retry
-              </Button>
-            }
-          >
-            {error}
-          </Alert>
-        ) : loading ? (
-          <div className="flex flex-col gap-6">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="flex gap-3.5">
-                <Skeleton className="w-8 h-8 rounded-full flex-shrink-0" />
-                <div className="flex-1 space-y-2">
-                  <Skeleton className="h-4 w-40 rounded" />
-                  <Skeleton className="h-3 w-full rounded" />
-                  <Skeleton className="h-3 w-24 rounded" />
+        <QueryState
+          loading={loading}
+          error={error}
+          data={events}
+          onRetry={refresh}
+          errorTitle="Failed to load safety timeline"
+          isEmpty={(e) => e.length === 0}
+          emptyState={
+            <EmptyState
+              icon={History}
+              title="No recent events"
+              description="No safety events have been recorded recently."
+            />
+          }
+          loadingFallback={
+            <div className="flex flex-col gap-6">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="flex gap-3.5">
+                  <Skeleton className="w-8 h-8 rounded-full flex-shrink-0" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-4 w-40 rounded" />
+                    <Skeleton className="h-3 w-full rounded" />
+                    <Skeleton className="h-3 w-24 rounded" />
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        ) : events.length === 0 ? (
-          <EmptyState
-            icon={History}
-            title="No recent events"
-            description="No safety events have been recorded recently."
-          />
-        ) : (
-          <SafetyTimeline events={events} />
-        )}
+              ))}
+            </div>
+          }
+        >
+          {(eventData) => <SafetyTimeline events={eventData} />}
+        </QueryState>
       </div>
     </Card>
   );

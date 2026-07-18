@@ -100,10 +100,13 @@ export interface ApiPaginatedResponse<T> {
 // ─── Internal Request Metadata ────────────────────────────────────
 
 declare module 'axios' {
-  interface InternalAxiosRequestConfig {
+  interface AxiosRequestConfig {
     /** Injected request ID (used for log correlation). */
     _requestId?: string;
-    /** Whether this request has already been retried. */
+    /** Number of automatic retries already attempted for this request. */
     _retryCount?: number;
   }
+
+  // `InternalAxiosRequestConfig` extends `AxiosRequestConfig`, so this
+  // augmentation is inherited automatically — no separate declaration needed.
 }

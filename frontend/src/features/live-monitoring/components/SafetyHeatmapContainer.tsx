@@ -1,5 +1,7 @@
 import { MapPin, Factory } from 'lucide-react';
 import { Card, CardHeader, Badge } from '@/components/ui';
+import { CardHeaderLink } from '@/components/common/CardHeaderLink';
+import { ROUTES } from '@/constants/routes';
 import { cn } from '@/lib/cn';
 import { SEVERITY_BADGE_VARIANT } from '@/utils/severity';
 import type { SeverityLevel } from '@/constants';
@@ -51,9 +53,12 @@ export function SafetyHeatmapContainer() {
         description="Plant-wide risk overview by zone."
         className="px-6 pt-5 pb-0"
         action={
-          <Badge variant="ghost" size="sm">
-            Map view coming soon
-          </Badge>
+          <div className="flex items-center gap-3">
+            <Badge variant="ghost" size="sm">
+              Map view coming soon
+            </Badge>
+            <CardHeaderLink to={ROUTES.LIVE_MONITORING} label="View Live Monitoring" />
+          </div>
         }
       />
 

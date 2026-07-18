@@ -20,12 +20,16 @@
 import { Outlet } from 'react-router-dom';
 import { NotificationToast } from '@/components/common/NotificationToast';
 import { useThemeStore } from '@/store';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 export function AppLayout() {
   // Ensure the resolved theme class is applied on first paint.
   // useThemeStore's persist middleware calls applyTheme on rehydration,
   // but this selector keeps the component subscribed for any runtime changes.
   useThemeStore((s) => s.resolvedTheme);
+
+  // Keeps the browser tab title in sync with the active route.
+  useDocumentTitle();
 
   return (
     <>

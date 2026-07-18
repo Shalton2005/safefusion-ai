@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Radio, RotateCw } from 'lucide-react';
-import { Card, CardHeader, Badge, EmptyState, Alert, Button, Skeleton } from '@/components/ui';
+import { Radio } from 'lucide-react';
+import { Card, CardHeader, Badge, EmptyState, Skeleton, QueryState } from '@/components/ui';
+import { CardHeaderLink } from '@/components/common/CardHeaderLink';
+import { ROUTES } from '@/constants/routes';
 import { sensorsService } from '@/services';
 import { ApiError } from '@/api/errors';
 import { createRequestController } from '@/api/client';
@@ -73,53 +75,55 @@ export function SensorMonitoringPanel() {
         description="Live gas, temperature, pressure, and humidity readings by zone."
         className="px-6 pt-5 pb-0"
         action={
-          !loading && !error && groups.length > 0 && (
-            <Badge variant={criticalCount > 0 ? 'danger' : 'primary'} size="sm" dot pulsing={criticalCount > 0}>
-              {groups.length} zone{groups.length === 1 ? '' : 's'}
-            </Badge>
-          )
+          <div className="flex items-center gap-3">
+            {!loading && !error && groups.length > 0 && (
+              <Badge variant={criticalCount > 0 ? 'danger' : 'primary'} size="sm" dot pulsing={criticalCount > 0}>
+                {groups.length} zone{groups.length === 1 ? '' : 's'}
+              </Badge>
+            )}
+            <CardHeaderLink to={ROUTES.SENSORS} label="View all sensors" />
+          </div>
         }
       />
 
       <div className="p-4">
-        {error ? (
-          <Alert
-            variant="danger"
-            title="Failed to load sensor data"
-            actions={
-              <Button size="sm" variant="outline" onClick={() => fetchSensors()} leftIcon={<RotateCw className="w-3.5 h-3.5" />}>
-                Retry
-              </Button>
-            }
-          >
-            {error}
-          </Alert>
-        ) : loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <Card key={i} padding="sm">
-                <Skeleton className="h-4 w-24 mb-3 rounded" />
-                <div className="grid grid-cols-2 gap-3">
-                  {Array.from({ length: 4 }).map((__, j) => (
-                    <Skeleton key={j} className="h-12 rounded-lg" />
-                  ))}
-                </div>
-              </Card>
-            ))}
-          </div>
-        ) : groups.length === 0 ? (
-          <EmptyState
-            icon={Radio}
-            title="No sensor data"
-            description="No sensor readings are currently available for any zone."
-          />
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {groups.map((group) => (
-              <SensorCard key={group.zone} group={group} />
-            ))}
-          </div>
-        )}
+        <QueryState
+          loading={loading}
+          error={error}
+          data={groups}
+          onRetry={() => fetchSensors()}
+          errorTitle="Failed to load sensor data"
+          isEmpty={(d) => d.length === 0}
+          loadingFallback={
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <Card key={i} padding="sm">
+                  <Skeleton className="h-4 w-24 mb-3 rounded" />
+                  <div className="grid grid-cols-2 gap-3">
+                    {Array.from({ length: 4 }).map((__, j) => (
+                      <Skeleton key={j} className="h-12 rounded-lg" />
+                    ))}
+                  </div>
+                </Card>
+              ))}
+            </div>
+          }
+          emptyState={
+            <EmptyState
+              icon={Radio}
+              title="No sensor data"
+              description="No sensor readings are currently available for any zone."
+            />
+          }
+        >
+          {(data) => (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {data.map((group) => (
+                <SensorCard key={group.zone} group={group} />
+              ))}
+            </div>
+          )}
+        </QueryState>
       </div>
     </Card>
   );

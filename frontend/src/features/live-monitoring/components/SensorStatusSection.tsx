@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
-import { Radio, RotateCw } from 'lucide-react';
-import { Card, CardHeader, Badge, EmptyState, Alert, Button, Skeleton } from '@/components/ui';
+import { Radio } from 'lucide-react';
+import { Card, CardHeader, Badge, EmptyState, Skeleton, QueryState } from '@/components/ui';
 import { LastUpdated } from '@/components/common/LastUpdated';
 import { sensorsService } from '@/services';
 import { ApiError } from '@/api/errors';
@@ -76,43 +76,42 @@ export function SensorStatusSection() {
       </div>
 
       <div className="p-4">
-        {error ? (
-          <Alert
-            variant="danger"
-            title="Failed to load sensor data"
-            actions={
-              <Button size="sm" variant="outline" onClick={refresh} leftIcon={<RotateCw className="w-3.5 h-3.5" />}>
-                Retry
-              </Button>
-            }
-          >
-            {error}
-          </Alert>
-        ) : loading ? (
-          <div className="space-y-2">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={i} className="h-12 rounded-lg" />
-            ))}
-          </div>
-        ) : sorted.length === 0 ? (
-          <EmptyState
-            icon={Radio}
-            size="sm"
-            title="No sensor data"
-            description="No sensor readings are currently available."
-          />
-        ) : (
-          <div className="space-y-2">
-            {sorted.map((reading) => (
-              <SensorStatusIndicator
-                key={reading.id}
-                name={sensorName(reading)}
-                value={sensorValue(reading)}
-                status={reading.status}
-              />
-            ))}
-          </div>
-        )}
+        <QueryState
+          loading={loading}
+          error={error}
+          data={sorted}
+          onRetry={refresh}
+          errorTitle="Failed to load sensor data"
+          isEmpty={(d) => d.length === 0}
+          loadingFallback={
+            <div className="space-y-2">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} className="h-12 rounded-lg" />
+              ))}
+            </div>
+          }
+          emptyState={
+            <EmptyState
+              icon={Radio}
+              size="sm"
+              title="No sensor data"
+              description="No sensor readings are currently available."
+            />
+          }
+        >
+          {(data) => (
+            <div className="space-y-2">
+              {data.map((reading) => (
+                <SensorStatusIndicator
+                  key={reading.id}
+                  name={sensorName(reading)}
+                  value={sensorValue(reading)}
+                  status={reading.status}
+                />
+              ))}
+            </div>
+          )}
+        </QueryState>
       </div>
     </Card>
   );

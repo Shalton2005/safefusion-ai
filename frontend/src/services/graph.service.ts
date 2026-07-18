@@ -9,6 +9,7 @@ export interface GetVisualizationParams {
   node_limit?: number;
   /** Maximum number of relationships to return. Backend default: 5000. */
   relationship_limit?: number;
+  [key: string]: unknown;
 }
 
 export const graphService = {

@@ -9,21 +9,13 @@
  * <PlantSafetyOverviewSection />
  */
 
-import { useRef, useState } from 'react';
-import { RotateCw, HardHat, Radio, FileCheck2, Bell, Gauge } from 'lucide-react';
-import { Alert, Button, StatCard } from '@/components/ui';
+import { HardHat, Radio, FileCheck2, Bell, Gauge, ShieldOff } from 'lucide-react';
+import { EmptyState, QueryState, StatCard } from '@/components/ui';
 import { LastUpdated } from '@/components/common/LastUpdated';
-import { dashboardService } from '@/services';
-import { ApiError } from '@/api/errors';
-import { usePolling } from '@/hooks/usePolling';
+import { usePlantSafetyOverview } from '@/features/dashboard/hooks/usePlantSafetyOverview';
 import { cn } from '@/lib/cn';
-import { DASHBOARD_REFRESH_INTERVAL } from '@/constants';
 import type { PlantSafetyOverview as PlantSafetyOverviewData } from '@/types';
 import { PlantSafetyOverview } from './PlantSafetyOverview';
-
-export interface PlantSafetyOverviewSectionProps {
-  className?: string;
-}
 
 const SKELETON_CARDS = [
   { label: 'Total Workers', icon: HardHat },
@@ -33,70 +25,79 @@ const SKELETON_CARDS = [
   { label: 'Current Risk Level', icon: Gauge },
 ];
 
-export function PlantSafetyOverviewSection({ className }: PlantSafetyOverviewSectionProps) {
-  const [overview, setOverview] = useState<PlantSafetyOverviewData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const hasLoadedOnce = useRef(false);
+export interface PlantSafetyOverviewSectionViewProps {
+  overview: PlantSafetyOverviewData | null;
+  loading: boolean;
+  error: string | null;
+  lastUpdated: Date | null;
+  refresh: () => void;
+  className?: string;
+}
 
-  const fetchOverview = async (signal?: AbortSignal) => {
-    if (!hasLoadedOnce.current) setLoading(true);
-    setError(null);
-    try {
-      const data = await dashboardService.getPlantSafetyOverview({ signal });
-      setOverview(data);
-      hasLoadedOnce.current = true;
-    } catch (err) {
-      const apiError = ApiError.from(err);
-      if (!apiError.isCancelledError) {
-        setError(apiError.toUserMessage());
-      }
-    } finally {
-      if (!signal?.aborted) {
-        setLoading(false);
-      }
-    }
-  };
-
-  const { lastUpdated, refresh } = usePolling(fetchOverview, DASHBOARD_REFRESH_INTERVAL);
-
-  if (error) {
-    return (
-      <Alert
-        variant="danger"
-        title="Failed to load plant safety overview"
-        actions={
-          <Button size="sm" variant="outline" onClick={refresh} leftIcon={<RotateCw className="w-3.5 h-3.5" />}>
-            Retry
-          </Button>
-        }
-        className={className}
-      >
-        {error}
-      </Alert>
-    );
-  }
-
-  if (loading || !overview) {
-    return (
-      <div className={cn('grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4', className)}>
-        {SKELETON_CARDS.map(({ label, icon }) => (
-          <StatCard key={label} label={label} value="" icon={icon} loading />
-        ))}
-      </div>
-    );
-  }
-
+/**
+ * Presentational plant-safety-overview card — accepts already-fetched
+ * data so a parent (e.g. `DashboardPage` via a shared
+ * `usePlantSafetyOverview()` call) can avoid refetching `GET /dashboard`
+ * this section would otherwise call on its own. Use
+ * `PlantSafetyOverviewSection` below for standalone, self-fetching usage.
+ */
+export function PlantSafetyOverviewSectionView({ overview, loading, error, lastUpdated, refresh, className }: PlantSafetyOverviewSectionViewProps) {
   return (
-    <div className={cn('flex flex-col gap-1.5', className)}>
-      <PlantSafetyOverview
-        totalWorkers={overview.total_workers}
-        activeSensors={overview.active_sensors}
-        activePermits={overview.active_permits}
-        openAlerts={overview.open_alerts}
-        riskLevel={overview.risk_level}
-      />
-      <LastUpdated timestamp={lastUpdated} className="px-1" />
-    </div>
+    <QueryState
+      loading={loading}
+      error={error}
+      data={overview}
+      onRetry={refresh}
+      errorTitle="Failed to load plant safety overview"
+      className={className}
+      isEmpty={(o) => o.total_workers === 0 && o.active_sensors === 0 && o.active_permits === 0}
+      emptyState={
+        <EmptyState
+          icon={ShieldOff}
+          title="No plant data available"
+          description="No workers, sensors, or permits are currently being tracked."
+          className={className}
+        />
+      }
+      loadingFallback={
+        <div className={cn('grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4', className)}>
+          {SKELETON_CARDS.map(({ label, icon }) => (
+            <StatCard key={label} label={label} value="" icon={icon} loading />
+          ))}
+        </div>
+      }
+    >
+      {(overviewData) => (
+        <div className={cn('flex flex-col gap-1.5', className)}>
+          <PlantSafetyOverview
+            totalWorkers={overviewData.total_workers}
+            activeSensors={overviewData.active_sensors}
+            activePermits={overviewData.active_permits}
+            openAlerts={overviewData.open_alerts}
+            riskLevel={overviewData.risk_level}
+          />
+          <LastUpdated timestamp={lastUpdated} className="px-1" />
+        </div>
+      )}
+    </QueryState>
+  );
+}
+
+export interface PlantSafetyOverviewSectionProps {
+  className?: string;
+}
+
+/** Standalone, self-fetching `PlantSafetyOverviewSection` — polls `GET /dashboard` on its own. Use `PlantSafetyOverviewSectionView` instead when the data is already fetched elsewhere on the page. */
+export function PlantSafetyOverviewSection({ className }: PlantSafetyOverviewSectionProps) {
+  const { overview, loading, error, lastUpdated, refresh } = usePlantSafetyOverview();
+  return (
+    <PlantSafetyOverviewSectionView
+      overview={overview}
+      loading={loading}
+      error={error}
+      lastUpdated={lastUpdated}
+      refresh={refresh}
+      className={className}
+    />
   );
 }

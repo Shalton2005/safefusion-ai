@@ -9,21 +9,13 @@
  * <ZoneOverviewSection />
  */
 
-import { useRef, useState } from 'react';
-import { RotateCw } from 'lucide-react';
-import { Alert, Button, Card, Skeleton } from '@/components/ui';
+import { MapPin } from 'lucide-react';
+import { Card, EmptyState, QueryState, Skeleton } from '@/components/ui';
 import { LastUpdated } from '@/components/common/LastUpdated';
-import { dashboardService } from '@/services';
-import { ApiError } from '@/api/errors';
-import { usePolling } from '@/hooks/usePolling';
+import { useZoneOverview } from '@/features/dashboard/hooks/useZoneOverview';
 import { cn } from '@/lib/cn';
-import { DASHBOARD_REFRESH_INTERVAL } from '@/constants';
 import type { ZoneOverview as ZoneOverviewData } from '@/types';
 import { ZoneOverview } from './ZoneOverview';
-
-export interface ZoneOverviewSectionProps {
-  className?: string;
-}
 
 function ZoneCardSkeleton() {
   return (
@@ -45,64 +37,73 @@ function ZoneCardSkeleton() {
   );
 }
 
-export function ZoneOverviewSection({ className }: ZoneOverviewSectionProps) {
-  const [zones, setZones] = useState<ZoneOverviewData[] | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const hasLoadedOnce = useRef(false);
+export interface ZoneOverviewSectionViewProps {
+  zones: ZoneOverviewData[] | null;
+  loading: boolean;
+  error: string | null;
+  lastUpdated: Date | null;
+  refresh: () => void;
+  className?: string;
+}
 
-  const fetchZones = async (signal?: AbortSignal) => {
-    if (!hasLoadedOnce.current) setLoading(true);
-    setError(null);
-    try {
-      const { data } = await dashboardService.getZoneOverview({ signal });
-      setZones(data.data.zones);
-      hasLoadedOnce.current = true;
-    } catch (err) {
-      const apiError = ApiError.from(err);
-      if (!apiError.isCancelledError) {
-        setError(apiError.toUserMessage());
-      }
-    } finally {
-      if (!signal?.aborted) {
-        setLoading(false);
-      }
-    }
-  };
-
-  const { lastUpdated, refresh } = usePolling(fetchZones, DASHBOARD_REFRESH_INTERVAL);
-
-  if (error) {
-    return (
-      <Alert
-        variant="danger"
-        title="Failed to load zone overview"
-        actions={
-          <Button size="sm" variant="outline" onClick={refresh} leftIcon={<RotateCw className="w-3.5 h-3.5" />}>
-            Retry
-          </Button>
-        }
-        className={className}
-      >
-        {error}
-      </Alert>
-    );
-  }
-
-  if (loading || !zones) {
-    return (
-      <div className={cn('grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4', className)}>
-        {[0, 1, 2, 3].map((i) => (
-          <ZoneCardSkeleton key={i} />
-        ))}
-      </div>
-    );
-  }
-
+/**
+ * Presentational zone-overview grid — accepts already-fetched data so a
+ * parent (e.g. `DashboardPage` via a shared `useZoneOverview()` call)
+ * can avoid refetching `GET /dashboard/zones` this section would
+ * otherwise call on its own. Use `ZoneOverviewSection` below for
+ * standalone, self-fetching usage.
+ */
+export function ZoneOverviewSectionView({ zones, loading, error, lastUpdated, refresh, className }: ZoneOverviewSectionViewProps) {
   return (
-    <div className="flex flex-col gap-1.5">
-      <ZoneOverview zones={zones} className={className} />
-      <LastUpdated timestamp={lastUpdated} className="px-1" />
-    </div>
+    <QueryState
+      loading={loading}
+      error={error}
+      data={zones}
+      onRetry={refresh}
+      errorTitle="Failed to load zone overview"
+      className={className}
+      isEmpty={(z) => z.length === 0}
+      emptyState={
+        <EmptyState
+          icon={MapPin}
+          title="No zones configured"
+          description="No plant zones are currently configured for monitoring."
+          className={className}
+        />
+      }
+      loadingFallback={
+        <div className={cn('grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4', className)}>
+          {[0, 1, 2, 3].map((i) => (
+            <ZoneCardSkeleton key={i} />
+          ))}
+        </div>
+      }
+    >
+      {(zoneData) => (
+        <div className="flex flex-col gap-1.5">
+          <ZoneOverview zones={zoneData} className={className} />
+          <LastUpdated timestamp={lastUpdated} className="px-1" />
+        </div>
+      )}
+    </QueryState>
+  );
+}
+
+export interface ZoneOverviewSectionProps {
+  className?: string;
+}
+
+/** Standalone, self-fetching `ZoneOverviewSection` — polls `GET /dashboard/zones` on its own. Use `ZoneOverviewSectionView` instead when the data is already fetched elsewhere on the page. */
+export function ZoneOverviewSection({ className }: ZoneOverviewSectionProps) {
+  const { zones, loading, error, lastUpdated, refresh } = useZoneOverview();
+  return (
+    <ZoneOverviewSectionView
+      zones={zones}
+      loading={loading}
+      error={error}
+      lastUpdated={lastUpdated}
+      refresh={refresh}
+      className={className}
+    />
   );
 }

@@ -10,7 +10,6 @@ export interface TableColumn<TRow = Record<string, unknown>> {
   render?: (value: unknown, row: TRow) => ReactNode;
   width?: string;
   align?: 'left' | 'center' | 'right';
-  sortable?: boolean;
 }
 
 interface TableProps<TRow = Record<string, unknown>> {
@@ -91,6 +90,7 @@ export function Table<TRow = Record<string, unknown>>({
             <tr>
               <td
                 colSpan={columns.length}
+                role="status"
                 className="py-12 text-center text-[var(--color-text-muted)]"
               >
                 {emptyMessage}

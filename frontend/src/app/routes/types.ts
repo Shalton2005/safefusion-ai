@@ -34,6 +34,12 @@ export interface RouteMetadata {
    * Typically a live count (e.g. active alert count).
    */
   readonly badge?: string | number;
+  /**
+   * Sidebar section heading this route is grouped under (e.g. 'Overview').
+   * Routes with the same `section`, in declaration order, render together.
+   * Omit for routes that shouldn't be grouped under a heading.
+   */
+  readonly section?: string;
 }
 
 // ─── Full Route Definition ────────────────────────────────────────
@@ -58,7 +64,7 @@ export interface AppRouteDefinition extends RouteMetadata {
  */
 export type NavRouteItem = Pick<
   RouteMetadata,
-  'id' | 'path' | 'label' | 'icon' | 'showInNav' | 'badge'
+  'id' | 'path' | 'label' | 'icon' | 'showInNav' | 'badge' | 'section'
 >;
 
 // ─── Router Builder Helpers ───────────────────────────────────────

@@ -1,6 +1,6 @@
 import { useParams } from 'react-router-dom';
-import { Printer, RotateCw } from 'lucide-react';
-import { PageHeader, Card, Alert, Button, Skeleton } from '@/components/ui';
+import { Printer } from 'lucide-react';
+import { PageHeader, Card, Button, QueryState, Skeleton } from '@/components/ui';
 import { ROUTES } from '@/constants/routes';
 import { useIncidentReport } from '@/features/incidents/hooks/useIncidentReport';
 import { IncidentReportViewer } from '@/features/incidents/components/IncidentReportViewer';
@@ -34,30 +34,25 @@ export function IncidentReportPage() {
         </div>
       )}
 
-      {error ? (
-        <Alert
-          variant="danger"
-          title="Failed to load incident report"
-          actions={
-            <Button size="sm" variant="outline" onClick={refresh} leftIcon={<RotateCw className="w-3.5 h-3.5" />}>
-              Retry
-            </Button>
-          }
-        >
-          {error}
-        </Alert>
-      ) : loading || !report ? (
-        <Card padding="lg">
-          <div className="flex flex-col gap-4">
-            <Skeleton className="h-6 w-1/3 rounded" />
-            <Skeleton className="h-24 rounded-xl" />
-            <Skeleton className="h-24 rounded-xl" />
-            <Skeleton className="h-24 rounded-xl" />
-          </div>
-        </Card>
-      ) : (
-        <IncidentReportViewer report={report} />
-      )}
+      <QueryState
+        loading={loading}
+        error={error}
+        data={report}
+        onRetry={refresh}
+        errorTitle="Failed to load incident report"
+        loadingFallback={
+          <Card padding="lg">
+            <div className="flex flex-col gap-4">
+              <Skeleton className="h-6 w-1/3 rounded" />
+              <Skeleton className="h-24 rounded-xl" />
+              <Skeleton className="h-24 rounded-xl" />
+              <Skeleton className="h-24 rounded-xl" />
+            </div>
+          </Card>
+        }
+      >
+        {(reportData) => <IncidentReportViewer report={reportData} />}
+      </QueryState>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { User, Bell, Shield, Palette, Database, ChevronRight } from 'lucide-react';
-import { Card, CardHeader, Button, Input, Badge } from '@/components/ui';
+import { Card, CardHeader, Button, Input, Badge, PageHeader } from '@/components/ui';
 import { useTheme } from '@/hooks/useTheme';
 import { cn } from '@/lib/cn';
 import type { Theme } from '@/types';
@@ -27,12 +27,12 @@ export function SettingsPage() {
 
   return (
     <div className="page-container">
-      <div>
-        <h1 className="text-[var(--color-text-primary)]">Settings</h1>
-        <p className="mt-1 text-sm text-[var(--color-text-muted)]">
-          Manage your account, preferences, and platform configuration.
-        </p>
-      </div>
+      <PageHeader
+        title="Settings"
+        description="Manage your account, preferences, and platform configuration."
+        border={false}
+        className="px-0 pt-0"
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
         {/* Sidebar nav */}

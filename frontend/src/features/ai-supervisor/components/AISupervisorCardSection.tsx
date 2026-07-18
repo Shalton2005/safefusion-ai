@@ -11,6 +11,8 @@
 
 import { Skeleton } from '@/components/ui';
 import { LastUpdated } from '@/components/common/LastUpdated';
+import { CardHeaderLink } from '@/components/common/CardHeaderLink';
+import { ROUTES } from '@/constants/routes';
 import { cn } from '@/lib/cn';
 import { useAISupervisor } from '../hooks/useAISupervisor';
 import { AISupervisorCard } from './AISupervisorCard';
@@ -29,7 +31,10 @@ export function AISupervisorCardSection({ className }: AISupervisorCardSectionPr
   return (
     <div className={cn('flex flex-col gap-1.5', className)}>
       <AISupervisorCard snapshot={snapshot} />
-      <LastUpdated timestamp={snapshot.lastDecisionTime} className="px-1" />
+      <div className="flex items-center justify-between px-1">
+        <LastUpdated timestamp={snapshot.lastDecisionTime} />
+        <CardHeaderLink to={ROUTES.AI_SUPERVISOR} label="View AI Supervisor" />
+      </div>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Flame, RotateCw } from 'lucide-react';
-import { Card, CardHeader, Badge, EmptyState, Alert, Button, Skeleton } from '@/components/ui';
+import { Flame } from 'lucide-react';
+import { Card, CardHeader, Badge, EmptyState, Skeleton, QueryState } from '@/components/ui';
 import { incidentsService } from '@/services';
 import { ApiError } from '@/api/errors';
 import { createRequestController } from '@/api/client';
@@ -56,41 +56,40 @@ export function RecentIncidentsPanel() {
         }
       />
       <div className="p-4">
-        {error ? (
-          <Alert
-            variant="danger"
-            title="Failed to load recent incidents"
-            actions={
-              <Button size="sm" variant="outline" onClick={() => fetchIncidents()} leftIcon={<RotateCw className="w-3.5 h-3.5" />}>
-                Retry
-              </Button>
-            }
-          >
-            {error}
-          </Alert>
-        ) : loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <Card key={i} padding="sm">
-                <Skeleton className="h-4 w-32 mb-3 rounded" />
-                <Skeleton className="h-3 w-full mb-1.5 rounded" />
-                <Skeleton className="h-3 w-2/3 rounded" />
-              </Card>
-            ))}
-          </div>
-        ) : incidents.length === 0 ? (
-          <EmptyState
-            icon={Flame}
-            title="No recent incidents"
-            description="No safety incidents have been reported recently."
-          />
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {incidents.map((incident) => (
-              <IncidentCard key={incident.id} incident={incident} />
-            ))}
-          </div>
-        )}
+        <QueryState
+          loading={loading}
+          error={error}
+          data={incidents}
+          onRetry={() => fetchIncidents()}
+          errorTitle="Failed to load recent incidents"
+          isEmpty={(d) => d.length === 0}
+          loadingFallback={
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <Card key={i} padding="sm">
+                  <Skeleton className="h-4 w-32 mb-3 rounded" />
+                  <Skeleton className="h-3 w-full mb-1.5 rounded" />
+                  <Skeleton className="h-3 w-2/3 rounded" />
+                </Card>
+              ))}
+            </div>
+          }
+          emptyState={
+            <EmptyState
+              icon={Flame}
+              title="No recent incidents"
+              description="No safety incidents have been reported recently."
+            />
+          }
+        >
+          {(data) => (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {data.map((incident) => (
+                <IncidentCard key={incident.id} incident={incident} />
+              ))}
+            </div>
+          )}
+        </QueryState>
       </div>
     </Card>
   );

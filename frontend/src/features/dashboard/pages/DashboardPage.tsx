@@ -1,7 +1,10 @@
+import { MessageSquareText, Waypoints } from 'lucide-react';
 import { Badge, PageHeader } from '@/components/ui';
+import { QuickLinkCard } from '@/components/common/QuickLinkCard';
+import { ROUTES } from '@/constants/routes';
 import { KpiCardGrid } from '@/features/dashboard/components/KpiCardGrid';
-import { PlantSafetyOverviewSection } from '@/features/dashboard/components/PlantSafetyOverviewSection';
-import { ZoneOverviewSection } from '@/features/dashboard/components/ZoneOverviewSection';
+import { PlantSafetyOverviewSectionView } from '@/features/dashboard/components/PlantSafetyOverviewSection';
+import { ZoneOverviewSectionView } from '@/features/dashboard/components/ZoneOverviewSection';
 import { SafetyTimelineSectionView } from '@/features/dashboard/components/SafetyTimelineSection';
 import { ChartCard, RiskTrendChart, SensorReadingsChart, AlertDistributionChart } from '@/components/charts';
 import {
@@ -12,7 +15,6 @@ import {
 import { WorkerMonitoringPanel } from '@/features/workers/components/WorkerMonitoringPanel';
 import { SensorMonitoringPanel } from '@/features/sensors/components/SensorMonitoringPanel';
 import { AlertsPanelView } from '@/features/alerts/components/AlertsPanel';
-import { IncidentSummarySectionView } from '@/features/alerts/components/IncidentSummarySection';
 import { RecentIncidentsPanel } from '@/features/alerts/components/RecentIncidentsPanel';
 import { PermitDashboardPanel } from '@/features/permits/components/PermitDashboardPanel';
 import { SafetyHeatmapContainer } from '@/features/live-monitoring/components/SafetyHeatmapContainer';
@@ -25,6 +27,8 @@ import { RecommendationPanelSectionView } from '@/features/recommendations/compo
 import { CameraShortcutCard, VisionSummaryWidget, CriticalHazardBanner } from '@/features/computer-vision/components';
 import { useRecentAlerts } from '@/features/alerts/hooks/useRecentAlerts';
 import { useRecentRiskScores } from '@/features/dashboard/hooks/useRecentRiskScores';
+import { usePlantSafetyOverview } from '@/features/dashboard/hooks/usePlantSafetyOverview';
+import { useZoneOverview } from '@/features/dashboard/hooks/useZoneOverview';
 import { useCompoundRiskEngine } from '@/features/risk/hooks/useCompoundRiskEngine';
 import { useEmergencyResponse } from '@/features/emergency/hooks/useEmergencyResponse';
 import { useRecommendations } from '@/features/recommendations/hooks/useRecommendations';
@@ -42,6 +46,8 @@ export function DashboardPage() {
   // section that needs them, instead of each section fetching on its own.
   const alertsData = useRecentAlerts({ limit: 100 });
   const riskScoresData = useRecentRiskScores({ limit: TIMELINE_LIMIT });
+  const plantSafetyOverviewData = usePlantSafetyOverview();
+  const zoneOverviewData = useZoneOverview();
   const riskEngineData = useCompoundRiskEngine();
   const emergencyData = useEmergencyResponse();
   const recommendationsData = useRecommendations();
@@ -84,22 +90,6 @@ export function DashboardPage() {
     recommendationsData.refresh();
   };
 
-  const incidentSummaryItems = useMemo(
-    () =>
-      [...alertsData.alerts]
-        .sort((a, b) => new Date(b.generated_at).getTime() - new Date(a.generated_at).getTime())
-        .slice(0, 5)
-        .map((record) => ({
-          id: record.id,
-          message: record.message,
-          severity: record.severity,
-          status: record.status,
-          timestamp: record.generated_at,
-          zone: record.zone,
-        })),
-    [alertsData.alerts],
-  );
-
   return (
     <div className="page-container">
       <PageHeader
@@ -116,7 +106,13 @@ export function DashboardPage() {
       <KpiCardGrid />
 
       {/* Plant safety overview */}
-      <PlantSafetyOverviewSection />
+      <PlantSafetyOverviewSectionView
+        overview={plantSafetyOverviewData.overview}
+        loading={plantSafetyOverviewData.loading}
+        error={plantSafetyOverviewData.error}
+        lastUpdated={plantSafetyOverviewData.lastUpdated}
+        refresh={plantSafetyOverviewData.refresh}
+      />
 
       {/* Computer vision — detection summary + camera shortcut */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -124,8 +120,30 @@ export function DashboardPage() {
         <CameraShortcutCard />
       </div>
 
+      {/* Quick links — AI Safety Copilot, Knowledge Graph */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <QuickLinkCard
+          to={ROUTES.COPILOT}
+          icon={MessageSquareText}
+          title="AI Safety Copilot"
+          description="Ask questions grounded in your plant's safety and compliance documents."
+        />
+        <QuickLinkCard
+          to={ROUTES.KNOWLEDGE_GRAPH}
+          icon={Waypoints}
+          title="Knowledge Graph"
+          description="Explore relationships between workers, sensors, zones, permits, and incidents."
+        />
+      </div>
+
       {/* Zone overview */}
-      <ZoneOverviewSection />
+      <ZoneOverviewSectionView
+        zones={zoneOverviewData.zones}
+        loading={zoneOverviewData.loading}
+        error={zoneOverviewData.error}
+        lastUpdated={zoneOverviewData.lastUpdated}
+        refresh={zoneOverviewData.refresh}
+      />
 
       {/* Risk trend */}
       <ChartCard
@@ -220,12 +238,7 @@ export function DashboardPage() {
         alerts={alertsData.alerts}
         loading={alertsData.loading}
         error={alertsData.error}
-        refresh={alertsData.refresh}
-      />
-      <IncidentSummarySectionView
-        incidents={incidentSummaryItems}
-        loading={alertsData.loading}
-        error={alertsData.error}
+        lastUpdated={alertsData.lastUpdated}
         refresh={alertsData.refresh}
       />
       <RecentIncidentsPanel />

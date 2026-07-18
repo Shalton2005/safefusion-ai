@@ -9,7 +9,7 @@
 import type { TooltipContentProps } from 'recharts';
 
 export interface ChartTooltipProps
-  extends Partial<TooltipContentProps<number | string, string>> {
+  extends Omit<Partial<TooltipContentProps<number | string, string>>, 'labelFormatter'> {
   /** Optional formatter for the value shown per row. */
   valueFormatter?: (value: number | string) => string;
   /** Optional formatter for the tooltip heading (usually the x-axis key). */
@@ -40,7 +40,7 @@ export function ChartTooltip({
       )}
       <div className="space-y-1">
         {payload.map((entry) => (
-          <div key={entry.dataKey} className="flex items-center gap-2 text-xs">
+          <div key={String(entry.dataKey)} className="flex items-center gap-2 text-xs">
             <span
               className="w-2 h-2 rounded-full flex-shrink-0"
               style={{ background: entry.color }}

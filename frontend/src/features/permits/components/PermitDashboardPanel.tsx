@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { FileCheck2, RotateCw } from 'lucide-react';
-import { Card, CardHeader, Badge, Table, EmptyState, Alert, Button } from '@/components/ui';
+import { FileCheck2 } from 'lucide-react';
+import { Card, CardHeader, Badge, Table, EmptyState, QueryState } from '@/components/ui';
 import type { TableColumn } from '@/components/ui';
 import { permitsService } from '@/services';
 import { ApiError } from '@/api/errors';
@@ -108,34 +108,42 @@ export function PermitDashboardPanel() {
         }
       />
       <div className="p-4">
-        {error ? (
-          <Alert
-            variant="danger"
-            title="Failed to load permits"
-            actions={
-              <Button size="sm" variant="outline" onClick={() => fetchPermits()} leftIcon={<RotateCw className="w-3.5 h-3.5" />}>
-                Retry
-              </Button>
-            }
-          >
-            {error}
-          </Alert>
-        ) : !loading && permits.length === 0 ? (
-          <EmptyState
-            icon={FileCheck2}
-            title="No permits found"
-            description="No Permit-to-Work records are currently registered in the system."
-          />
-        ) : (
-          <Table<Permit>
-            columns={columns}
-            data={permits}
-            loading={loading}
-            keyExtractor={(r) => r.id}
-            caption="Permit-to-Work records by zone, team, and status"
-            emptyMessage="No permits found."
-          />
-        )}
+        <QueryState
+          loading={loading}
+          error={error}
+          data={permits}
+          onRetry={() => fetchPermits()}
+          errorTitle="Failed to load permits"
+          isEmpty={(d) => d.length === 0}
+          loadingFallback={
+            <Table<Permit>
+              columns={columns}
+              data={permits}
+              loading
+              keyExtractor={(r) => r.id}
+              caption="Permit-to-Work records by zone, team, and status"
+              emptyMessage="No permits found."
+            />
+          }
+          emptyState={
+            <EmptyState
+              icon={FileCheck2}
+              title="No permits found"
+              description="No Permit-to-Work records are currently registered in the system."
+            />
+          }
+        >
+          {(data) => (
+            <Table<Permit>
+              columns={columns}
+              data={data}
+              loading={false}
+              keyExtractor={(r) => r.id}
+              caption="Permit-to-Work records by zone, team, and status"
+              emptyMessage="No permits found."
+            />
+          )}
+        </QueryState>
       </div>
     </Card>
   );

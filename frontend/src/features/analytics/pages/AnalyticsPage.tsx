@@ -1,5 +1,5 @@
 import { BarChart3, TrendingUp } from 'lucide-react';
-import { Card, CardHeader, Badge, Skeleton } from '@/components/ui';
+import { Card, CardHeader, Badge, Skeleton, PageHeader } from '@/components/ui';
 
 interface MetricCardProps {
   label: string;
@@ -24,12 +24,12 @@ function MetricCard({ label, value, change, positive = true }: MetricCardProps) 
 export function AnalyticsPage() {
   return (
     <div className="page-container">
-      <div>
-        <h1 className="text-[var(--color-text-primary)]">Analytics</h1>
-        <p className="mt-1 text-sm text-[var(--color-text-muted)]">
-          Deep-dive insights into safety performance and trends.
-        </p>
-      </div>
+      <PageHeader
+        title="Analytics"
+        description="Deep-dive insights into safety performance and trends."
+        border={false}
+        className="px-0 pt-0"
+      />
 
       {/* KPI metrics */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

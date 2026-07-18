@@ -139,11 +139,14 @@ export function Modal({
     return () => { document.body.style.overflow = prev; };
   }, [open]);
 
-  // ── Focus: move into modal on open ────────────────────────────
+  // ── Focus: move into modal on open, restore to trigger on close ─
+  const triggerRef = useRef<HTMLElement | null>(null);
   useEffect(() => {
     if (!open || !panelRef.current) return;
+    triggerRef.current = document.activeElement as HTMLElement | null;
     const first = getFocusable(panelRef.current)[0];
     first?.focus();
+    return () => triggerRef.current?.focus();
   }, [open]);
 
   // ── Keyboard handlers ─────────────────────────────────────────

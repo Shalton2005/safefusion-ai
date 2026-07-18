@@ -38,3 +38,6 @@ export type { StatCardProps, TrendDirection,
 export { Collapsible }                                  from './Collapsible';
 export type { CollapsibleProps }                        from './Collapsible';
 
+export { QueryState }                                   from './QueryState';
+export type { QueryStateProps }                          from './QueryState';
+

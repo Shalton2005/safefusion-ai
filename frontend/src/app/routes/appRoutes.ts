@@ -40,6 +40,7 @@ export const appRouteDefinitions: AppRouteDefinition[] = [
     icon:        LayoutDashboard,
     showInNav:   true,
     isProtected: true,
+    section:     'Overview',
     component: lazy(() =>
       import('@/features/dashboard/pages/DashboardPage').then((m) => ({
         default: m.DashboardPage,
@@ -56,6 +57,7 @@ export const appRouteDefinitions: AppRouteDefinition[] = [
     icon:        Activity,
     showInNav:   true,
     isProtected: true,
+    section:     'Monitoring',
     component: lazy(() =>
       import('@/features/live-monitoring/pages/LiveMonitoringPage').then((m) => ({
         default: m.LiveMonitoringPage,
@@ -72,6 +74,7 @@ export const appRouteDefinitions: AppRouteDefinition[] = [
     icon:        Video,
     showInNav:   true,
     isProtected: true,
+    section:     'Monitoring',
     component: lazy(() =>
       import('@/features/computer-vision/pages/CctvMonitoringPage').then((m) => ({
         default: m.CctvMonitoringPage,
@@ -88,6 +91,7 @@ export const appRouteDefinitions: AppRouteDefinition[] = [
     icon:        HardHat,
     showInNav:   true,
     isProtected: true,
+    section:     'Monitoring',
     component: lazy(() =>
       import('@/features/workers/pages/WorkersPage').then((m) => ({
         default: m.WorkersPage,
@@ -104,6 +108,7 @@ export const appRouteDefinitions: AppRouteDefinition[] = [
     icon:        Radio,
     showInNav:   true,
     isProtected: true,
+    section:     'Monitoring',
     component: lazy(() =>
       import('@/features/sensors/pages/SensorsPage').then((m) => ({
         default: m.SensorsPage,
@@ -120,6 +125,7 @@ export const appRouteDefinitions: AppRouteDefinition[] = [
     icon:        FileCheck2,
     showInNav:   true,
     isProtected: true,
+    section:     'Monitoring',
     component: lazy(() =>
       import('@/features/permits/pages/PermitsPage').then((m) => ({
         default: m.PermitsPage,
@@ -136,6 +142,7 @@ export const appRouteDefinitions: AppRouteDefinition[] = [
     icon:        Bell,
     showInNav:   true,
     isProtected: true,
+    section:     'Monitoring',
     // badge will be wired to a live alert count store in a later sprint
     badge:       undefined,
     component: lazy(() =>
@@ -154,6 +161,7 @@ export const appRouteDefinitions: AppRouteDefinition[] = [
     icon:        BarChart3,
     showInNav:   true,
     isProtected: true,
+    section:     'Intelligence',
     component: lazy(() =>
       import('@/features/analytics/pages/AnalyticsPage').then((m) => ({
         default: m.AnalyticsPage,
@@ -170,6 +178,7 @@ export const appRouteDefinitions: AppRouteDefinition[] = [
     icon:        Waypoints,
     showInNav:   true,
     isProtected: true,
+    section:     'Intelligence',
     component: lazy(() =>
       import('@/features/knowledge-graph/pages/KnowledgeGraphPage').then((m) => ({
         default: m.KnowledgeGraphPage,
@@ -186,6 +195,7 @@ export const appRouteDefinitions: AppRouteDefinition[] = [
     icon:        BrainCircuit,
     showInNav:   true,
     isProtected: true,
+    section:     'Intelligence',
     component: lazy(() =>
       import('@/features/ai-supervisor/pages/AISupervisorPage').then((m) => ({
         default: m.AISupervisorPage,
@@ -202,6 +212,7 @@ export const appRouteDefinitions: AppRouteDefinition[] = [
     icon:        MessageSquareText,
     showInNav:   true,
     isProtected: true,
+    section:     'Intelligence',
     component: lazy(() =>
       import('@/features/copilot/pages/CopilotPage').then((m) => ({
         default: m.CopilotPage,
@@ -218,6 +229,7 @@ export const appRouteDefinitions: AppRouteDefinition[] = [
     icon:        FileBarChart2,
     showInNav:   true,
     isProtected: true,
+    section:     'Intelligence',
     component: lazy(() =>
       import('@/features/reports/pages/ReportsPage').then((m) => ({
         default: m.ReportsPage,
@@ -249,6 +261,7 @@ export const appRouteDefinitions: AppRouteDefinition[] = [
     icon:        Settings,
     showInNav:   true,
     isProtected: true,
+    section:     'System',
     component: lazy(() =>
       import('@/features/settings/pages/SettingsPage').then((m) => ({
         default: m.SettingsPage,

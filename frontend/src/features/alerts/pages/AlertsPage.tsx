@@ -1,5 +1,5 @@
 import { Bell, Filter } from 'lucide-react';
-import { Card, CardHeader, Badge, Table, Button } from '@/components/ui';
+import { Card, CardHeader, Badge, Table, Button, PageHeader } from '@/components/ui';
 import type { TableColumn } from '@/components/ui';
 import type { Alert } from '@/types';
 import { formatRelativeTime } from '@/utils/format';
@@ -102,23 +102,23 @@ const columns: TableColumn<Alert>[] = [
 export function AlertsPage() {
   return (
     <div className="page-container">
-      <div className="flex items-start justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-[var(--color-text-primary)]">Alerts</h1>
-          <p className="mt-1 text-sm text-[var(--color-text-muted)]">
-            Monitor, acknowledge, and resolve safety alerts.
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" leftIcon={<Filter className="w-4 h-4" />}>
-            Filter
-          </Button>
-          <Badge variant="danger" dot>
-            <Bell className="w-3 h-3 mr-1" />
-            7 Active
-          </Badge>
-        </div>
-      </div>
+      <PageHeader
+        title="Alerts"
+        description="Monitor, acknowledge, and resolve safety alerts."
+        actions={
+          <>
+            <Button variant="outline" size="sm" leftIcon={<Filter className="w-4 h-4" />}>
+              Filter
+            </Button>
+            <Badge variant="danger" dot>
+              <Bell className="w-3 h-3 mr-1" />
+              7 Active
+            </Badge>
+          </>
+        }
+        border={false}
+        className="px-0 pt-0"
+      />
 
       {/* Summary badges */}
       <div className="flex flex-wrap gap-2">

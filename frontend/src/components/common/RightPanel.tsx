@@ -1,22 +1,26 @@
+import { useId } from 'react';
 import { PanelRightClose, X } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { useRightPanelStore } from '@/store';
 import { ActivityPanel } from '@/components/common/activity-panel';
 
 export function RightPanel() {
-  const { open, setOpen } = useRightPanelStore();
+  const open = useRightPanelStore((s) => s.open);
+  const setOpen = useRightPanelStore((s) => s.setOpen);
+  const headingId = useId();
 
   if (!open) return null;
 
   return (
     <aside
+      aria-labelledby={headingId}
       className={cn(
         'hidden xl:flex flex-col w-80 flex-shrink-0 h-screen overflow-hidden',
         'bg-[var(--sf-surface-card)] border-l border-[var(--sf-border-default)]',
       )}
     >
       <div className="flex items-center justify-between px-4 py-4 border-b border-[var(--sf-border-default)]">
-        <h2 className="text-sm font-semibold text-[var(--sf-text-primary)]">Alerts &amp; Activity</h2>
+        <h2 id={headingId} className="text-sm font-semibold text-[var(--sf-text-primary)]">Alerts &amp; Activity</h2>
         <button
           onClick={() => setOpen(false)}
           aria-label="Close panel"
@@ -32,7 +36,8 @@ export function RightPanel() {
 }
 
 export function RightPanelToggle() {
-  const { open, toggle } = useRightPanelStore();
+  const open = useRightPanelStore((s) => s.open);
+  const toggle = useRightPanelStore((s) => s.toggle);
 
   return (
     <button

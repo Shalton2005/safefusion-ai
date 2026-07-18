@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Users, ShieldAlert, RotateCw } from 'lucide-react';
-import { Card, CardHeader, Badge, Table, EmptyState, Alert, Button } from '@/components/ui';
+import { Users, ShieldAlert } from 'lucide-react';
+import { Card, CardHeader, Badge, Table, EmptyState, QueryState } from '@/components/ui';
 import type { TableColumn } from '@/components/ui';
+import { CardHeaderLink } from '@/components/common/CardHeaderLink';
+import { ROUTES } from '@/constants/routes';
 import { workersService } from '@/services';
 import { ApiError } from '@/api/errors';
 import { createRequestController } from '@/api/client';
@@ -106,48 +108,61 @@ export function WorkerMonitoringPanel() {
         description="Live status of registered workers across all zones."
         className="px-6 pt-5 pb-0"
         action={
-          !loading && !error && (
-            <Badge variant={emergencyCount > 0 ? 'danger' : 'primary'} size="sm" dot pulsing={emergencyCount > 0}>
-              {workers.length} worker{workers.length === 1 ? '' : 's'}
-            </Badge>
-          )
+          <div className="flex items-center gap-3">
+            {!loading && !error && (
+              <Badge variant={emergencyCount > 0 ? 'danger' : 'primary'} size="sm" dot pulsing={emergencyCount > 0}>
+                {workers.length} worker{workers.length === 1 ? '' : 's'}
+              </Badge>
+            )}
+            <CardHeaderLink to={ROUTES.WORKERS} label="View all workers" />
+          </div>
         }
       />
       <div className="p-4">
-        {error ? (
-          <Alert
-            variant="danger"
-            title="Failed to load workers"
-            actions={
-              <Button size="sm" variant="outline" onClick={() => fetchWorkers()} leftIcon={<RotateCw className="w-3.5 h-3.5" />}>
-                Retry
-              </Button>
-            }
-          >
-            {error}
-          </Alert>
-        ) : !loading && workers.length === 0 ? (
-          <EmptyState
-            icon={Users}
-            title="No workers found"
-            description="No worker records are currently registered in the system."
-          />
-        ) : (
-          <Table<Worker>
-            columns={columns}
-            data={workers}
-            loading={loading}
-            keyExtractor={(r) => r.id}
-            caption="Worker monitoring status by zone, PPE compliance, and shift"
-            emptyMessage="No workers found."
-          />
-        )}
-        {!loading && !error && emergencyCount > 0 && (
-          <div className="mt-3 flex items-center gap-1.5 text-xs text-danger-600 dark:text-danger-400">
-            <ShieldAlert className="w-3.5 h-3.5" />
-            {emergencyCount} worker{emergencyCount === 1 ? '' : 's'} in emergency status
-          </div>
-        )}
+        <QueryState
+          loading={loading}
+          error={error}
+          data={workers}
+          onRetry={() => fetchWorkers()}
+          errorTitle="Failed to load workers"
+          isEmpty={(d) => d.length === 0}
+          loadingFallback={
+            <Table<Worker>
+              columns={columns}
+              data={workers}
+              loading
+              keyExtractor={(r) => r.id}
+              caption="Worker monitoring status by zone, PPE compliance, and shift"
+              emptyMessage="No workers found."
+            />
+          }
+          emptyState={
+            <EmptyState
+              icon={Users}
+              title="No workers found"
+              description="No worker records are currently registered in the system."
+            />
+          }
+        >
+          {(data) => (
+            <>
+              <Table<Worker>
+                columns={columns}
+                data={data}
+                loading={false}
+                keyExtractor={(r) => r.id}
+                caption="Worker monitoring status by zone, PPE compliance, and shift"
+                emptyMessage="No workers found."
+              />
+              {emergencyCount > 0 && (
+                <div className="mt-3 flex items-center gap-1.5 text-xs text-danger-600 dark:text-danger-400">
+                  <ShieldAlert className="w-3.5 h-3.5" />
+                  {emergencyCount} worker{emergencyCount === 1 ? '' : 's'} in emergency status
+                </div>
+              )}
+            </>
+          )}
+        </QueryState>
       </div>
     </Card>
   );

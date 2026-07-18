@@ -725,7 +725,7 @@
 
   .status-dot-online   { background-color: var(--sf-safe);    animation: pulse 2.5s ease-in-out infinite; }
   .status-dot-warning  { background-color: var(--sf-caution); animation: pulse 2s ease-in-out infinite; }
-  .status-dot-critical { background-color: var(--sf-danger);  animation: pulse 1s ease-in-out infinite; }
+  .status-dot-critical { background-color: var(--sf-danger);  animation: pulse 1.5s ease-in-out infinite; }
   .status-dot-offline  { background-color: var(--sf-text-tertiary); }
   .status-dot-idle     { background-color: var(--sf-info); }
 

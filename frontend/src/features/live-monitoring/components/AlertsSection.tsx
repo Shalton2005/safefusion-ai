@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
-import { Bell, RotateCw } from 'lucide-react';
-import { Card, CardHeader, Badge, EmptyState, Alert, Button, Skeleton } from '@/components/ui';
+import { Bell } from 'lucide-react';
+import { Card, CardHeader, Badge, EmptyState, Skeleton, QueryState } from '@/components/ui';
 import { LastUpdated } from '@/components/common/LastUpdated';
 import { incidentsService } from '@/services';
 import { ApiError } from '@/api/errors';
@@ -59,44 +59,43 @@ export function AlertsSection() {
       </div>
 
       <div className="p-4">
-        {error ? (
-          <Alert
-            variant="danger"
-            title="Failed to load alerts"
-            actions={
-              <Button size="sm" variant="outline" onClick={refresh} leftIcon={<RotateCw className="w-3.5 h-3.5" />}>
-                Retry
-              </Button>
-            }
-          >
-            {error}
-          </Alert>
-        ) : loading ? (
-          <div className="space-y-2">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={i} className="h-16 rounded-lg" />
-            ))}
-          </div>
-        ) : incidents.length === 0 ? (
-          <EmptyState
-            icon={Bell}
-            size="sm"
-            title="No alerts"
-            description="No safety alerts have been reported."
-          />
-        ) : (
-          <div className="space-y-2">
-            {incidents.map((incident) => (
-              <AlertStatusIndicator
-                key={incident.id}
-                severity={incident.severity}
-                message={incident.description}
-                timestamp={incident.occurred_at}
-                source={incident.zone}
-              />
-            ))}
-          </div>
-        )}
+        <QueryState
+          loading={loading}
+          error={error}
+          data={incidents}
+          onRetry={refresh}
+          errorTitle="Failed to load alerts"
+          isEmpty={(d) => d.length === 0}
+          loadingFallback={
+            <div className="space-y-2">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} className="h-16 rounded-lg" />
+              ))}
+            </div>
+          }
+          emptyState={
+            <EmptyState
+              icon={Bell}
+              size="sm"
+              title="No alerts"
+              description="No safety alerts have been reported."
+            />
+          }
+        >
+          {(data) => (
+            <div className="space-y-2">
+              {data.map((incident) => (
+                <AlertStatusIndicator
+                  key={incident.id}
+                  severity={incident.severity}
+                  message={incident.description}
+                  timestamp={incident.occurred_at}
+                  source={incident.zone}
+                />
+              ))}
+            </div>
+          )}
+        </QueryState>
       </div>
     </Card>
   );

@@ -1,8 +1,11 @@
 import { capitalise, formatLabel, formatRelativeTime } from '@/utils/format';
 import { SEVERITY_BADGE_VARIANT, ALERT_STATUS_BADGE_VARIANT, SEVERITY_PRIORITY_LABEL } from '@/utils/severity';
-import { Bell, RotateCw } from 'lucide-react';
-import { Card, CardHeader, Badge, Table, EmptyState, Alert as AlertBanner, Button } from '@/components/ui';
+import { Bell } from 'lucide-react';
+import { Card, CardHeader, Badge, Table, EmptyState, QueryState } from '@/components/ui';
 import type { TableColumn } from '@/components/ui';
+import { CardHeaderLink } from '@/components/common/CardHeaderLink';
+import { LastUpdated } from '@/components/common/LastUpdated';
+import { ROUTES } from '@/constants/routes';
 import { useRecentAlerts } from '@/features/alerts/hooks/useRecentAlerts';
 import type { AlertRecord } from '@/types';
 
@@ -70,6 +73,7 @@ export interface AlertsPanelViewProps {
   alerts: AlertRecord[];
   loading: boolean;
   error: string | null;
+  lastUpdated: Date | null;
   refresh: () => void;
 }
 
@@ -80,7 +84,7 @@ export interface AlertsPanelViewProps {
  * call on its own. Use `AlertsPanel` below for standalone, self-fetching
  * usage.
  */
-export function AlertsPanelView({ alerts, loading, error, refresh }: AlertsPanelViewProps) {
+export function AlertsPanelView({ alerts, loading, error, lastUpdated, refresh }: AlertsPanelViewProps) {
   const criticalCount = alerts.filter((a) => a.severity === 'critical').length;
 
   return (
@@ -90,43 +94,57 @@ export function AlertsPanelView({ alerts, loading, error, refresh }: AlertsPanel
         description="Safety alerts by severity, category, source, and location."
         className="px-6 pt-5 pb-0"
         action={
-          !loading && !error && alerts.length > 0 && (
-            <Badge variant={criticalCount > 0 ? 'danger' : 'primary'} size="sm" dot pulsing={criticalCount > 0}>
-              <Bell className="w-3 h-3 mr-1" />
-              {alerts.length} alert{alerts.length === 1 ? '' : 's'}
-            </Badge>
-          )
+          <div className="flex items-center gap-3">
+            {!loading && !error && alerts.length > 0 && (
+              <Badge variant={criticalCount > 0 ? 'danger' : 'primary'} size="sm" dot pulsing={criticalCount > 0}>
+                <Bell className="w-3 h-3 mr-1" />
+                {alerts.length} alert{alerts.length === 1 ? '' : 's'}
+              </Badge>
+            )}
+            <CardHeaderLink to={ROUTES.ALERTS} label="View all alerts" />
+          </div>
         }
       />
       <div className="p-4">
-        {error ? (
-          <AlertBanner
-            variant="danger"
-            title="Failed to load alerts"
-            actions={
-              <Button size="sm" variant="outline" onClick={refresh} leftIcon={<RotateCw className="w-3.5 h-3.5" />}>
-                Retry
-              </Button>
-            }
-          >
-            {error}
-          </AlertBanner>
-        ) : !loading && alerts.length === 0 ? (
-          <EmptyState
-            icon={Bell}
-            title="No alerts"
-            description="No safety alerts have been reported."
-          />
-        ) : (
-          <Table<AlertRecord>
-            columns={columns}
-            data={alerts}
-            loading={loading}
-            keyExtractor={(r) => r.id}
-            caption="Safety alerts by severity, category, source, and location"
-            emptyMessage="No alerts found."
-          />
-        )}
+        <QueryState
+          loading={loading}
+          error={error}
+          data={alerts}
+          onRetry={refresh}
+          errorTitle="Failed to load alerts"
+          isEmpty={(d) => d.length === 0}
+          loadingFallback={
+            <Table<AlertRecord>
+              columns={columns}
+              data={alerts}
+              loading
+              keyExtractor={(r) => r.id}
+              caption="Safety alerts by severity, category, source, and location"
+              emptyMessage="No alerts found."
+            />
+          }
+          emptyState={
+            <EmptyState
+              icon={Bell}
+              title="No alerts"
+              description="No safety alerts have been reported."
+            />
+          }
+        >
+          {(data) => (
+            <div className="flex flex-col gap-1.5">
+              <Table<AlertRecord>
+                columns={columns}
+                data={data}
+                loading={false}
+                keyExtractor={(r) => r.id}
+                caption="Safety alerts by severity, category, source, and location"
+                emptyMessage="No alerts found."
+              />
+              <LastUpdated timestamp={lastUpdated} className="px-1" />
+            </div>
+          )}
+        </QueryState>
       </div>
     </Card>
   );
@@ -134,6 +152,6 @@ export function AlertsPanelView({ alerts, loading, error, refresh }: AlertsPanel
 
 /** Standalone, self-fetching `AlertsPanel` — fetches its own `GET /alerts` data. Use `AlertsPanelView` instead when the data is already fetched elsewhere on the page. */
 export function AlertsPanel() {
-  const { alerts, loading, error, refresh } = useRecentAlerts({ limit: 100 });
-  return <AlertsPanelView alerts={alerts} loading={loading} error={error} refresh={refresh} />;
+  const { alerts, loading, error, lastUpdated, refresh } = useRecentAlerts({ limit: 100 });
+  return <AlertsPanelView alerts={alerts} loading={loading} error={error} lastUpdated={lastUpdated} refresh={refresh} />;
 }

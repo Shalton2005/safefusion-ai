@@ -1,5 +1,5 @@
 import { FileBarChart2, Download, Plus, Clock } from 'lucide-react';
-import { Card, CardHeader, Badge, Table, Button } from '@/components/ui';
+import { Card, CardHeader, Badge, Table, Button, PageHeader } from '@/components/ui';
 import type { TableColumn } from '@/components/ui';
 import type { Report } from '@/types';
 import { formatDateTime } from '@/utils/format';
@@ -94,17 +94,17 @@ const columns: TableColumn<Report>[] = [
 export function ReportsPage() {
   return (
     <div className="page-container">
-      <div className="flex items-start justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-[var(--color-text-primary)]">Reports</h1>
-          <p className="mt-1 text-sm text-[var(--color-text-muted)]">
-            Generate and download safety compliance reports.
-          </p>
-        </div>
-        <Button leftIcon={<Plus className="w-4 h-4" />}>
-          Generate Report
-        </Button>
-      </div>
+      <PageHeader
+        title="Reports"
+        description="Generate and download safety compliance reports."
+        actions={
+          <Button leftIcon={<Plus className="w-4 h-4" />}>
+            Generate Report
+          </Button>
+        }
+        border={false}
+        className="px-0 pt-0"
+      />
 
       <Card padding="none">
         <CardHeader title="Report History" className="px-6 pt-5 pb-0" />

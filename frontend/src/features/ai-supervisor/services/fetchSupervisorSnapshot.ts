@@ -9,6 +9,16 @@
  * four endpoint functions and `useAISupervisorStore`'s three `fetch*`
  * actions all call this instead of each re-implementing the same
  * `Promise.all` + `buildSnapshot` call.
+ *
+ * `compoundRiskService.getAssessment()` calls the non-idempotent
+ * `POST /risk-scores/calculate`. Nothing currently mounts a component
+ * that calls this function AND `useCompoundRiskEngine` in the same
+ * tree, so there's no live double-call today — but if
+ * `aiSupervisorApiService`/`useAISupervisorStore` is ever wired into a
+ * page that also uses `useCompoundRiskEngine` (e.g. the dashboard),
+ * route this call through `usePlantStatusStore`'s published value
+ * first, the same way `usePlantStatus` already does, instead of
+ * calling `calculate()` a second time in parallel.
  */
 
 import { compoundRiskService } from '@/services/compoundRisk.service';

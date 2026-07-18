@@ -55,7 +55,7 @@ export function EmergencyStatusBanner({ status, riskLevel, inEmergency, lastUpda
       )}
     >
       <div className="flex items-center gap-2">
-        <Icon className={cn('w-5 h-5 flex-shrink-0', status === 'emergency' && 'animate-pulse')} aria-hidden="true" />
+        <Icon className={cn('w-5 h-5 flex-shrink-0', status === 'emergency' && 'animate-pulse-slow')} aria-hidden="true" />
         <span className="text-sm font-semibold">Plant Status: {PLANT_STATUS_LABEL[status]}</span>
       </div>
 

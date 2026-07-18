@@ -1,5 +1,5 @@
-import { ShieldQuestion, RotateCw } from 'lucide-react';
-import { Card, CardHeader, EmptyState, Alert, Button, Skeleton } from '@/components/ui';
+import { ShieldQuestion } from 'lucide-react';
+import { Card, CardHeader, EmptyState, QueryState, Skeleton } from '@/components/ui';
 import { LastUpdated } from '@/components/common/LastUpdated';
 import { useComplianceStatus } from '@/features/compliance/hooks/useComplianceStatus';
 import { ComplianceDashboard } from './ComplianceDashboard';
@@ -37,29 +37,24 @@ export function ComplianceDashboardSectionView({
         className="px-6 pt-5 pb-0"
       />
       <div className="p-4 flex flex-col gap-2">
-        {error ? (
-          <Alert
-            variant="danger"
-            title="Failed to load compliance status"
-            actions={
-              <Button size="sm" variant="outline" onClick={refresh} leftIcon={<RotateCw className="w-3.5 h-3.5" />}>
-                Retry
-              </Button>
-            }
-          >
-            {error}
-          </Alert>
-        ) : loading || !snapshot ? (
-          <Skeleton className="h-[7.5rem] rounded-xl" />
-        ) : snapshot.incident_count === 0 ? (
-          <EmptyState
-            icon={ShieldQuestion}
-            title="No incidents evaluated"
-            description="No detected incidents are available for compliance evaluation yet."
-          />
-        ) : (
-          <ComplianceDashboard snapshot={snapshot} />
-        )}
+        <QueryState
+          loading={loading}
+          error={error}
+          data={snapshot}
+          onRetry={refresh}
+          errorTitle="Failed to load compliance status"
+          isEmpty={(s) => s.incident_count === 0}
+          emptyState={
+            <EmptyState
+              icon={ShieldQuestion}
+              title="No incidents evaluated"
+              description="No detected incidents are available for compliance evaluation yet."
+            />
+          }
+          loadingFallback={<Skeleton className="h-[7.5rem] rounded-xl" />}
+        >
+          {(snapshotData) => <ComplianceDashboard snapshot={snapshotData} />}
+        </QueryState>
         {!error && <LastUpdated timestamp={lastUpdated} className="px-1" />}
       </div>
     </Card>

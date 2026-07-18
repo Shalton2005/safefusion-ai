@@ -10,8 +10,8 @@
  * <RiskExplanationPanelSection />
  */
 
-import { ShieldOff, RotateCw } from 'lucide-react';
-import { Alert, Button, EmptyState, Skeleton } from '@/components/ui';
+import { ShieldOff } from 'lucide-react';
+import { EmptyState, QueryState, Skeleton } from '@/components/ui';
 import { LastUpdated } from '@/components/common/LastUpdated';
 import { useCompoundRiskEngine } from '@/features/risk/hooks/useCompoundRiskEngine';
 import { cn } from '@/lib/cn';
@@ -34,55 +34,46 @@ export interface RiskExplanationPanelSectionViewProps {
  * engine twice in parallel (once here, once for `CompoundRiskCard`).
  */
 export function RiskExplanationPanelSectionView({ explanation, loading, error, lastUpdated, refresh, className }: RiskExplanationPanelSectionViewProps) {
-  if (error) {
-    return (
-      <Alert
-        variant="danger"
-        title="Failed to load risk explanation"
-        actions={
-          <Button size="sm" variant="outline" onClick={refresh} leftIcon={<RotateCw className="w-3.5 h-3.5" />}>
-            Retry
-          </Button>
-        }
-        className={className}
-      >
-        {error}
-      </Alert>
-    );
-  }
-
-  if (loading) {
-    return <Skeleton className={cn('h-[22rem] rounded-xl', className)} />;
-  }
-
-  if (!explanation) {
-    return (
-      <div
-        className={cn(
-          'rounded-xl border border-[var(--sf-border-default)] bg-[var(--sf-surface-card)]',
-          className,
-        )}
-      >
-        <EmptyState
-          icon={ShieldOff}
-          title="No risk explanation available"
-          description="The risk engine has no zones with risk signal to explain right now."
-        />
-      </div>
-    );
-  }
-
   return (
-    <div className={cn('flex flex-col gap-1.5', className)}>
-      <RiskExplanationPanel
-        zone={explanation.zone}
-        riskLevel={explanation.risk_level}
-        triggeredRules={explanation.triggered_rules}
-        explanation={explanation.explanation}
-        contributingFactors={explanation.contributing_factors}
-      />
-      <LastUpdated timestamp={lastUpdated} className="px-1" />
-    </div>
+    <QueryState
+      loading={loading}
+      error={error}
+      data={{ explanation }}
+      onRetry={refresh}
+      errorTitle="Failed to load risk explanation"
+      className={className}
+      isEmpty={(d) => d.explanation === null}
+      emptyState={
+        <div
+          className={cn(
+            'rounded-xl border border-[var(--sf-border-default)] bg-[var(--sf-surface-card)]',
+            className,
+          )}
+        >
+          <EmptyState
+            icon={ShieldOff}
+            title="No risk explanation available"
+            description="The risk engine has no zones with risk signal to explain right now."
+          />
+        </div>
+      }
+      loadingFallback={<Skeleton className={cn('h-[22rem] rounded-xl', className)} />}
+    >
+      {({ explanation: explanationData }) =>
+        explanationData && (
+          <div className={cn('flex flex-col gap-1.5', className)}>
+            <RiskExplanationPanel
+              zone={explanationData.zone}
+              riskLevel={explanationData.risk_level}
+              triggeredRules={explanationData.triggered_rules}
+              explanation={explanationData.explanation}
+              contributingFactors={explanationData.contributing_factors}
+            />
+            <LastUpdated timestamp={lastUpdated} className="px-1" />
+          </div>
+        )
+      }
+    </QueryState>
   );
 }
 

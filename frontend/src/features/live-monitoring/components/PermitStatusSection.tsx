@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
-import { FileCheck2, RotateCw } from 'lucide-react';
-import { Card, CardHeader, Badge, EmptyState, Alert, Button, Skeleton } from '@/components/ui';
+import { FileCheck2 } from 'lucide-react';
+import { Card, CardHeader, Badge, EmptyState, Skeleton, QueryState } from '@/components/ui';
 import { LastUpdated } from '@/components/common/LastUpdated';
 import { permitsService } from '@/services';
 import { ApiError } from '@/api/errors';
@@ -81,46 +81,45 @@ export function PermitStatusSection() {
       </div>
 
       <div className="p-4">
-        {error ? (
-          <Alert
-            variant="danger"
-            title="Failed to load permits"
-            actions={
-              <Button size="sm" variant="outline" onClick={refresh} leftIcon={<RotateCw className="w-3.5 h-3.5" />}>
-                Retry
-              </Button>
-            }
-          >
-            {error}
-          </Alert>
-        ) : loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={i} className="h-20 rounded-lg" />
-            ))}
-          </div>
-        ) : sorted.length === 0 ? (
-          <EmptyState
-            icon={FileCheck2}
-            size="sm"
-            title="No permits found"
-            description="No Permit-to-Work records are currently registered in the system."
-          />
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {sorted.map((permit) => (
-              <PermitStatusIndicator
-                key={permit.id}
-                permitId={permit.id}
-                permitType={permitTypeLabel[permit.permit_type]}
-                worker={permit.assigned_team}
-                status={permit.status}
-                expiryTime={permit.end_time}
-                isExpired={isPermitExpired(permit)}
-              />
-            ))}
-          </div>
-        )}
+        <QueryState
+          loading={loading}
+          error={error}
+          data={sorted}
+          onRetry={refresh}
+          errorTitle="Failed to load permits"
+          isEmpty={(d) => d.length === 0}
+          loadingFallback={
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} className="h-20 rounded-lg" />
+              ))}
+            </div>
+          }
+          emptyState={
+            <EmptyState
+              icon={FileCheck2}
+              size="sm"
+              title="No permits found"
+              description="No Permit-to-Work records are currently registered in the system."
+            />
+          }
+        >
+          {(data) => (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {data.map((permit) => (
+                <PermitStatusIndicator
+                  key={permit.id}
+                  permitId={permit.id}
+                  permitType={permitTypeLabel[permit.permit_type]}
+                  worker={permit.assigned_team}
+                  status={permit.status}
+                  expiryTime={permit.end_time}
+                  isExpired={isPermitExpired(permit)}
+                />
+              ))}
+            </div>
+          )}
+        </QueryState>
       </div>
     </Card>
   );

@@ -1,5 +1,5 @@
-import { ClipboardList, RotateCw } from 'lucide-react';
-import { Card, CardHeader, Badge, EmptyState, Alert, Button } from '@/components/ui';
+import { ClipboardList } from 'lucide-react';
+import { Card, CardHeader, Badge, EmptyState, QueryState } from '@/components/ui';
 import { LastUpdated } from '@/components/common/LastUpdated';
 import { useRecommendations } from '@/features/recommendations/hooks/useRecommendations';
 import { RecommendationPanel } from './RecommendationPanel';
@@ -44,27 +44,23 @@ export function RecommendationPanelSectionView({
         }
       />
       <div className="p-4 flex flex-col gap-2">
-        {error ? (
-          <Alert
-            variant="danger"
-            title="Failed to load recommendations"
-            actions={
-              <Button size="sm" variant="outline" onClick={refresh} leftIcon={<RotateCw className="w-3.5 h-3.5" />}>
-                Retry
-              </Button>
-            }
-          >
-            {error}
-          </Alert>
-        ) : !loading && recommendations.length === 0 ? (
-          <EmptyState
-            icon={ClipboardList}
-            title="No recommendations"
-            description="No operator recommendations are currently outstanding."
-          />
-        ) : (
-          <RecommendationPanel recommendations={recommendations} />
-        )}
+        <QueryState
+          loading={loading}
+          error={error}
+          data={recommendations}
+          onRetry={refresh}
+          errorTitle="Failed to load recommendations"
+          isEmpty={(r) => r.length === 0}
+          emptyState={
+            <EmptyState
+              icon={ClipboardList}
+              title="No recommendations"
+              description="No operator recommendations are currently outstanding."
+            />
+          }
+        >
+          {(recommendationData) => <RecommendationPanel recommendations={recommendationData} />}
+        </QueryState>
         {!error && <LastUpdated timestamp={lastUpdated} className="px-1" />}
       </div>
     </Card>

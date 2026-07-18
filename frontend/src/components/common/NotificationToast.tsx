@@ -55,7 +55,7 @@ interface ToastItemProps {
 }
 
 function ToastItem({ id, type, title, message }: ToastItemProps) {
-  const { dismiss } = useNotificationStore();
+  const dismiss = useNotificationStore((s) => s.dismiss);
   const { Icon, accentBar, iconColor } = toastStyles[type];
 
   return (
@@ -111,7 +111,7 @@ function ToastItem({ id, type, title, message }: ToastItemProps) {
 // ─── Toast Container ──────────────────────────────────────────────
 
 export function NotificationToast() {
-  const { notifications } = useNotificationStore();
+  const notifications = useNotificationStore((s) => s.notifications);
 
   if (notifications.length === 0) return null;
 

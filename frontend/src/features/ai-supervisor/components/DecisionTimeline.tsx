@@ -22,11 +22,11 @@
  * />
  */
 
-import { Clock3, RotateCw } from 'lucide-react';
-import { Alert, Badge, Button, EmptyState, Skeleton } from '@/components/ui';
+import { Clock3 } from 'lucide-react';
+import { Badge, EmptyState, QueryState, Skeleton } from '@/components/ui';
 import { cn } from '@/lib/cn';
 import { formatRelativeTime, formatDateTime, capitalise } from '@/utils/format';
-import { SEVERITY_BADGE_VARIANT } from '@/utils/severity';
+import { SEVERITY_BADGE_VARIANT, BADGE_DOT_CLASS } from '@/utils/severity';
 import type { AIDecision, AIDecisionExecutionStatus, AIDecisionType } from '../types';
 
 export interface DecisionTimelineProps {
@@ -84,107 +84,88 @@ export function DecisionTimeline({
   onRetry,
   className,
 }: DecisionTimelineProps) {
-  if (error) {
-    return (
-      <Alert
-        variant="danger"
-        title="Failed to load decision timeline"
-        actions={
-          onRetry && (
-            <Button size="sm" variant="outline" onClick={onRetry} leftIcon={<RotateCw className="w-3.5 h-3.5" />}>
-              Retry
-            </Button>
-          )
-        }
-        className={className}
-      >
-        {error}
-      </Alert>
-    );
-  }
-
-  if (loading) {
-    return <DecisionTimelineSkeleton className={className} />;
-  }
-
-  if (decisions.length === 0) {
-    return (
-      <EmptyState
-        icon={Clock3}
-        title="No decisions yet"
-        description="Agent decisions will appear here as they are made."
-        size="sm"
-        className={className}
-      />
-    );
-  }
-
   return (
-    <ol className={cn('flex flex-col gap-1', className)}>
-      {decisions.map((decision) => {
-        const isSelected = decision.id === selectedId;
-        return (
-          <li key={decision.id}>
-            <button
-              type="button"
-              onClick={() => onSelect?.(decision)}
-              aria-current={isSelected ? 'true' : undefined}
-              title={formatDateTime(decision.timestamp)}
-              className={cn(
-                'w-full flex items-start gap-3 px-3 py-2.5 rounded-lg text-left',
-                'border transition-colors duration-150',
-                isSelected
-                  ? 'bg-primary-600/10 border-primary-600/40'
-                  : 'bg-[var(--sf-surface-raised)] border-[var(--sf-border-default)] hover:border-[var(--sf-border-strong)]',
-                'focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500',
-              )}
-            >
-              <div className="flex flex-col items-center gap-1 pt-0.5 flex-shrink-0">
-                <span
+    <QueryState<AIDecision[]>
+      loading={loading}
+      error={error}
+      data={decisions}
+      onRetry={onRetry}
+      errorTitle="Failed to load decision timeline"
+      className={className}
+      isEmpty={(d) => d.length === 0}
+      emptyState={
+        <EmptyState
+          icon={Clock3}
+          title="No decisions yet"
+          description="Agent decisions will appear here as they are made."
+          size="sm"
+          className={className}
+        />
+      }
+      loadingFallback={<DecisionTimelineSkeleton className={className} />}
+    >
+      {(data) => (
+        <ol className={cn('flex flex-col gap-1', className)}>
+          {data.map((decision) => {
+            const isSelected = decision.id === selectedId;
+            return (
+              <li key={decision.id}>
+                <button
+                  type="button"
+                  onClick={() => onSelect?.(decision)}
+                  aria-current={isSelected ? 'true' : undefined}
+                  title={formatDateTime(decision.timestamp)}
                   className={cn(
-                    'w-2 h-2 rounded-full',
-                    decision.severity === 'critical' && 'bg-danger-500',
-                    decision.severity === 'high' && 'bg-caution-500',
-                    decision.severity === 'medium' && 'bg-primary-400',
-                    decision.severity === 'low' && 'bg-safe-500',
+                    'w-full flex items-start gap-3 px-3 py-2.5 rounded-lg text-left',
+                    'border transition-colors duration-150',
+                    isSelected
+                      ? 'bg-primary-600/10 border-primary-600/40'
+                      : 'bg-[var(--sf-surface-raised)] border-[var(--sf-border-default)] hover:border-[var(--sf-border-strong)]',
+                    'focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500',
                   )}
-                  aria-hidden="true"
-                />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-sm font-medium text-[var(--sf-text-primary)] truncate">
-                    {capitalise(decision.title)}
-                  </p>
-                  <Badge variant={SEVERITY_BADGE_VARIANT[decision.severity]} size="sm">
-                    {capitalise(decision.severity)}
-                  </Badge>
-                </div>
+                >
+                  <div className="flex flex-col items-center gap-1 pt-0.5 flex-shrink-0">
+                    <span
+                      className={cn('w-2 h-2 rounded-full', BADGE_DOT_CLASS[SEVERITY_BADGE_VARIANT[decision.severity]])}
+                      aria-hidden="true"
+                    />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm font-medium text-[var(--sf-text-primary)] truncate">
+                        {capitalise(decision.title)}
+                      </p>
+                      <Badge variant={SEVERITY_BADGE_VARIANT[decision.severity]} size="sm">
+                        {capitalise(decision.severity)}
+                      </Badge>
+                    </div>
 
-                <p className="mt-0.5 text-xs text-[var(--sf-text-tertiary)] truncate">
-                  {decision.agentLabel}
-                  {decision.zone ? ` · ${decision.zone}` : ''}
-                  {' · '}
-                  {decision.isTimeApproximate ? 'as of ' : ''}
-                  {formatRelativeTime(decision.timestamp)}
-                </p>
+                    <p className="mt-0.5 text-xs text-[var(--sf-text-tertiary)] truncate">
+                      {decision.agentLabel}
+                      {decision.zone ? ` · ${decision.zone}` : ''}
+                      {' · '}
+                      {decision.isTimeApproximate ? 'as of ' : ''}
+                      {formatRelativeTime(decision.timestamp)}
+                    </p>
 
-                <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
-                  <Badge variant="secondary" size="sm">
-                    {DECISION_TYPE_LABEL[decision.decisionType]}
-                  </Badge>
-                  <Badge variant={EXECUTION_STATUS_VARIANT[decision.executionStatus]} size="sm">
-                    {EXECUTION_STATUS_LABEL[decision.executionStatus]}
-                  </Badge>
-                  <span className="text-2xs text-[var(--sf-text-tertiary)] font-mono">
-                    {decision.confidence}% confidence
-                  </span>
-                </div>
-              </div>
-            </button>
-          </li>
-        );
-      })}
-    </ol>
+                    <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
+                      <Badge variant="secondary" size="sm">
+                        {DECISION_TYPE_LABEL[decision.decisionType]}
+                      </Badge>
+                      <Badge variant={EXECUTION_STATUS_VARIANT[decision.executionStatus]} size="sm">
+                        {EXECUTION_STATUS_LABEL[decision.executionStatus]}
+                      </Badge>
+                      <span className="text-2xs text-[var(--sf-text-tertiary)] font-mono">
+                        {decision.confidence}% confidence
+                      </span>
+                    </div>
+                  </div>
+                </button>
+              </li>
+            );
+          })}
+        </ol>
+      )}
+    </QueryState>
   );
 }
