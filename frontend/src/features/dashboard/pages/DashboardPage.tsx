@@ -209,7 +209,14 @@ export function DashboardPage() {
       </div>
 
       {/* AI Supervisor */}
-      <AISupervisorCardSection />
+      <AISupervisorCardSection
+        engines={{
+          compoundRisk: riskEngineData,
+          emergencyResponse: emergencyData,
+          recommendation: recommendationsData,
+          compliance: complianceData,
+        }}
+      />
 
       {/* Compound risk */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
