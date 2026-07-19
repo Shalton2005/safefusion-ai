@@ -10,7 +10,10 @@ class WorkerSchema(AppBaseModel):
     """Canonical validation model for Worker domain fields."""
 
     name: str = Field(..., min_length=2, max_length=100, examples=["John Smith"])
-    employee_id: str = Field(..., pattern=r"^EMP-\d{3,6}$", examples=["EMP-0001"])
+    # Accepts numeric badge IDs (EMP-0001) and the demo-scenario IDs seeded
+    # by scripts/seed_demo_data.py (e.g. EMP-DEMO-GASLEAK) — both are valid,
+    # persisted employee_id values and must round-trip through this schema.
+    employee_id: str = Field(..., pattern=r"^EMP-(\d{3,6}|DEMO-[A-Z]+)$", examples=["EMP-0001"])
     department: str = Field(..., min_length=2, max_length=100, examples=["Operations"])
     role: str = Field(..., min_length=2, max_length=100, examples=["Process Technician"])
     current_zone: str | None = Field(None, max_length=50, examples=["Zone-A"])

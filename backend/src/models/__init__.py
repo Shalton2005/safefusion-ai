@@ -22,6 +22,7 @@ from src.models.enums import (
     SensorStatus,
     SensorType,
     SeverityLevel,
+    UserRole,
     WorkerStatus,
 )
 from src.models.incident import Incident
@@ -30,10 +31,12 @@ from src.models.permit import Permit
 from src.models.risk_score import RiskScore
 from src.models.sensor import Sensor
 from src.models.timeline_event import TimelineEvent
+from src.models.user import User
 from src.models.worker import Worker
 
 __all__: list[str] = [
     # Models
+    "User",
     "Worker",
     "Sensor",
     "Permit",
@@ -45,6 +48,7 @@ __all__: list[str] = [
     "TimelineEvent",
     # Enums
     "WorkerStatus",
+    "UserRole",
     "SensorType",
     "SensorStatus",
     "PermitType",

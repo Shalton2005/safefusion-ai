@@ -49,9 +49,6 @@ export function handleResponseError(error: unknown): Promise<never> {
   }
 
   // ── 401 handling ─────────────────────────────────────────────────
-  // AUTH PLACEHOLDER ────────────────────────────────────────────────
-  // When the auth store is ready, call useAuthStore.getState().logout()
-  // instead of the manual localStorage + redirect below.
   if (apiError.isAuthError) {
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
@@ -60,7 +57,6 @@ export function handleResponseError(error: unknown): Promise<never> {
       window.location.replace('/login');
     }
   }
-  // ─────────────────────────────────────────────────────────────────
 
   // ── 429 rate-limit warning ────────────────────────────────────────
   if (apiError.isRateLimitError && env.isDev) {

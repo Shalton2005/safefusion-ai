@@ -29,13 +29,17 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from fastapi import Depends
+
 from src.config.settings import settings
 from src.graph_database.driver import close_driver, ensure_constraints
+from src.middleware.auth import get_current_user
 from src.middleware.exception_handler import API_ERROR_RESPONSES, register_exception_handlers
 from src.middleware.logging_middleware import RequestLoggingMiddleware
 from src.routes import ai_copilot as ai_copilot_router
 from src.routes import ai_monitoring as ai_monitoring_router
 from src.routes import alerts as alerts_router
+from src.routes import auth as auth_router
 from src.routes import compliance as compliance_router
 from src.routes import computer_vision as computer_vision_router
 from src.routes import dashboard as dashboard_router
@@ -70,6 +74,7 @@ logger = get_logger(__name__)
 OPENAPI_TAGS_METADATA = [
     {"name": "Root", "description": "Top-level API discovery and version information."},
     {"name": "Health", "description": "Liveness and process-health probes for infrastructure checks."},
+    {"name": "Authentication", "description": "Account registration, login, and JWT access/refresh token issuance."},
     {"name": "Status", "description": "High-level operational status of the backend and database configuration layer."},
     {"name": "Dashboard", "description": "Aggregated operational metrics and monitoring summaries for the main dashboard."},
     {"name": "Workers", "description": "Worker registry and on-site personnel management endpoints."},
@@ -176,31 +181,40 @@ def create_application() -> FastAPI:
     register_exception_handlers(application)
 
     # ── Routers ───────────────────────────────────────────────────────────────
+    # Public — no authentication required.
     application.include_router(root_router.router)
     application.include_router(health_router.router)
-    application.include_router(status_router.router, prefix=settings.API_PREFIX)
-    application.include_router(dashboard_router.router, prefix=settings.API_PREFIX)
-    application.include_router(workers_router.router, prefix=settings.API_PREFIX)
-    application.include_router(sensors_router.router, prefix=settings.API_PREFIX)
-    application.include_router(sensor_simulator_router.router, prefix=settings.API_PREFIX)
-    application.include_router(permits_router.router, prefix=settings.API_PREFIX)
-    application.include_router(maintenance_router.router, prefix=settings.API_PREFIX)
-    application.include_router(incidents_router.router, prefix=settings.API_PREFIX)
-    application.include_router(alerts_router.router, prefix=settings.API_PREFIX)
-    application.include_router(risk_scores_router.router, prefix=settings.API_PREFIX)
-    application.include_router(monitoring_router.router, prefix=settings.API_PREFIX)
-    application.include_router(emergency_response_router.router, prefix=settings.API_PREFIX)
-    application.include_router(emergency_router.router, prefix=settings.API_PREFIX)
-    application.include_router(compliance_router.router, prefix=settings.API_PREFIX)
-    application.include_router(recommendations_router.router, prefix=settings.API_PREFIX)
-    application.include_router(incident_reports_router.router, prefix=settings.API_PREFIX)
-    application.include_router(incident_router.router, prefix=settings.API_PREFIX)
-    application.include_router(graph_router.router, prefix=settings.API_PREFIX)
-    application.include_router(rag_router.router, prefix=settings.API_PREFIX)
-    application.include_router(ai_copilot_router.router, prefix=settings.API_PREFIX)
-    application.include_router(ai_monitoring_router.router, prefix=settings.API_PREFIX)
-    application.include_router(timeline_router.router, prefix=settings.API_PREFIX)
-    application.include_router(computer_vision_router.router, prefix=settings.API_PREFIX)
+    application.include_router(auth_router.router, prefix=settings.API_PREFIX)
+
+    # Protected — every route below requires a valid JWT access token.
+    # `get_current_user` runs once per request and is shared with every
+    # router via FastAPI's dependency cache, so this adds one auth check
+    # per request, not one per router.
+    protected_dependencies = [Depends(get_current_user)]
+
+    application.include_router(status_router.router, prefix=settings.API_PREFIX, dependencies=protected_dependencies)
+    application.include_router(dashboard_router.router, prefix=settings.API_PREFIX, dependencies=protected_dependencies)
+    application.include_router(workers_router.router, prefix=settings.API_PREFIX, dependencies=protected_dependencies)
+    application.include_router(sensors_router.router, prefix=settings.API_PREFIX, dependencies=protected_dependencies)
+    application.include_router(sensor_simulator_router.router, prefix=settings.API_PREFIX, dependencies=protected_dependencies)
+    application.include_router(permits_router.router, prefix=settings.API_PREFIX, dependencies=protected_dependencies)
+    application.include_router(maintenance_router.router, prefix=settings.API_PREFIX, dependencies=protected_dependencies)
+    application.include_router(incidents_router.router, prefix=settings.API_PREFIX, dependencies=protected_dependencies)
+    application.include_router(alerts_router.router, prefix=settings.API_PREFIX, dependencies=protected_dependencies)
+    application.include_router(risk_scores_router.router, prefix=settings.API_PREFIX, dependencies=protected_dependencies)
+    application.include_router(monitoring_router.router, prefix=settings.API_PREFIX, dependencies=protected_dependencies)
+    application.include_router(emergency_response_router.router, prefix=settings.API_PREFIX, dependencies=protected_dependencies)
+    application.include_router(emergency_router.router, prefix=settings.API_PREFIX, dependencies=protected_dependencies)
+    application.include_router(compliance_router.router, prefix=settings.API_PREFIX, dependencies=protected_dependencies)
+    application.include_router(recommendations_router.router, prefix=settings.API_PREFIX, dependencies=protected_dependencies)
+    application.include_router(incident_reports_router.router, prefix=settings.API_PREFIX, dependencies=protected_dependencies)
+    application.include_router(incident_router.router, prefix=settings.API_PREFIX, dependencies=protected_dependencies)
+    application.include_router(graph_router.router, prefix=settings.API_PREFIX, dependencies=protected_dependencies)
+    application.include_router(rag_router.router, prefix=settings.API_PREFIX, dependencies=protected_dependencies)
+    application.include_router(ai_copilot_router.router, prefix=settings.API_PREFIX, dependencies=protected_dependencies)
+    application.include_router(ai_monitoring_router.router, prefix=settings.API_PREFIX, dependencies=protected_dependencies)
+    application.include_router(timeline_router.router, prefix=settings.API_PREFIX, dependencies=protected_dependencies)
+    application.include_router(computer_vision_router.router, prefix=settings.API_PREFIX, dependencies=protected_dependencies)
 
     return application
 

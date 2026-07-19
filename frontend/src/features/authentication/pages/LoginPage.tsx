@@ -1,8 +1,12 @@
 import { Shield, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Input, Button, Alert } from '@/components/ui';
 import { APP_NAME } from '@/constants';
+import { ROUTES } from '@/constants/routes';
+import { useAuthStore } from '@/store/useAuthStore';
+import { ApiError } from '@/api/errors';
 
 interface LoginFormValues {
   email: string;
@@ -11,16 +15,25 @@ interface LoginFormValues {
 
 export function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const login = useAuthStore((state) => state.login);
+  const navigate = useNavigate();
+  const location = useLocation();
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<LoginFormValues>();
 
-  const onSubmit = (_data: LoginFormValues) => {
-    // Authentication logic is intentionally omitted per requirements.
-    // Wire in auth service and Zustand auth store when ready.
-    return new Promise<void>((resolve) => setTimeout(resolve, 800));
+  const onSubmit = async (data: LoginFormValues) => {
+    setFormError(null);
+    try {
+      await login(data.email, data.password);
+      const from = (location.state as { from?: Location } | null)?.from;
+      navigate(from ? `${from.pathname}${from.search}` : ROUTES.DASHBOARD, { replace: true });
+    } catch (err) {
+      setFormError(ApiError.from(err).toUserMessage());
+    }
   };
 
   return (
@@ -33,10 +46,7 @@ export function LoginPage() {
         </p>
       </div>
 
-      {/* Demo notice */}
-      <Alert variant="info">
-        Authentication is not yet enabled. This is a UI scaffold.
-      </Alert>
+      {formError && <Alert variant="danger">{formError}</Alert>}
 
       {/* Form */}
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>

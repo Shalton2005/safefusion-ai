@@ -17,6 +17,14 @@ class WorkerStatus(str, Enum):
     EMERGENCY = "emergency"
 
 
+class UserRole(str, Enum):
+    """API account authorization role (distinct from ``Worker.role``, which is a job title)."""
+
+    ADMIN = "admin"
+    SAFETY_OFFICER = "safety_officer"
+    VIEWER = "viewer"
+
+
 class SensorType(str, Enum):
     GAS = "gas"
     TEMPERATURE = "temperature"

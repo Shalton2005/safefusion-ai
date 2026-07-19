@@ -29,14 +29,8 @@ export function attachRequestId(
 
 /**
  * Attaches the Authorization Bearer token when one is present in
- * localStorage.
- *
- * AUTH PLACEHOLDER ─────────────────────────────────────────────────
- * Replace the localStorage read with a selector from the auth store
- * once authentication is implemented:
- *   import { useAuthStore } from '@/store/useAuthStore';
- *   const token = useAuthStore.getState().accessToken;
- * ──────────────────────────────────────────────────────────────────
+ * localStorage. Tokens are written by useAuthStore on login and
+ * cleared on logout / 401 (see interceptors/response.ts).
  */
 export function attachAuthToken(
   config: InternalAxiosRequestConfig,
