@@ -27,11 +27,10 @@ type CardPadding = 'none' | 'sm' | 'md' | 'lg';
 // ─── Style Maps ───────────────────────────────────────────────────
 
 const variantMap: Record<CardVariant, string> = {
-  /** Standard card with border + light shadow */
+  /** Standard card with border and NO shadow for cleaner enterprise look */
   default: [
     'bg-[var(--sf-surface-card)]',
     'border border-[var(--sf-border-default)]',
-    'shadow-sf-card',
   ].join(' '),
   /** Increased shadow, used for modals / floating panels */
   elevated: [
@@ -95,9 +94,9 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
         variantMap[variant],
         paddingMap[padding],
         hoverable && [
-          'cursor-pointer transition-all duration-200',
-          'hover:-translate-y-px hover:shadow-card-hover',
-          'hover:border-[var(--sf-border-strong)]',
+          'cursor-pointer transition-all duration-300 ease-in-out',
+          'hover:-translate-y-1 hover:shadow-sf-lg',
+          'hover:border-[var(--sf-border-focus)]',
         ],
         className,
       )}
@@ -136,7 +135,7 @@ export function CardHeader({
     >
       <div className="min-w-0 flex-1">
         {title && (
-          <h3 className="text-sm font-semibold text-[var(--sf-text-primary)] leading-snug">
+          <h3 className="text-sm font-semibold uppercase tracking-widest text-[var(--sf-text-primary)] leading-snug">
             {title}
           </h3>
         )}

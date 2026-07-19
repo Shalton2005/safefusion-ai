@@ -45,45 +45,21 @@ type StatCardIconVariant =
 // ─── Props ────────────────────────────────────────────────────────
 
 export interface StatCardProps {
-  /** Metric value displayed in large text. Can be a formatted string ("94%") or a number. */
   value: string | number;
-  /** Short label beneath the value (e.g. "Safety Score"). */
   label: string;
-  /** Optional sub-label rendered beside / below the value. */
   subLabel?: string;
-  /**
-   * Change value displayed next to the trend icon (e.g. "+2.1%", "-3").
-   * Omit to hide the trend row entirely.
-   */
   delta?: string | number;
-  /** Contextual label after the delta value (e.g. "from last week"). */
   deltaLabel?: string;
-  /**
-   * Direction of change — controls the trend icon.
-   * @default 'stable'
-   */
   trend?: TrendDirection;
-  /**
-   * When `true`, an upward trend is coloured green; downward is red.
-   * When `false`, the inverse applies (e.g. for "active incidents" where
-   * a decrease is positive).
-   * @default true
-   */
   trendPositive?: boolean;
-  /**
-   * Lucide icon component rendered in the top-right corner.
-   * Pass the component reference: `icon={Bell}` not `icon={<Bell />}`.
-   */
   icon?: ElementType;
-  /** Background colour variant for the icon container. @default 'primary' */
   iconVariant?: StatCardIconVariant;
-  /**
-   * When `true`, replaces content with a pulsing skeleton.
-   * @default false
-   */
   loading?: boolean;
   className?: string;
   onClick?: () => void;
+  actionLabel?: string;
+  lastUpdated?: string;
+  sparklineData?: number[];
 }
 
 // ─── Style Maps ───────────────────────────────────────────────────
@@ -94,6 +70,14 @@ const iconVariantMap: Record<StatCardIconVariant, string> = {
   warning: 'bg-caution-500/15 text-caution-500',
   danger:  'bg-danger-500/15  text-danger-500',
   neutral: 'bg-[var(--sf-surface-raised)] text-[var(--sf-text-tertiary)]',
+};
+
+const sparklineColorMap: Record<StatCardIconVariant, string> = {
+  primary: '#3b82f6', // primary-500
+  success: '#10b981', // safe-500
+  warning: '#f59e0b', // caution-500
+  danger:  '#ef4444', // danger-500
+  neutral: '#6b7280',
 };
 
 function getTrendStyle(
@@ -127,9 +111,41 @@ export function StatCard({
   loading       = false,
   className,
   onClick,
+  actionLabel,
+  lastUpdated,
+  sparklineData,
 }: StatCardProps) {
   const hasTrend = delta !== undefined && delta !== null;
   const { color: trendColor, Icon: TrendIcon } = getTrendStyle(trend, trendPositive);
+
+  // Simple SVG Sparkline generator
+  const renderSparkline = () => {
+    if (!sparklineData || sparklineData.length < 2) return null;
+    const min = Math.min(...sparklineData);
+    const max = Math.max(...sparklineData);
+    const range = max - min || 1;
+    const width = 60;
+    const height = 24;
+    
+    const points = sparklineData.map((val, i) => {
+      const x = (i / (sparklineData.length - 1)) * width;
+      const y = height - ((val - min) / range) * height;
+      return `${x},${y}`;
+    }).join(' ');
+
+    return (
+      <svg width={width} height={height} className="overflow-visible ml-auto opacity-80" viewBox={`0 0 ${width} ${height}`}>
+        <polyline
+          fill="none"
+          stroke={sparklineColorMap[iconVariant]}
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          points={points}
+        />
+      </svg>
+    );
+  };
 
   return (
     <div
@@ -138,14 +154,13 @@ export function StatCard({
       onClick={onClick}
       onKeyDown={onClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') onClick(); } : undefined}
       className={cn(
-        'flex flex-col gap-3 p-5 rounded-xl',
+        'flex flex-col p-4 rounded-xl relative overflow-hidden group',
         'bg-[var(--sf-surface-card)]',
         'border border-[var(--sf-border-default)]',
-        'shadow-sf-card',
         onClick && [
-          'cursor-pointer transition-all duration-200',
-          'hover:-translate-y-px hover:shadow-card-hover',
-          'hover:border-[var(--sf-border-strong)]',
+          'cursor-pointer transition-all duration-300 ease-in-out',
+          'hover:-translate-y-1 hover:shadow-sf-lg',
+          'hover:border-[var(--sf-border-focus)]',
           'focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500',
           'focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--sf-surface-base)]',
         ],
@@ -153,50 +168,67 @@ export function StatCard({
       )}
     >
       {/* ── Top row: label + icon ───────────────────────────── */}
-      <div className="flex items-start justify-between gap-2">
-        <p className="text-xs font-semibold uppercase tracking-wider text-[var(--sf-text-tertiary)] leading-none">
-          {label}
-        </p>
-        {Icon && (
-          <div
-            className={cn(
-              'flex items-center justify-center flex-shrink-0',
-              'w-9 h-9 rounded-xl',
-              iconVariantMap[iconVariant],
-            )}
-          >
-            <Icon className="w-4.5 h-4.5" aria-hidden="true" />
-          </div>
+      <div className="flex items-center justify-between gap-2 mb-3">
+        <div className="flex items-center gap-2">
+          {Icon && (
+            <div
+              className={cn(
+                'flex items-center justify-center flex-shrink-0 w-7 h-7 rounded-lg',
+                iconVariantMap[iconVariant],
+              )}
+            >
+              <Icon className="w-3.5 h-3.5" aria-hidden="true" />
+            </div>
+          )}
+          <p className="text-xs font-semibold uppercase tracking-wider text-[var(--sf-text-secondary)] leading-none">
+            {label}
+          </p>
+        </div>
+        {lastUpdated && (
+          <span className="text-[10px] uppercase tracking-wider font-mono text-[var(--sf-text-tertiary)]">
+            {lastUpdated}
+          </span>
         )}
       </div>
 
-      {/* ── Value ───────────────────────────────────────────── */}
+      {/* ── Value & Sparkline ───────────────────────────────────────────── */}
       {loading ? (
-        <div className="space-y-2">
-          <Skeleton className="h-8 w-28 rounded-lg" />
-          <Skeleton className="h-3 w-20 rounded" />
+        <div className="space-y-2 mt-2">
+          <Skeleton className="h-8 w-24 rounded-lg" />
+          <Skeleton className="h-3 w-16 rounded" />
         </div>
       ) : (
-        <div className="flex flex-col gap-1">
-          <div className="flex items-baseline gap-1.5 flex-wrap">
-            <span className="text-2xl font-extrabold text-[var(--sf-text-primary)] leading-none tracking-tight font-mono">
-              {value}
-            </span>
-            {subLabel && (
-              <span className="text-xs text-[var(--sf-text-tertiary)]">{subLabel}</span>
-            )}
-          </div>
-
-          {/* Trend row */}
-          {hasTrend && (
-            <div className={cn('flex items-center gap-1 text-xs font-medium', trendColor)}>
-              <TrendIcon className="w-3.5 h-3.5 flex-shrink-0" aria-hidden="true" />
-              <span>{delta}</span>
-              {deltaLabel && (
-                <span className="text-[var(--sf-text-tertiary)] font-normal">{deltaLabel}</span>
+        <div className="flex flex-col flex-1">
+          <div className="flex items-end justify-between gap-4">
+            <div className="flex items-baseline gap-1">
+              <span className="text-3xl font-extrabold text-[var(--sf-text-primary)] leading-none tracking-tight font-mono">
+                {value}
+              </span>
+              {subLabel && (
+                <span className="text-xs text-[var(--sf-text-tertiary)] ml-1 font-mono">{subLabel}</span>
               )}
             </div>
-          )}
+            {renderSparkline()}
+          </div>
+
+          {/* Trend & Action Row */}
+          <div className="flex items-center justify-between mt-auto pt-4">
+            {hasTrend ? (
+              <div className={cn('flex items-center gap-1.5 text-xs font-medium', trendColor)}>
+                <TrendIcon className="w-3.5 h-3.5 flex-shrink-0" aria-hidden="true" />
+                <span className="font-mono">{delta}</span>
+                {deltaLabel && (
+                  <span className="text-[var(--sf-text-tertiary)] font-normal ml-0.5">{deltaLabel}</span>
+                )}
+              </div>
+            ) : <div />}
+
+            {actionLabel && onClick && (
+              <span className="text-xs font-medium text-primary-400 opacity-0 group-hover:opacity-100 transition-opacity translate-x-2 group-hover:translate-x-0 duration-200">
+                {actionLabel} &rarr;
+              </span>
+            )}
+          </div>
         </div>
       )}
     </div>

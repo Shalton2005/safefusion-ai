@@ -4,6 +4,7 @@ import { Card, CardHeader, Button, Input, Badge, PageHeader } from '@/components
 import { useThemeStore } from '@/store';
 import { cn } from '@/lib/cn';
 import type { Theme } from '@/types';
+import { APP_VERSION } from '@/constants';
 
 type SettingsSection = 'profile' | 'notifications' | 'security' | 'appearance' | 'integrations';
 
@@ -49,7 +50,7 @@ export function SettingsPage() {
                     'transition-colors duration-150',
                     activeSection === s.id
                       ? 'bg-primary-600/15 text-primary-400'
-                      : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-secondary)] hover:text-[var(--color-text-primary)]',
+                      : 'text-[var(--sf-text-secondary)] hover:bg-[var(--sf-surface-raised)] hover:text-[var(--sf-text-primary)]',
                   )}
                 >
                   <div className="flex items-center gap-2.5">
@@ -92,10 +93,10 @@ export function SettingsPage() {
                   { label: 'Daily Summary',         description: 'End-of-day digest of all activities' },
                   { label: 'System Maintenance',    description: 'Planned downtime and maintenance windows' },
                 ].map((n) => (
-                  <div key={n.label} className="flex items-center justify-between py-2 border-b border-[var(--color-border)] last:border-0">
+                  <div key={n.label} className="flex items-center justify-between py-2 border-b border-[var(--sf-border-default)] last:border-0">
                     <div>
-                      <p className="text-sm font-medium text-[var(--color-text-primary)]">{n.label}</p>
-                      <p className="text-xs text-[var(--color-text-muted)] mt-0.5">{n.description}</p>
+                      <p className="text-sm font-medium text-[var(--sf-text-primary)]">{n.label}</p>
+                      <p className="text-xs text-[var(--sf-text-tertiary)] mt-0.5">{n.description}</p>
                     </div>
                     <Badge variant="success" size="sm" dot>On</Badge>
                   </div>
@@ -122,7 +123,7 @@ export function SettingsPage() {
             <Card>
               <CardHeader title="Appearance" description="Customise the platform look and feel" />
               <div className="space-y-3 mt-4">
-                <p className="text-sm font-medium text-[var(--color-text-primary)]">Theme</p>
+                <p className="text-sm font-medium text-[var(--sf-text-primary)]">Theme</p>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   {THEME_OPTIONS.map((opt) => (
                     <button
@@ -132,11 +133,11 @@ export function SettingsPage() {
                         'flex flex-col items-start gap-1 p-4 rounded-lg border-2 text-left transition-colors',
                         theme === opt.value
                           ? 'border-primary-500 bg-primary-600/10'
-                          : 'border-[var(--color-border)] hover:border-[var(--color-text-muted)]',
+                          : 'border-[var(--sf-border-default)] hover:border-[var(--sf-text-tertiary)]',
                       )}
                     >
-                      <p className="text-sm font-semibold text-[var(--color-text-primary)]">{opt.label}</p>
-                      <p className="text-xs text-[var(--color-text-muted)]">{opt.description}</p>
+                      <p className="text-sm font-semibold text-[var(--sf-text-primary)]">{opt.label}</p>
+                      <p className="text-xs text-[var(--sf-text-tertiary)]">{opt.description}</p>
                     </button>
                   ))}
                 </div>
@@ -149,8 +150,8 @@ export function SettingsPage() {
               <CardHeader title="Integrations" description="Connect third-party systems and manage API keys" />
               <div className="mt-4 space-y-3">
                 {['REST API Key', 'WebSocket Token', 'SMTP Config'].map((item) => (
-                  <div key={item} className="flex items-center justify-between p-3 rounded-lg border border-[var(--color-border)]">
-                    <span className="text-sm text-[var(--color-text-primary)]">{item}</span>
+                  <div key={item} className="flex items-center justify-between p-3 rounded-lg border border-[var(--sf-border-default)]">
+                    <span className="text-sm text-[var(--sf-text-primary)]">{item}</span>
                     <Button variant="outline" size="sm">Configure</Button>
                   </div>
                 ))}
@@ -158,6 +159,10 @@ export function SettingsPage() {
             </Card>
           )}
         </div>
+      </div>
+
+      <div className="mt-8 flex justify-center text-xs text-[var(--sf-text-tertiary)]">
+        SafeFusion AI v{APP_VERSION}
       </div>
     </div>
   );

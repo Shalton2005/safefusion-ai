@@ -1,57 +1,57 @@
-import { MessageSquareText, Waypoints } from 'lucide-react';
-import { Badge, PageHeader } from '@/components/ui';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { MessageSquareText, List, Radio, ShieldAlert, MapPin, BrainCircuit, AlertTriangle, FileCheck2, FileBarChart2, Settings } from 'lucide-react';
+import { Card } from '@/components/ui';
 import { QuickLinkCard } from '@/components/common/QuickLinkCard';
 import { ROUTES } from '@/constants/routes';
 import { KpiCardGrid } from '@/features/dashboard/components/KpiCardGrid';
-import { PlantSafetyOverviewSectionView } from '@/features/dashboard/components/PlantSafetyOverviewSection';
 import { ZoneOverviewSectionView } from '@/features/dashboard/components/ZoneOverviewSection';
 import { SafetyTimelineSectionView } from '@/features/dashboard/components/SafetyTimelineSection';
-import { ChartCard, RiskTrendChart, SensorReadingsChart, AlertDistributionChart } from '@/components/charts';
-import { WorkerMonitoringPanel } from '@/features/workers/components/WorkerMonitoringPanel';
-import { SensorMonitoringPanel } from '@/features/sensors/components/SensorMonitoringPanel';
-import { AlertsPanelView } from '@/features/alerts/components/AlertsPanel';
-import { RecentIncidentsPanel } from '@/features/alerts/components/RecentIncidentsPanel';
-import { PermitDashboardPanel } from '@/features/permits/components/PermitDashboardPanel';
-import { SafetyHeatmapContainer } from '@/features/live-monitoring/components/SafetyHeatmapContainer';
-import { CompoundRiskCardSectionView } from '@/features/risk/components/CompoundRiskCardSection';
-import { AISupervisorCardSection } from '@/features/ai-supervisor/components/AISupervisorCardSection';
-import { RiskExplanationPanelSectionView } from '@/features/risk/components/RiskExplanationPanelSection';
-import { EmergencyResponsePanelSectionView } from '@/features/emergency/components/EmergencyResponsePanelSection';
-import { ComplianceDashboardSectionView } from '@/features/compliance/components/ComplianceDashboardSection';
+import { SensorReadingsChart } from '@/components/charts';
 import { RecommendationPanelSectionView } from '@/features/recommendations/components/RecommendationPanelSection';
-import { CameraShortcutCard, VisionSummaryWidget, CriticalHazardBanner } from '@/features/computer-vision/components';
+import { EmergencyResponsePanelSectionView } from '@/features/emergency/components/EmergencyResponsePanelSection';
+import { CriticalHazardBanner } from '@/features/computer-vision/components';
+import { AICommandCenter } from '@/features/dashboard/components/AICommandCenter';
+import { AIExplainabilityCard } from '@/features/dashboard/components/AIExplainabilityCard';
 import { useRecentAlerts } from '@/features/alerts/hooks/useRecentAlerts';
 import { useRecentRiskScores } from '@/features/dashboard/hooks/useRecentRiskScores';
-import { usePlantSafetyOverview } from '@/features/dashboard/hooks/usePlantSafetyOverview';
 import { useZoneOverview } from '@/features/dashboard/hooks/useZoneOverview';
 import { useCompoundRiskEngine } from '@/features/risk/hooks/useCompoundRiskEngine';
 import { useEmergencyResponse } from '@/features/emergency/hooks/useEmergencyResponse';
 import { useRecommendations } from '@/features/recommendations/hooks/useRecommendations';
 import { useComplianceStatus } from '@/features/compliance/hooks/useComplianceStatus';
 import { useDashboardSummary } from '@/features/dashboard/hooks/useDashboardSummary';
-import { useAnalyticsSummary } from '@/features/analytics/hooks/useAnalyticsSummary';
 import { useRecentSensors } from '@/features/sensors/hooks/useRecentSensors';
+import { useAISupervisor } from '@/features/ai-supervisor/hooks/useAISupervisor';
 import { usePlantStatusStore } from '@/store';
 import { safetyTimelineService } from '@/services';
-import { useEffect, useMemo, useCallback } from 'react';
+import { cn } from '@/lib/cn';
 
-/** How many recent alerts / risk-score records feed the timeline + incident summary. */
 const TIMELINE_LIMIT = 20;
 
 export function DashboardPage() {
-  const alertsData = useRecentAlerts({ limit: 100 });
-  const riskScoresData = useRecentRiskScores({ limit: TIMELINE_LIMIT });
-  const plantSafetyOverviewData = usePlantSafetyOverview();
+  const [activeTab, setActiveTab] = useState<'timeline' | 'sensors'>('timeline');
+
+  const navigate = useNavigate();
+
+  // Hooks
+  const dashboardSummaryData = useDashboardSummary();
   const zoneOverviewData = useZoneOverview();
   const riskEngineData = useCompoundRiskEngine();
   const emergencyData = useEmergencyResponse();
   const recommendationsData = useRecommendations();
   const complianceData = useComplianceStatus();
   
-  // New API Hooks
-  const dashboardSummaryData = useDashboardSummary();
-  const analyticsSummaryData = useAnalyticsSummary({ knownOverallRiskScore: dashboardSummaryData.summary?.overall_risk_score });
+  // Investigation Data
+  const alertsData = useRecentAlerts({ limit: 100 });
+  const riskScoresData = useRecentRiskScores({ limit: TIMELINE_LIMIT });
   const recentSensorsData = useRecentSensors({ limit: 100 });
+  const aiSupervisor = useAISupervisor({
+    compoundRisk: riskEngineData,
+    emergencyResponse: emergencyData,
+    recommendation: recommendationsData,
+    compliance: complianceData,
+  });
 
   useEffect(() => {
     if (riskEngineData.assessment) {
@@ -86,26 +86,6 @@ export function DashboardPage() {
     recommendationsData.refresh();
   }, [alertsData, riskScoresData, emergencyData, recommendationsData]);
 
-  // Compute Chart Data dynamically
-  const riskTrendData = useMemo(() => {
-    return [...riskScoresData.riskScores]
-      .sort((a, b) => new Date(a.analyzed_at).getTime() - new Date(b.analyzed_at).getTime())
-      .map(score => ({
-        date: new Date(score.analyzed_at).toLocaleDateString('en-US', { month: 'short', day: '2-digit' }),
-        score: score.risk_score
-      }));
-  }, [riskScoresData.riskScores]);
-
-  const alertDistributionData = useMemo(() => {
-    const counts: Record<string, number> = { Critical: 0, High: 0, Medium: 0, Low: 0 };
-    alertsData.alerts.forEach(alert => {
-      const key = alert.severity.charAt(0).toUpperCase() + alert.severity.slice(1);
-      if (counts[key] !== undefined) counts[key]++;
-      else counts[key] = 1;
-    });
-    return Object.entries(counts).map(([severity, count]) => ({ severity: severity as 'Critical' | 'High' | 'Medium' | 'Low', count })).filter(d => d.count > 0);
-  }, [alertsData.alerts]);
-
   const sensorReadingsData = useMemo(() => {
     const points: Record<string, { gas: number[], temperature: number[], pressure: number[] }> = {};
     recentSensorsData.sensors.forEach(sensor => {
@@ -122,173 +102,173 @@ export function DashboardPage() {
     }).sort((a, b) => a.time.localeCompare(b.time));
   }, [recentSensorsData.sensors]);
 
-  return (
-    <div className="page-container">
-      <PageHeader
-        title="Dashboard"
-        description="Real-time overview of your safety monitoring system."
-        border={false}
-        className="px-0 pt-0"
-      />
+  const riskLevel = riskEngineData.assessment?.risk_level ?? 'low';
+  const isCriticalMode = riskLevel === 'critical';
+  const isEmergencyMode = riskLevel === 'high';
+  const isWarningMode = riskLevel === 'medium';
 
-      {/* Critical hazard banner (computer vision) */}
+  const renderContextualLinks = () => {
+    if (isCriticalMode || isEmergencyMode) {
+      return (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8">
+          <QuickLinkCard to="/emergency" icon={ShieldAlert} title="View Emergency Plan" description="Active incident response procedures" />
+          <QuickLinkCard to={`/live-monitoring?zone=${encodeURIComponent(riskEngineData.explanation?.zone || '')}`} icon={MapPin} title="Affected Zone" description="Live CCTV and sensors" />
+          <QuickLinkCard to={ROUTES.AI_SUPERVISOR} icon={BrainCircuit} title="AI Reasoning" description="Understand this risk score" />
+        </div>
+      );
+    }
+    if (isWarningMode) {
+      return (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8">
+          <QuickLinkCard to={ROUTES.AI_SUPERVISOR} icon={AlertTriangle} title="Recommendations" description="Review active AI recommendations" />
+          <QuickLinkCard to={ROUTES.PERMITS} icon={FileCheck2} title="Permits" description="Check active high-risk permits" />
+          <QuickLinkCard to={ROUTES.COPILOT} icon={MessageSquareText} title="AI Copilot" description="Ask about safety procedures" />
+        </div>
+      );
+    }
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8">
+        <QuickLinkCard to={ROUTES.REPORTS} icon={FileBarChart2} title="Weekly Report" description="Download latest safety summary" />
+        <QuickLinkCard to={ROUTES.PERMITS} icon={FileCheck2} title="Permit Renewals" description="Review upcoming expirations" />
+        <QuickLinkCard to={ROUTES.SETTINGS} icon={Settings} title="Settings" description="System and threshold config" />
+      </div>
+    );
+  };
+
+  return (
+    <div className="page-container flex flex-col gap-8 pb-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      {/* SECTION 1: Emergency Banner */}
       <CriticalHazardBanner />
 
-      {/* KPI cards */}
-      <KpiCardGrid
-        dashboardSummary={dashboardSummaryData.summary}
-        analyticsSummary={analyticsSummaryData.summary}
-        plantSafetyOverview={plantSafetyOverviewData.overview}
-        loading={dashboardSummaryData.loading || analyticsSummaryData.loading || plantSafetyOverviewData.loading}
-      />
-
-      {/* Plant safety overview */}
-      <PlantSafetyOverviewSectionView
-        overview={plantSafetyOverviewData.overview}
-        loading={plantSafetyOverviewData.loading}
-        error={plantSafetyOverviewData.error}
-        lastUpdated={plantSafetyOverviewData.lastUpdated}
-        refresh={plantSafetyOverviewData.refresh}
-      />
-
-      {/* Computer vision — detection summary + camera shortcut */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <VisionSummaryWidget className="lg:col-span-2" />
-        <CameraShortcutCard />
-      </div>
-
-      {/* Quick links — AI Safety Copilot, Knowledge Graph */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <QuickLinkCard
-          to={ROUTES.COPILOT}
-          icon={MessageSquareText}
-          title="AI Safety Copilot"
-          description="Ask questions grounded in your plant's safety and compliance documents."
-        />
-        <QuickLinkCard
-          to={ROUTES.KNOWLEDGE_GRAPH}
-          icon={Waypoints}
-          title="Knowledge Graph"
-          description="Explore relationships between workers, sensors, zones, permits, and incidents."
-        />
-      </div>
-
-      {/* Zone overview */}
-      <ZoneOverviewSectionView
-        zones={zoneOverviewData.zones}
-        loading={zoneOverviewData.loading}
-        error={zoneOverviewData.error}
-        lastUpdated={zoneOverviewData.lastUpdated}
-        refresh={zoneOverviewData.refresh}
-      />
-
-      {/* Risk trend */}
-      <ChartCard
-        title="Risk Trend"
-        description="Overall risk score — last 30 days"
-        action={<Badge variant="danger" size="sm" dot pulsing>Live</Badge>}
-      >
-        <RiskTrendChart data={riskTrendData} />
-      </ChartCard>
-
-      {/* Sensor readings */}
-      <ChartCard
-        title="Sensor Readings"
-        description="Gas, temperature, and pressure — today"
-        height={220}
-      >
-        <SensorReadingsChart data={sensorReadingsData} />
-      </ChartCard>
-
-      {/* Alert distribution */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <ChartCard title="Alert Distribution" description="By severity" className="lg:col-span-1">
-          <AlertDistributionChart data={alertDistributionData} />
-        </ChartCard>
-      </div>
-
-      {/* AI Supervisor */}
-      <AISupervisorCardSection
-        engines={{
-          compoundRisk: riskEngineData,
-          emergencyResponse: emergencyData,
-          recommendation: recommendationsData,
-          compliance: complianceData,
-        }}
-      />
-
-      {/* Compound risk */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <CompoundRiskCardSectionView
-          assessment={riskEngineData.assessment}
-          loading={riskEngineData.loading}
-          error={riskEngineData.error}
-          lastUpdated={riskEngineData.lastUpdated}
-          refresh={riskEngineData.refresh}
-        />
-        <RiskExplanationPanelSectionView
-          explanation={riskEngineData.explanation}
-          loading={riskEngineData.loading}
-          error={riskEngineData.error}
-          lastUpdated={riskEngineData.lastUpdated}
-          refresh={riskEngineData.refresh}
-        />
-      </div>
-
-      {/* Emergency response */}
-      <EmergencyResponsePanelSectionView
-        actions={emergencyData.actions}
-        loading={emergencyData.loading}
-        error={emergencyData.error}
-        lastUpdated={emergencyData.lastUpdated}
-        refresh={emergencyData.refresh}
-      />
-
-      {/* Compliance */}
-      <ComplianceDashboardSectionView
-        snapshot={complianceData.snapshot}
-        loading={complianceData.loading}
-        error={complianceData.error}
-        lastUpdated={complianceData.lastUpdated}
-        refresh={complianceData.refresh}
-      />
-
-      {/* Recommendations */}
-      <RecommendationPanelSectionView
+      {/* SECTION 2: AI Command Center (Hero) */}
+      <AICommandCenter
+        assessment={riskEngineData.assessment}
+        explanation={riskEngineData.explanation}
         recommendations={recommendationsData.recommendations}
-        loading={recommendationsData.loading}
-        error={recommendationsData.error}
-        lastUpdated={recommendationsData.lastUpdated}
-        refresh={recommendationsData.refresh}
-      />
-
-      {/* Safety timeline */}
-      <SafetyTimelineSectionView
-        events={timelineEvents}
-        loading={timelineLoading}
-        error={timelineError}
-        refresh={refreshTimeline}
-      />
-
-      {/* Safety heatmap */}
-      <SafetyHeatmapContainer />
-
-      {/* Worker & sensor monitoring */}
-      <WorkerMonitoringPanel />
-      <SensorMonitoringPanel />
-
-      {/* Alerts & incidents */}
-      <AlertsPanelView
         alerts={alertsData.alerts}
-        loading={alertsData.loading}
-        error={alertsData.error}
-        lastUpdated={alertsData.lastUpdated}
-        refresh={alertsData.refresh}
+        emergencyActions={emergencyData.actions}
+        supervisorSnapshot={aiSupervisor.snapshot}
+        lastUpdated={riskEngineData.lastUpdated}
+        onDispatchEmergency={() => navigate('/emergency')}
+        onViewReasoning={() => navigate(ROUTES.AI_SUPERVISOR)}
+        onOpenLiveMonitoring={() => navigate(ROUTES.LIVE_MONITORING)}
       />
-      <RecentIncidentsPanel />
 
-      {/* Permits */}
-      <PermitDashboardPanel />
+      {/* SECTION 3: Critical KPI Cards */}
+      {!isCriticalMode && (
+        <KpiCardGrid
+          dashboardSummary={dashboardSummaryData.summary}
+          complianceSnapshot={complianceData.snapshot}
+          loading={dashboardSummaryData.loading || complianceData.loading}
+          lastUpdated={dashboardSummaryData.lastUpdated}
+        />
+      )}
+
+      {/* SECTION 4: Top Emergency Actions (Dynamic) */}
+      {(isEmergencyMode || isCriticalMode) && (
+        <EmergencyResponsePanelSectionView
+          actions={emergencyData.actions}
+          loading={emergencyData.loading}
+          error={emergencyData.error}
+          lastUpdated={emergencyData.lastUpdated}
+          refresh={emergencyData.refresh}
+        />
+      )}
+      {isWarningMode && (
+        <RecommendationPanelSectionView
+          recommendations={recommendationsData.recommendations.slice(0, 3)}
+          loading={recommendationsData.loading}
+          error={recommendationsData.error}
+          lastUpdated={recommendationsData.lastUpdated}
+          refresh={recommendationsData.refresh}
+        />
+      )}
+
+      {/* SECTION 5: AI Reasoning (Explainability) */}
+      {!isCriticalMode && (
+        <AIExplainabilityCard
+          assessment={riskEngineData.assessment}
+          explanation={riskEngineData.explanation}
+          supervisorSnapshot={aiSupervisor.snapshot}
+        />
+      )}
+
+      {/* SECTION 6: Investigation Hub */}
+      <Card className="flex flex-col overflow-hidden bg-[var(--sf-surface-card)] border-[var(--sf-border-default)]">
+        <div className="flex flex-col gap-2 px-6 pt-5 pb-3 bg-[var(--sf-surface-base)]/50 border-b border-[var(--sf-border-default)]">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-bold text-[var(--sf-text-primary)]">Investigation Hub</h2>
+              <p className="text-sm text-[var(--sf-text-tertiary)] mt-1">
+                Showing telemetry for: <span className="font-semibold text-[var(--sf-text-secondary)]">{riskEngineData.explanation?.zone || 'All Zones'}</span>
+                {riskEngineData.explanation?.triggered_rules?.[0] && (
+                  <> &bull; Reason: <span className="font-medium text-[var(--sf-text-secondary)]">{riskEngineData.explanation.triggered_rules[0].name.replace(/_/g, ' ')}</span></>
+                )}
+              </p>
+            </div>
+            <div className="flex items-center gap-1 bg-[var(--sf-surface-base)] p-1 rounded-lg border border-[var(--sf-border-default)]">
+              <button
+                type="button"
+                className={cn(
+                  "flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-300 ease-in-out",
+                  activeTab === 'timeline' 
+                    ? "bg-[var(--sf-surface-card)] text-[var(--sf-text-primary)] shadow-sm border border-[var(--sf-border-default)]" 
+                    : "text-[var(--sf-text-secondary)] hover:text-[var(--sf-text-primary)] hover:bg-[var(--sf-surface-hover)] border border-transparent"
+                )}
+                onClick={() => setActiveTab('timeline')}
+              >
+                <List className="w-4 h-4" />
+                Timeline
+              </button>
+              <button
+                type="button"
+                className={cn(
+                  "flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-300 ease-in-out",
+                  activeTab === 'sensors'
+                    ? "bg-[var(--sf-surface-card)] text-[var(--sf-text-primary)] shadow-sm border border-[var(--sf-border-default)]" 
+                    : "text-[var(--sf-text-secondary)] hover:text-[var(--sf-text-primary)] hover:bg-[var(--sf-surface-hover)] border border-transparent"
+                )}
+                onClick={() => setActiveTab('sensors')}
+              >
+                <Radio className="w-4 h-4" />
+                Sensor Trends
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-6">
+          {activeTab === 'timeline' && (
+            <SafetyTimelineSectionView
+              events={timelineEvents}
+              loading={timelineLoading}
+              error={timelineError}
+              refresh={refreshTimeline}
+            />
+          )}
+          {activeTab === 'sensors' && (
+            <div className="h-[300px]">
+              <SensorReadingsChart data={sensorReadingsData} />
+            </div>
+          )}
+        </div>
+      </Card>
+
+      {/* SECTION 7: Zone Overview */}
+      {!isCriticalMode && (
+        <div className="flex flex-col gap-8">
+          <ZoneOverviewSectionView
+            zones={zoneOverviewData.zones}
+            loading={zoneOverviewData.loading}
+            error={zoneOverviewData.error}
+            lastUpdated={zoneOverviewData.lastUpdated}
+            refresh={zoneOverviewData.refresh}
+          />
+        </div>
+      )}
+
+      {/* SECTION 9: Contextual Intelligence Strip */}
+      {renderContextualLinks()}
     </div>
   );
 }

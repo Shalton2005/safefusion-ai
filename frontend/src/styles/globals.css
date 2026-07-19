@@ -10,16 +10,16 @@
    ─────────────────────────────────────────────────────────────────── */
 @layer base {
   :root {
-    --color-bg-primary:    var(--sf-surface-base);
-    --color-bg-secondary:  var(--sf-surface-raised);
-    --color-bg-card:       var(--sf-surface-card);
-    --color-bg-sidebar:    var(--sf-surface-sidebar);
-    --color-text-primary:  var(--sf-text-primary);
-    --color-text-secondary:var(--sf-text-secondary);
-    --color-text-muted:    var(--sf-text-tertiary);
-    --color-border:        var(--sf-border-default);
-    --color-scrollbar-track: var(--sf-scrollbar-track);
-    --color-scrollbar-thumb: var(--sf-scrollbar-thumb);
+    --sf-surface-base:    var(--sf-surface-base);
+    --sf-surface-raised:  var(--sf-surface-raised);
+    --sf-surface-card:       var(--sf-surface-card);
+    --sf-surface-sidebar:    var(--sf-surface-sidebar);
+    --sf-text-primary:  var(--sf-text-primary);
+    --sf-text-secondary:var(--sf-text-secondary);
+    --sf-text-tertiary:    var(--sf-text-tertiary);
+    --sf-border-default:        var(--sf-border-default);
+    --sf-scrollbar-track: var(--sf-scrollbar-track);
+    --sf-scrollbar-thumb: var(--sf-scrollbar-thumb);
   }
 }
 

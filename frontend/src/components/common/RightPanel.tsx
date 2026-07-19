@@ -61,7 +61,7 @@ export function RightPanelToggle() {
       aria-pressed={open}
       className={cn(
         'hidden xl:inline-flex p-2 rounded-lg transition-colors',
-        'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-bg-secondary)]',
+        'text-[var(--sf-text-tertiary)] hover:text-[var(--sf-text-primary)] hover:bg-[var(--sf-surface-raised)]',
       )}
     >
       {open ? <X className="w-5 h-5" /> : <PanelRightClose className="w-5 h-5" />}

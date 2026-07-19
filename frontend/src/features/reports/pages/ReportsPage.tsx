@@ -13,8 +13,8 @@ const columns: TableColumn<Report>[] = [
     accessor: 'title',
     render: (v, _row) => (
       <div className="flex items-center gap-2">
-        <FileBarChart2 className="w-4 h-4 text-[var(--color-text-muted)] flex-shrink-0" />
-        <span className="font-medium text-[var(--color-text-primary)]">{v as string}</span>
+        <FileBarChart2 className="w-4 h-4 text-[var(--sf-text-tertiary)] flex-shrink-0" />
+        <span className="font-medium text-[var(--sf-text-primary)]">{v as string}</span>
       </div>
     ),
   },
@@ -24,7 +24,7 @@ const columns: TableColumn<Report>[] = [
     header: 'Generated',
     accessor: 'generatedAt',
     render: (v) => (
-      <span className="text-xs text-[var(--color-text-muted)] flex items-center gap-1">
+      <span className="text-xs text-[var(--sf-text-tertiary)] flex items-center gap-1">
         <Clock className="w-3 h-3" />
         {formatDateTime(v as string)}
       </span>
@@ -69,11 +69,11 @@ export function ReportsPage() {
       <Card padding="none">
         <CardHeader 
           title="Report History" 
-          className="px-6 pt-5 pb-4 border-b border-[var(--color-border)]"
+          className="px-6 pt-5 pb-4 border-b border-[var(--sf-border-default)]"
           action={
             <div className="flex items-center gap-2">
               <div className="relative">
-                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" />
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--sf-text-tertiary)]" />
                 <Input
                   placeholder="Search reports..."
                   value={search}
@@ -105,7 +105,7 @@ export function ReportsPage() {
           
           {total > 0 && (
             <div className="flex items-center justify-between mt-4 px-2">
-              <span className="text-sm text-[var(--color-text-muted)]">
+              <span className="text-sm text-[var(--sf-text-tertiary)]">
                 Showing {skip + 1} to {Math.min(skip + limit, total)} of {total} reports
               </span>
               <div className="flex gap-2">

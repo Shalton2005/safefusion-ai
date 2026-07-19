@@ -40,8 +40,8 @@ export function LoginPage() {
     <div className="space-y-6">
       {/* Heading */}
       <div className="text-center">
-        <h2 className="text-xl font-semibold text-[var(--color-text-primary)]">Sign in</h2>
-        <p className="mt-1 text-sm text-[var(--color-text-muted)]">
+        <h2 className="text-xl font-semibold text-[var(--sf-text-primary)]">Sign in</h2>
+        <p className="mt-1 text-sm text-[var(--sf-text-tertiary)]">
           Access your {APP_NAME} dashboard
         </p>
       </div>

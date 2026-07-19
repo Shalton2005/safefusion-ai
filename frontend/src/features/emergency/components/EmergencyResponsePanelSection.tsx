@@ -1,5 +1,6 @@
-import { ShieldAlert } from 'lucide-react';
-import { Card, CardHeader, Badge, EmptyState, QueryState } from '@/components/ui';
+import { ShieldAlert, ArrowRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Card, CardHeader, Badge, EmptyState, QueryState, Button } from '@/components/ui';
 import { LastUpdated } from '@/components/common/LastUpdated';
 import { EmergencyResponsePanel } from './EmergencyResponsePanel';
 import type { EmergencyActionItem } from '@/types';
@@ -43,7 +44,7 @@ export function EmergencyResponsePanelSectionView({
           )
         }
       />
-      <div className="p-4 flex flex-col gap-2">
+      <div className="p-4 flex flex-col gap-4">
         <QueryState
           loading={loading}
           error={error}
@@ -59,9 +60,29 @@ export function EmergencyResponsePanelSectionView({
             />
           }
         >
-          {(actionData) => <EmergencyResponsePanel actions={actionData} />}
+          {(actionData) => (
+            <>
+              <EmergencyResponsePanel actions={actionData.slice(0, 5)} />
+              {actionData.length > 5 && (
+                <div className="flex items-center justify-between px-2 pt-2 pb-1 border-t border-[var(--sf-border-default)]">
+                  <span className="text-xs text-[var(--sf-text-tertiary)] font-medium">+{actionData.length - 5} more actions dispatched</span>
+                </div>
+              )}
+            </>
+          )}
         </QueryState>
-        {!error && <LastUpdated timestamp={lastUpdated} className="px-1" />}
+
+        {!error && (
+          <div className="flex items-center justify-between pt-2 border-t border-[var(--sf-border-default)]">
+            <LastUpdated timestamp={lastUpdated} className="px-1" />
+            <Link to="/emergency" className="block w-full sm:w-auto">
+              <Button variant="outline" className="w-full group bg-[var(--sf-surface-card)] hover:bg-[var(--sf-surface-hover)]">
+                View Full Response Plan
+                <ArrowRight className="w-4 h-4 ml-2 text-[var(--sf-text-tertiary)] group-hover:text-[var(--sf-text-primary)] transition-colors" />
+              </Button>
+            </Link>
+          </div>
+        )}
       </div>
     </Card>
   );

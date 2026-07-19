@@ -68,8 +68,8 @@ export function Sidebar() {
       <aside
         ref={asideRef}
         className={cn(
-          'fixed inset-y-0 left-0 z-50 flex flex-col h-screen bg-[var(--color-bg-sidebar)]',
-          'border-r border-[var(--color-border)] transition-all duration-300 ease-in-out',
+          'fixed inset-y-0 left-0 z-50 flex flex-col h-screen bg-[var(--sf-surface-sidebar)]',
+          'border-r border-[var(--sf-border-default)] transition-all duration-300 ease-in-out',
           'lg:relative lg:z-auto',
           collapsed ? 'lg:w-[4.5rem]' : 'lg:w-64',
           'w-64',
@@ -82,7 +82,7 @@ export function Sidebar() {
           {sections.map((group, i) => (
             <div key={group.section ?? `ungrouped-${i}`} className="space-y-1">
               {group.section && !isNarrow && (
-                <p className="px-3 pb-1 text-2xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
+                <p className="px-3 pb-1 text-2xs font-semibold uppercase tracking-wider text-[var(--sf-text-tertiary)]">
                   {group.section}
                 </p>
               )}

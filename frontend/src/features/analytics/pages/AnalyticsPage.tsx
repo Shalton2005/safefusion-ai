@@ -15,8 +15,8 @@ interface MetricCardProps {
 function MetricCard({ label, value, change, positive = true }: MetricCardProps) {
   return (
     <Card>
-      <p className="text-sm text-[var(--color-text-muted)]">{label}</p>
-      <p className="text-2xl font-bold text-[var(--color-text-primary)] mt-1">{value}</p>
+      <p className="text-sm text-[var(--sf-text-tertiary)]">{label}</p>
+      <p className="text-2xl font-bold text-[var(--sf-text-primary)] mt-1">{value}</p>
       {change && (
         <p className={`text-xs mt-1 flex items-center gap-1 ${positive ? 'text-safe-500' : 'text-danger-500'}`}>
           <TrendingUp className="w-3 h-3" />
@@ -75,18 +75,18 @@ export function AnalyticsPage() {
           ) : incidentTrend.length > 0 ? (
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={incidentTrend} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
-                <XAxis dataKey="timestamp" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'var(--color-text-muted)' }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'var(--color-text-muted)' }} allowDecimals={false} />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--sf-border-default)" />
+                <XAxis dataKey="timestamp" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'var(--sf-text-tertiary)' }} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'var(--sf-text-tertiary)' }} allowDecimals={false} />
                 <Tooltip 
-                  contentStyle={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)', borderRadius: '0.375rem' }} 
-                  itemStyle={{ color: 'var(--color-text-primary)' }}
+                  contentStyle={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--sf-border-default)', borderRadius: '0.375rem' }} 
+                  itemStyle={{ color: 'var(--sf-text-primary)' }}
                 />
                 <Bar dataKey="value" fill="var(--color-primary-500)" radius={[4, 4, 0, 0]} maxBarSize={40} />
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <div className="h-[220px] flex items-center justify-center text-sm text-[var(--color-text-muted)]">
+            <div className="h-[220px] flex items-center justify-center text-sm text-[var(--sf-text-tertiary)]">
               No incidents recorded in this period
             </div>
           )}
@@ -101,7 +101,7 @@ export function AnalyticsPage() {
           ) : riskDistribution.length > 0 ? (
             <AlertDistributionChart data={riskDistribution} />
           ) : (
-            <div className="h-[220px] flex flex-col items-center justify-center text-sm text-[var(--color-text-muted)] gap-2">
+            <div className="h-[220px] flex flex-col items-center justify-center text-sm text-[var(--sf-text-tertiary)] gap-2">
               <AlertTriangle className="w-6 h-6" />
               No risk data available
             </div>

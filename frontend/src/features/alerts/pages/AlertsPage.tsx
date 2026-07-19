@@ -22,8 +22,8 @@ const columns: TableColumn<AlertRecord>[] = [
     accessor: 'alert_type',
     render: (v, row) => (
       <div>
-        <p className="font-medium text-[var(--color-text-primary)]">{v as string}</p>
-        <p className="text-xs text-[var(--color-text-muted)] mt-0.5 truncate max-w-xs">
+        <p className="font-medium text-[var(--sf-text-primary)]">{v as string}</p>
+        <p className="text-xs text-[var(--sf-text-tertiary)] mt-0.5 truncate max-w-xs">
           {row.message}
         </p>
       </div>
@@ -56,7 +56,7 @@ const columns: TableColumn<AlertRecord>[] = [
     header: 'Triggered',
     accessor: 'generated_at',
     render: (v) => (
-      <span className="text-xs text-[var(--color-text-muted)]">
+      <span className="text-xs text-[var(--sf-text-tertiary)]">
         {formatRelativeTime(v as string)}
       </span>
     ),

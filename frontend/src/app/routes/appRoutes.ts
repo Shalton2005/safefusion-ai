@@ -26,6 +26,7 @@ import {
   BrainCircuit,
   MessageSquareText,
   Settings,
+  AlertTriangle,
 } from 'lucide-react';
 import { ROUTES } from '@/constants/routes';
 import type { AppRouteDefinition } from './types';
@@ -91,7 +92,7 @@ export const appRouteDefinitions: AppRouteDefinition[] = [
     icon:        HardHat,
     showInNav:   true,
     isProtected: true,
-    section:     'Monitoring',
+    section:     'Operations',
     component: lazy(() =>
       import('@/features/workers/pages/WorkersPage').then((m) => ({
         default: m.WorkersPage,
@@ -125,7 +126,7 @@ export const appRouteDefinitions: AppRouteDefinition[] = [
     icon:        FileCheck2,
     showInNav:   true,
     isProtected: true,
-    section:     'Monitoring',
+    section:     'Operations',
     component: lazy(() =>
       import('@/features/permits/pages/PermitsPage').then((m) => ({
         default: m.PermitsPage,
@@ -145,6 +146,23 @@ export const appRouteDefinitions: AppRouteDefinition[] = [
     section:     'Monitoring',
     // badge will be wired to a live alert count store in a later sprint
     badge:       undefined,
+    component: lazy(() =>
+      import('@/features/alerts/pages/AlertsPage').then((m) => ({
+        default: m.AlertsPage,
+      })),
+    ),
+  },
+
+  // ── Emergency ────────────────────────────────────────────────────
+  {
+    id:          'emergency',
+    path:        '/emergency',
+    label:       'Emergency',
+    description: 'Manage active emergency response procedures.',
+    icon:        AlertTriangle,
+    showInNav:   true,
+    isProtected: true,
+    section:     'Monitoring',
     component: lazy(() =>
       import('@/features/alerts/pages/AlertsPage').then((m) => ({
         default: m.AlertsPage,

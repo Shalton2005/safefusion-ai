@@ -7,14 +7,14 @@ export function NotFoundPage() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-[var(--color-bg-primary)] px-4 text-center">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-[var(--sf-surface-base)] px-4 text-center">
       <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-danger-600/15 mb-6">
         <TriangleAlert className="w-8 h-8 text-danger-500" />
       </div>
 
-      <h1 className="text-6xl font-black text-[var(--color-text-primary)] tracking-tight">404</h1>
-      <p className="mt-2 text-lg font-medium text-[var(--color-text-primary)]">Page not found</p>
-      <p className="mt-1 text-sm text-[var(--color-text-muted)] max-w-sm">
+      <h1 className="text-6xl font-black text-[var(--sf-text-primary)] tracking-tight">404</h1>
+      <p className="mt-2 text-lg font-medium text-[var(--sf-text-primary)]">Page not found</p>
+      <p className="mt-1 text-sm text-[var(--sf-text-tertiary)] max-w-sm">
         The page you're looking for doesn't exist or has been moved.
       </p>
 

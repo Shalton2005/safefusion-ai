@@ -19,7 +19,7 @@ export function SidebarCollapseToggle({ collapsed, label, ariaLabel, onClick }: 
         aria-label={collapsed ? 'Expand sidebar' : ariaLabel}
         className={cn(
           'w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm',
-          'text-[var(--color-text-muted)] hover:text-white hover:bg-white/10',
+          'text-[var(--sf-text-tertiary)] hover:text-white hover:bg-white/10',
           'transition-colors duration-150',
           collapsed && 'justify-center px-0',
         )}

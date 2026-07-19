@@ -1,7 +1,6 @@
 import { Outlet } from 'react-router-dom';
 import { Sidebar }    from '@/components/common/Sidebar';
 import { TopNav }     from '@/components/common/TopNav';
-import { Footer }     from '@/components/common/Footer';
 import { RightPanel } from '@/components/common/RightPanel';
 import { EmergencyStatusBannerContainer } from '@/features/plant-status/components/EmergencyStatusBannerContainer';
 
@@ -26,10 +25,6 @@ export function DashboardLayout() {
         <main className="flex-1 overflow-y-auto focus:outline-none print:overflow-visible" id="main-content">
           <Outlet />
         </main>
-
-        <div className="print:hidden">
-          <Footer />
-        </div>
       </div>
 
       {/* Right utility panel */}

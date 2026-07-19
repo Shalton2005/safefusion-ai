@@ -6,91 +6,85 @@
  * set of headline metrics, fed from live data via props.
  *
  * @example
- * <KpiCardGrid dashboardSummary={summary} analyticsSummary={analytics} plantSafetyOverview={overview} loading={loading} />
+ * <KpiCardGrid dashboardSummary={summary} complianceSnapshot={compliance} loading={loading} />
  */
 
 import {
   Gauge,
   HardHat,
   Bell,
-  FileCheck2,
-  Radio,
-  Wrench,
+  ShieldCheck,
 } from 'lucide-react';
 import { StatCard } from '@/components/ui';
 import type { StatCardProps } from '@/components/ui';
-import type { DashboardSummary, AnalyticsSummary, PlantSafetyOverview } from '@/types';
+import type { DashboardSummary, ComplianceStatusSnapshot } from '@/types';
 
 export interface KpiCardGridProps {
   dashboardSummary?: DashboardSummary | null;
-  analyticsSummary?: AnalyticsSummary | null;
-  plantSafetyOverview?: PlantSafetyOverview | null;
+  complianceSnapshot?: ComplianceStatusSnapshot | null;
   loading?: boolean;
+  lastUpdated?: Date | null;
 }
 
-export function KpiCardGrid({ dashboardSummary, analyticsSummary, plantSafetyOverview, loading }: KpiCardGridProps) {
-  const isLoading = loading || (!dashboardSummary && !analyticsSummary && !plantSafetyOverview);
+export function KpiCardGrid({ dashboardSummary, complianceSnapshot, loading, lastUpdated }: KpiCardGridProps) {
+  const isLoading = loading || (!dashboardSummary && !complianceSnapshot);
+
+  const complianceScore = complianceSnapshot
+    ? Math.max(0, 100 - complianceSnapshot.non_compliant_count * 10 - complianceSnapshot.incident_count * 15)
+    : 0;
+
+  const timeStr = lastUpdated ? lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Syncing';
 
   const KPI_CARDS: StatCardProps[] = [
     {
       label: 'Overall Risk Score',
       value: isLoading ? '--' : `${dashboardSummary?.overall_risk_score ?? 0}`,
       subLabel: '/ 100',
-      delta: undefined, // Deltas left empty when live data lacks history comparators
-      deltaLabel: 'vs last week',
       trend: 'stable',
       trendPositive: true,
       icon: Gauge,
       iconVariant: (dashboardSummary?.overall_risk_score ?? 0) < 50 ? 'success' : 'warning',
-    },
-    {
-      label: 'Workers Online',
-      value: isLoading ? '-- / --' : `${dashboardSummary?.active_workers ?? 0} / ${dashboardSummary?.total_workers ?? 0}`,
-      deltaLabel: 'since shift start',
-      trend: 'up',
-      trendPositive: true,
-      icon: HardHat,
-      iconVariant: 'primary',
+      lastUpdated: `Updated ${timeStr}`,
+      actionLabel: 'View Report',
+      onClick: () => {},
     },
     {
       label: 'Critical Alerts',
       value: isLoading ? '--' : (dashboardSummary?.critical_alerts ?? 0),
-      deltaLabel: 'in the last hour',
-      trend: (dashboardSummary?.critical_alerts ?? 0) > 0 ? 'up' : 'stable',
+      trend: 'stable',
       trendPositive: (dashboardSummary?.critical_alerts ?? 0) === 0,
       icon: Bell,
       iconVariant: (dashboardSummary?.critical_alerts ?? 0) > 0 ? 'danger' : 'success',
+      lastUpdated: `Updated ${timeStr}`,
+      actionLabel: 'Go to Alerts',
+      onClick: () => {},
     },
     {
-      label: 'Active Permits',
-      value: isLoading ? '--' : (dashboardSummary?.active_permits ?? 0),
-      deltaLabel: 'pending review',
+      label: 'Workers Online',
+      value: isLoading ? '-- / --' : `${dashboardSummary?.active_workers ?? 0} / ${dashboardSummary?.total_workers ?? 0}`,
       trend: 'stable',
-      icon: FileCheck2,
-      iconVariant: 'warning',
-    },
-    {
-      label: 'Gas Sensors Active',
-      value: isLoading ? '-- / --' : `${plantSafetyOverview?.active_sensors ?? 0} / ${analyticsSummary?.devicesTotal ?? 0}`,
-      deltaLabel: 'offline',
-      trend: 'down',
-      trendPositive: false,
-      icon: Radio,
-      iconVariant: 'primary',
-    },
-    {
-      label: 'Equipment Health',
-      value: isLoading ? '--%' : `${Math.round(((analyticsSummary?.devicesOnline ?? 0) / Math.max(analyticsSummary?.devicesTotal || 1, 1)) * 100)}%`,
-      deltaLabel: 'vs last month',
-      trend: 'up',
       trendPositive: true,
-      icon: Wrench,
-      iconVariant: 'success',
+      icon: HardHat,
+      iconVariant: 'primary',
+      lastUpdated: `Updated ${timeStr}`,
+      actionLabel: 'View Roster',
+      onClick: () => {},
+    },
+    {
+      label: 'Compliance Score',
+      value: isLoading ? '--%' : `${complianceScore}%`,
+      trend: 'stable',
+      trendPositive: complianceScore >= 90,
+      icon: ShieldCheck,
+      iconVariant: complianceScore >= 90 ? 'success' : 'warning',
+      lastUpdated: `Updated ${timeStr}`,
+      actionLabel: 'Audit Details',
+      onClick: () => {},
     },
   ];
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
       {KPI_CARDS.map((card) => (
         <StatCard key={card.label} {...card} />
       ))}

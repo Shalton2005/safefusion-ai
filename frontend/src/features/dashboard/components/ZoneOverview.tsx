@@ -15,12 +15,13 @@
  * />
  */
 
-import { HardHat, Radio, FileCheck2, Gauge, MapPin } from 'lucide-react';
+import { HardHat, Radio, FileCheck2, Gauge, MapPin, ArrowRight, Activity } from 'lucide-react';
 import { Card, Badge, EmptyState } from '@/components/ui';
 import { cn } from '@/lib/cn';
 import { capitalise } from '@/utils/format';
 import { SEVERITY_BADGE_VARIANT } from '@/utils/severity';
 import type { ZoneOverview as ZoneOverviewData } from '@/types';
+import { useNavigate } from 'react-router-dom';
 
 export interface ZoneOverviewProps {
   zones: ZoneOverviewData[];
@@ -28,43 +29,66 @@ export interface ZoneOverviewProps {
 }
 
 function ZoneCard({ zone, workers_present, active_sensors, active_permits, risk_level }: ZoneOverviewData) {
+  const navigate = useNavigate();
+  const isCritical = risk_level === 'high' || risk_level === 'critical';
+  const isElevated = risk_level === 'medium';
+  const healthLabel = isCritical ? 'Critical' : isElevated ? 'Elevated' : 'Nominal';
+  const healthColor = isCritical ? 'text-danger-500' : isElevated ? 'text-caution-500' : 'text-success-500';
+
   return (
-    <Card className="flex flex-col gap-4">
-      {/* Zone name + risk level */}
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-2 min-w-0">
-          <div className="flex-shrink-0 w-9 h-9 rounded-xl bg-primary-600/15 text-primary-400 flex items-center justify-center">
-            <MapPin className="w-4.5 h-4.5" aria-hidden="true" />
+    <Card 
+      onClick={() => navigate(`/live-monitoring?zone=${encodeURIComponent(zone)}`)}
+      className="relative group flex flex-col gap-0 overflow-hidden bg-[var(--sf-surface-card)] hover:bg-[var(--sf-surface-hover)] hover:border-[var(--sf-border-hover)] transition-all duration-300 ease-in-out cursor-pointer p-0"
+    >
+      
+      {/* Zone Header Row */}
+      <div className="flex items-start justify-between gap-2 p-4 pb-3 border-b border-[var(--sf-border-subtle)]">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-primary-900/20 text-primary-400 flex items-center justify-center border border-primary-900/30">
+            <MapPin className="w-4 h-4" aria-hidden="true" />
           </div>
-          <h3 className="text-sm font-semibold text-[var(--sf-text-primary)] truncate">{zone}</h3>
+          <div className="flex flex-col min-w-0">
+            <h3 className="text-sm font-bold text-[var(--sf-text-primary)] truncate">{zone}</h3>
+            <span className="text-xs text-[var(--sf-text-tertiary)] flex items-center gap-1 mt-0.5">
+              <Activity className={cn("w-3 h-3", healthColor)} />
+              {healthLabel}
+            </span>
+          </div>
         </div>
-        <Badge variant={risk_level ? SEVERITY_BADGE_VARIANT[risk_level] : 'default'} size="sm" dot>
+        <Badge variant={risk_level ? SEVERITY_BADGE_VARIANT[risk_level] : 'default'} size="sm" dot pulsing={risk_level === 'critical' || risk_level === 'high'}>
           {risk_level ? capitalise(risk_level) : 'Unknown'}
         </Badge>
       </div>
 
-      {/* Metrics */}
-      <div className="grid grid-cols-3 gap-3 pt-3 border-t border-[var(--sf-border-default)]">
-        <div className="flex flex-col items-center gap-1 text-center">
-          <HardHat className="w-4 h-4 text-[var(--sf-text-tertiary)]" aria-hidden="true" />
-          <span className="text-lg font-bold text-[var(--sf-text-primary)] font-mono leading-none">
+      {/* Metrics Row */}
+      <div className="grid grid-cols-3 gap-px bg-[var(--sf-border-subtle)]">
+        <div className="flex flex-col items-center justify-center gap-1 text-center bg-[var(--sf-surface-card)] group-hover:bg-[var(--sf-surface-hover)] p-3 transition-colors duration-300">
+          <HardHat className="w-3.5 h-3.5 text-[var(--sf-text-tertiary)] mb-0.5" aria-hidden="true" />
+          <span className="text-lg font-bold text-[var(--sf-text-primary)] font-mono leading-none tracking-tight">
             {workers_present}
           </span>
-          <span className="text-2xs text-[var(--sf-text-tertiary)] uppercase tracking-wide">Workers</span>
+          <span className="text-2xs text-[var(--sf-text-tertiary)] uppercase tracking-wider font-semibold">Workers</span>
         </div>
-        <div className="flex flex-col items-center gap-1 text-center">
-          <Radio className="w-4 h-4 text-[var(--sf-text-tertiary)]" aria-hidden="true" />
-          <span className="text-lg font-bold text-[var(--sf-text-primary)] font-mono leading-none">
+        <div className="flex flex-col items-center justify-center gap-1 text-center bg-[var(--sf-surface-card)] group-hover:bg-[var(--sf-surface-hover)] p-3 transition-colors duration-300">
+          <Radio className="w-3.5 h-3.5 text-[var(--sf-text-tertiary)] mb-0.5" aria-hidden="true" />
+          <span className="text-lg font-bold text-[var(--sf-text-primary)] font-mono leading-none tracking-tight">
             {active_sensors}
           </span>
-          <span className="text-2xs text-[var(--sf-text-tertiary)] uppercase tracking-wide">Sensors</span>
+          <span className="text-2xs text-[var(--sf-text-tertiary)] uppercase tracking-wider font-semibold">Sensors</span>
         </div>
-        <div className="flex flex-col items-center gap-1 text-center">
-          <FileCheck2 className="w-4 h-4 text-[var(--sf-text-tertiary)]" aria-hidden="true" />
-          <span className="text-lg font-bold text-[var(--sf-text-primary)] font-mono leading-none">
+        <div className="flex flex-col items-center justify-center gap-1 text-center bg-[var(--sf-surface-card)] group-hover:bg-[var(--sf-surface-hover)] p-3 transition-colors duration-300">
+          <FileCheck2 className="w-3.5 h-3.5 text-[var(--sf-text-tertiary)] mb-0.5" aria-hidden="true" />
+          <span className="text-lg font-bold text-[var(--sf-text-primary)] font-mono leading-none tracking-tight">
             {active_permits}
           </span>
-          <span className="text-2xs text-[var(--sf-text-tertiary)] uppercase tracking-wide">Permits</span>
+          <span className="text-2xs text-[var(--sf-text-tertiary)] uppercase tracking-wider font-semibold">Permits</span>
+        </div>
+      </div>
+
+      {/* Quick Open Overlay */}
+      <div className="absolute inset-0 bg-primary-900/50 backdrop-blur-[1px] opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all duration-300 pointer-events-none">
+        <div className="flex items-center gap-2 px-4 py-2 bg-[var(--sf-surface-overlay)] text-primary-100 rounded-full font-medium text-sm shadow-xl transform scale-95 group-hover:scale-100 transition-transform duration-300">
+          Quick Open <ArrowRight className="w-4 h-4" />
         </div>
       </div>
     </Card>
