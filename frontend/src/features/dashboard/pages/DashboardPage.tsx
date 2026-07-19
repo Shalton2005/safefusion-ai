@@ -7,7 +7,6 @@ import { PlantSafetyOverviewSectionView } from '@/features/dashboard/components/
 import { ZoneOverviewSectionView } from '@/features/dashboard/components/ZoneOverviewSection';
 import { SafetyTimelineSectionView } from '@/features/dashboard/components/SafetyTimelineSection';
 import { ChartCard, RiskTrendChart, SensorReadingsChart, AlertDistributionChart } from '@/components/charts';
-// Removed chartDummyData import
 import { WorkerMonitoringPanel } from '@/features/workers/components/WorkerMonitoringPanel';
 import { SensorMonitoringPanel } from '@/features/sensors/components/SensorMonitoringPanel';
 import { AlertsPanelView } from '@/features/alerts/components/AlertsPanel';
