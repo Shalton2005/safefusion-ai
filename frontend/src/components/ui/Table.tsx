@@ -15,7 +15,7 @@ export interface TableColumn<TRow = Record<string, unknown>> {
 interface TableProps<TRow = Record<string, unknown>> {
   columns: TableColumn<TRow>[];
   data: TRow[];
-  keyExtractor: (row: TRow) => string;
+  keyExtractor: (row: TRow, index: number) => string;
   loading?: boolean;
   emptyMessage?: string;
   onRowClick?: (row: TRow) => void;
@@ -100,9 +100,9 @@ export function Table<TRow = Record<string, unknown>>({
               </td>
             </tr>
           ) : (
-            data.map((row) => (
+            data.map((row, index) => (
               <tr
-                key={keyExtractor(row)}
+                key={keyExtractor(row, index)}
                 onClick={onRowClick ? () => onRowClick(row) : undefined}
                 tabIndex={onRowClick ? 0 : undefined}
                 role={onRowClick ? 'button' : undefined}

@@ -65,23 +65,23 @@ export function PermitsPage() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card padding="sm" className="text-center">
           <FileCheck2 className="w-5 h-5 mx-auto text-safe-500" />
-          <p className="mt-2 text-2xl font-bold text-[var(--sf-text-primary)]">
+          <div className="mt-2 text-2xl font-bold text-[var(--sf-text-primary)]">
             {loading ? <Skeleton className="h-8 w-16 mx-auto" /> : activeCount}
-          </p>
+          </div>
           <p className="text-xs text-[var(--sf-text-tertiary)] mt-0.5">Active Permits</p>
         </Card>
         <Card padding="sm" className="text-center">
           <Clock className="w-5 h-5 mx-auto text-caution-500" />
-          <p className="mt-2 text-2xl font-bold text-[var(--sf-text-primary)]">
+          <div className="mt-2 text-2xl font-bold text-[var(--sf-text-primary)]">
             {loading ? <Skeleton className="h-8 w-16 mx-auto" /> : suspendedCount}
-          </p>
+          </div>
           <p className="text-xs text-[var(--sf-text-tertiary)] mt-0.5">Suspended</p>
         </Card>
         <Card padding="sm" className="text-center">
           <XCircle className="w-5 h-5 mx-auto text-danger-500" />
-          <p className="mt-2 text-2xl font-bold text-[var(--sf-text-primary)]">
+          <div className="mt-2 text-2xl font-bold text-[var(--sf-text-primary)]">
             {loading ? <Skeleton className="h-8 w-16 mx-auto" /> : closedCount}
-          </p>
+          </div>
           <p className="text-xs text-[var(--sf-text-tertiary)] mt-0.5">Closed</p>
         </Card>
       </div>

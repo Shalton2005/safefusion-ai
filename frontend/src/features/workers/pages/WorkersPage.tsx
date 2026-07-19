@@ -66,23 +66,23 @@ export function WorkersPage() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card padding="sm" className="text-center">
           <HardHat className="w-5 h-5 mx-auto text-primary-500" />
-          <p className="mt-2 text-2xl font-bold text-[var(--sf-text-primary)]">
+          <div className="mt-2 text-2xl font-bold text-[var(--sf-text-primary)]">
             {loading ? <Skeleton className="h-8 w-16 mx-auto" /> : workers.length}
-          </p>
+          </div>
           <p className="text-xs text-[var(--sf-text-tertiary)] mt-0.5">Total Workers</p>
         </Card>
         <Card padding="sm" className="text-center">
           <ShieldCheck className="w-5 h-5 mx-auto text-safe-500" />
-          <p className="mt-2 text-2xl font-bold text-[var(--sf-text-primary)]">
+          <div className="mt-2 text-2xl font-bold text-[var(--sf-text-primary)]">
             {loading ? <Skeleton className="h-8 w-16 mx-auto" /> : compliantCount}
-          </p>
+          </div>
           <p className="text-xs text-[var(--sf-text-tertiary)] mt-0.5">PPE Compliant</p>
         </Card>
         <Card padding="sm" className="text-center">
           <ShieldAlert className="w-5 h-5 mx-auto text-danger-500" />
-          <p className="mt-2 text-2xl font-bold text-[var(--sf-text-primary)]">
+          <div className="mt-2 text-2xl font-bold text-[var(--sf-text-primary)]">
             {loading ? <Skeleton className="h-8 w-16 mx-auto" /> : violationCount}
-          </p>
+          </div>
           <p className="text-xs text-[var(--sf-text-tertiary)] mt-0.5">PPE Violations</p>
         </Card>
       </div>

@@ -59,7 +59,7 @@ export function RecommendationPanel({ recommendations }: RecommendationPanelProp
     <Table<Recommendation>
       columns={columns}
       data={recommendations}
-      keyExtractor={(row) => `${row.source}-${row.zone ?? 'plant'}-${row.priority}-${row.reason}`}
+      keyExtractor={(row, index) => `${row.source}-${row.zone ?? 'plant'}-${row.priority}-${row.reason}-${index}`}
       caption="Ordered operator recommendations by priority, message, and originating engine"
       emptyMessage="No recommendations available."
     />

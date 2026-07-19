@@ -15,7 +15,7 @@ export function useWorkers() {
     if (!hasLoadedOnce.current) setLoading(true);
     setError(null);
     try {
-      const { data } = await workersService.getWorkers({ limit: 1000 }, { signal });
+      const { data } = await workersService.getWorkers({ limit: 500 }, { signal });
       setWorkers(data);
       hasLoadedOnce.current = true;
     } catch (err) {

@@ -15,7 +15,7 @@ export function usePermits() {
     if (!hasLoadedOnce.current) setLoading(true);
     setError(null);
     try {
-      const { data } = await permitsService.getPermits({ limit: 1000 }, { signal });
+      const { data } = await permitsService.getPermits({ limit: 500 }, { signal });
       setPermits(data);
       hasLoadedOnce.current = true;
     } catch (err) {

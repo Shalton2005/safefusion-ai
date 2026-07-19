@@ -94,9 +94,9 @@ export function SensorsPage() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {summary.map((s) => (
           <Card key={s.label} padding="sm" className="text-center">
-            <p className={`text-2xl font-bold ${s.color}`}>
+            <div className={`text-2xl font-bold ${s.color}`}>
               {loading ? <Skeleton className="h-8 w-12 mx-auto" /> : s.count}
-            </p>
+            </div>
             <p className="text-xs text-[var(--sf-text-tertiary)] mt-0.5">{s.label}</p>
           </Card>
         ))}

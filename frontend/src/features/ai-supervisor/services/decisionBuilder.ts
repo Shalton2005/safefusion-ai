@@ -79,13 +79,12 @@ export function emergencyResponseDecisions(engine: AgentEngineInput<EmergencyAct
 
 export function recommendationDecisions(engine: AgentEngineInput<Recommendation[]>, agentStatus: AIAgentStatus): AIDecision[] {
   const timestamp = (engine.lastUpdated ?? new Date()).toISOString();
-  return engine.data.map((rec) => ({
-    // Stable across refetches (unlike an array index): keyed on the
-    // backend's own zone + priority + message, which together identify
-    // a specific recommendation, so a poll that reorders or drops
-    // entries doesn't relabel a still-present recommendation with a
-    // different id (which would silently break a selected/highlighted row).
-    id: `recommendation-${rec.zone ?? 'plant'}-${rec.priority}-${rec.message}`,
+  return engine.data.map((rec, index) => ({
+    // Keyed on the backend's own zone + priority + message, which
+    // together identify a specific recommendation, with the array index
+    // appended as a tiebreaker for the rare case of two backend rows
+    // sharing all three (e.g. the same rule firing twice for one zone).
+    id: `recommendation-${rec.zone ?? 'plant'}-${rec.priority}-${rec.message}-${index}`,
     agentId: 'recommendation',
     agentLabel: AGENT_LABEL.recommendation,
     decisionType: AGENT_DECISION_TYPE.recommendation,
