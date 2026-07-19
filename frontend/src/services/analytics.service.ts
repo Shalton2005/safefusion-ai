@@ -8,16 +8,25 @@ import type { AnalyticsSummary, TimeSeriesPoint } from '@/types';
 import type { AlertDistributionSlice } from '@/components/charts';
 
 export const analyticsService = {
-  getSummary: async (options?: RequestOptions): Promise<{ data: AnalyticsSummary }> => {
+  /**
+   * `knownOverallRiskScore` lets a caller that already fetched
+   * `GET /dashboard/summary` elsewhere (e.g. `DashboardPage` via its own
+   * `useDashboardSummary()`) pass that value in instead of this method
+   * re-fetching the same endpoint a second time. Omit it for standalone
+   * callers (e.g. the Analytics page) that have no other source for it.
+   */
+  getSummary: async (options?: RequestOptions, knownOverallRiskScore?: number | null): Promise<{ data: AnalyticsSummary }> => {
+    const needsDashboardFetch = knownOverallRiskScore === undefined;
     const [dashboardRes, complianceRes, visionRes, incidentsRes] = await Promise.all([
-      dashboardService.getSummary(options).catch(() => ({ data: { data: { overall_risk_score: null } } } as unknown as { data: { data: { overall_risk_score: null } } })),
+      needsDashboardFetch
+        ? dashboardService.getSummary(options).catch(() => ({ data: { data: { overall_risk_score: null } } } as unknown as { data: { data: { overall_risk_score: null } } }))
+        : Promise.resolve(undefined),
       complianceService.evaluateAll({ limit: 100 }, options).catch(() => ({ results: [] })),
       visionService.getCameraSummary(options).catch(() => ({ data: { counts: {} } })),
       incidentsService.getIncidents({ limit: 100 }, options).catch(() => ({ data: [] })),
     ]);
 
-    const dashboardSummary = dashboardRes.data?.data;
-    const riskScore = dashboardSummary?.overall_risk_score ?? null;
+    const riskScore = needsDashboardFetch ? (dashboardRes?.data?.data?.overall_risk_score ?? null) : knownOverallRiskScore;
 
     const safetyScore = riskScore !== null 
       ? Math.max(0, 100 - (riskScore as number))

@@ -51,7 +51,7 @@ export function DashboardPage() {
   
   // New API Hooks
   const dashboardSummaryData = useDashboardSummary();
-  const analyticsSummaryData = useAnalyticsSummary();
+  const analyticsSummaryData = useAnalyticsSummary({ knownOverallRiskScore: dashboardSummaryData.summary?.overall_risk_score });
   const recentSensorsData = useRecentSensors({ limit: 100 });
 
   useEffect(() => {

@@ -16,7 +16,17 @@ export interface UseAnalyticsSummaryResult {
   refresh: () => void;
 }
 
-export function useAnalyticsSummary(): UseAnalyticsSummaryResult {
+export interface UseAnalyticsSummaryOptions {
+  /**
+   * Already-fetched `overall_risk_score` from a `useDashboardSummary()`
+   * call elsewhere on the page, so this hook's internal `getSummary` call
+   * doesn't re-fetch `GET /dashboard/summary` a second time. Omit for
+   * standalone usage.
+   */
+  knownOverallRiskScore?: number | null;
+}
+
+export function useAnalyticsSummary({ knownOverallRiskScore }: UseAnalyticsSummaryOptions = {}): UseAnalyticsSummaryResult {
   const [summary, setSummary] = useState<AnalyticsSummary | null>(null);
   const [incidentTrend, setIncidentTrend] = useState<TimeSeriesPoint[]>([]);
   const [riskDistribution, setRiskDistribution] = useState<AlertDistributionSlice[]>([]);
@@ -29,7 +39,7 @@ export function useAnalyticsSummary(): UseAnalyticsSummaryResult {
     setError(null);
     try {
       const [summaryRes, trendRes, distRes] = await Promise.all([
-        analyticsService.getSummary({ signal }),
+        analyticsService.getSummary({ signal }, knownOverallRiskScore),
         analyticsService.getIncidentTrend({ signal }),
         analyticsService.getRiskTrendByZone({ signal })
       ]);
