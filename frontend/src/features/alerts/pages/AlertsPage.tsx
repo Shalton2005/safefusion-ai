@@ -4,7 +4,7 @@ import type { TableColumn } from '@/components/ui';
 import type { AlertRecord } from '@/types';
 import { formatRelativeTime } from '@/utils/format';
 import { SEVERITY_BADGE_VARIANT } from '@/utils/severity';
-import { AlertsPanel } from '@/features/alerts/components/AlertsPanel';
+import { AlertsPanelView } from '@/features/alerts/components/AlertsPanel';
 import { RecentIncidentsPanel } from '@/features/alerts/components/RecentIncidentsPanel';
 import { useRecentAlerts } from '@/features/alerts/hooks/useRecentAlerts';
 import { useMemo } from 'react';
@@ -64,7 +64,7 @@ const columns: TableColumn<AlertRecord>[] = [
 ];
 
 export function AlertsPage() {
-  const { alerts } = useRecentAlerts({ limit: 50 });
+  const { alerts, loading, error, lastUpdated, refresh } = useRecentAlerts({ limit: 100 });
 
   const summary = useMemo(() => {
     const counts = { all: alerts.length, active: 0, acknowledged: 0, resolved: 0 };
@@ -122,7 +122,7 @@ export function AlertsPage() {
         </div>
       </Card>
 
-      <AlertsPanel />
+      <AlertsPanelView alerts={alerts} loading={loading} error={error} lastUpdated={lastUpdated} refresh={refresh} />
 
       <RecentIncidentsPanel />
     </div>
