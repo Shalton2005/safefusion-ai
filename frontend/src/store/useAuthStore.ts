@@ -21,6 +21,12 @@ interface AuthState {
   loadCurrentUser: () => Promise<void>;
 }
 
+/** True when the server rejected the token itself, not merely unreachable. */
+function isGenuineAuthFailure(err: unknown): boolean {
+  const apiError = ApiError.from(err);
+  return apiError.isAuthError || apiError.isForbiddenError;
+}
+
 function hasStoredSession(): boolean {
   return Boolean(localStorage.getItem('access_token'));
 }
@@ -58,14 +64,23 @@ export const useAuthStore = create<AuthState>((set) => ({
       set({ isAuthenticated: false, isLoading: false });
       return;
     }
-    set({ isLoading: true });
+    set({ isLoading: true, error: null });
     try {
       const { data: user } = await authService.me();
-      set({ user, isAuthenticated: true, isLoading: false });
-    } catch {
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
-      set({ user: null, isAuthenticated: false, isLoading: false });
+      set({ user, isAuthenticated: true, isLoading: false, error: null });
+    } catch (err) {
+      if (isGenuineAuthFailure(err)) {
+        // The token itself was rejected — it really is invalid, so clear it.
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        set({ user: null, isAuthenticated: false, isLoading: false, error: null });
+        return;
+      }
+      // Network/timeout/server error — the token hasn't been proven invalid,
+      // so don't destroy a session over a transient backend outage. Leave
+      // isAuthenticated untouched (stays true if it already was) and let
+      // ProtectedRoute show a retriable error instead of bouncing to /login.
+      set({ isLoading: false, error: ApiError.from(err).toUserMessage() });
     }
   },
 }));
