@@ -14,6 +14,10 @@ import { LastUpdated } from '@/components/common/LastUpdated';
 import { CardHeaderLink } from '@/components/common/CardHeaderLink';
 import { ROUTES } from '@/constants/routes';
 import { cn } from '@/lib/cn';
+import { useCompoundRiskEngine } from '@/features/risk/hooks/useCompoundRiskEngine';
+import { useEmergencyResponse } from '@/features/emergency/hooks/useEmergencyResponse';
+import { useRecommendations } from '@/features/recommendations/hooks/useRecommendations';
+import { useComplianceStatus } from '@/features/compliance/hooks/useComplianceStatus';
 import { useAISupervisor } from '../hooks/useAISupervisor';
 import { AISupervisorCard } from './AISupervisorCard';
 import type { AISupervisorSnapshot } from '../types';
@@ -23,7 +27,11 @@ export interface AISupervisorCardSectionProps {
 }
 
 export function AISupervisorCardSection({ className }: AISupervisorCardSectionProps) {
-  const { snapshot, loading, error, refresh } = useAISupervisor();
+  const compoundRisk = useCompoundRiskEngine();
+  const emergencyResponse = useEmergencyResponse();
+  const recommendation = useRecommendations();
+  const compliance = useComplianceStatus();
+  const { snapshot, loading, error, refresh } = useAISupervisor({ compoundRisk, emergencyResponse, recommendation, compliance });
 
   return (
     <QueryState<AISupervisorSnapshot>

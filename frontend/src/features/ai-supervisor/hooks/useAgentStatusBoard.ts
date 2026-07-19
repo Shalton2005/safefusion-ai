@@ -3,11 +3,15 @@
  *
  * Composes every supervised agent — the four real engines, the
  * Knowledge Graph query, and the Supervisor's own synthesis step — into
- * one `AIAgentSummary[]` for `AIAgentStatusBoard`. Reuses the same
- * already-polling engine hooks `useAISupervisor` does (so no duplicate
- * network calls), adding real client-measured `executionTimeMs` per
- * agent via `useAgentExecutionTiming`, plus two rows `useAISupervisor`
- * doesn't produce:
+ * one `AIAgentSummary[]` for `AIAgentStatusBoard`. Takes the four engine
+ * hook results and the `useAISupervisor` result as parameters (rather
+ * than calling those hooks itself) so a caller that already mounted
+ * them — see `AISupervisorPage` — shares one polling instance of each
+ * instead of this hook creating its own independent set, which used to
+ * triple every engine's network call per page load. Adds real
+ * client-measured `executionTimeMs` per agent via
+ * `useAgentExecutionTiming`, plus two rows `useAISupervisor` doesn't
+ * produce:
  *   - `knowledge_graph` — `useKnowledgeGraph`'s one-shot fetch, wrapped
  *     the same way the polling engines are.
  *   - `supervisor`      — no network call of its own; status/confidence
@@ -16,19 +20,30 @@
  *     with the rest of the AI Supervisor page.
  *
  * @example
- * const { agents, loading, error, refresh } = useAgentStatusBoard();
+ * const supervisor = useAISupervisor();
+ * const { agents, loading, error, refresh } = useAgentStatusBoard({
+ *   compoundRisk, emergencyResponse, recommendation, compliance, supervisor,
+ * });
  */
 
 import { useMemo } from 'react';
-import { useCompoundRiskEngine } from '@/features/risk/hooks/useCompoundRiskEngine';
-import { useEmergencyResponse } from '@/features/emergency/hooks/useEmergencyResponse';
-import { useRecommendations } from '@/features/recommendations/hooks/useRecommendations';
-import { useComplianceStatus } from '@/features/compliance/hooks/useComplianceStatus';
 import { useKnowledgeGraph } from '@/features/knowledge-graph/hooks/useKnowledgeGraph';
-import { useAISupervisor } from './useAISupervisor';
 import { useAgentExecutionTiming } from './useAgentExecutionTiming';
 import { buildAgent, AGENT_STATUS_CONFIDENCE } from '../services/agentBuilder';
 import type { AIAgentSummary } from '../types';
+import type { UseCompoundRiskEngineResult } from '@/features/risk/hooks/useCompoundRiskEngine';
+import type { UseEmergencyResponseResult } from '@/features/emergency/hooks/useEmergencyResponse';
+import type { UseRecommendationsResult } from '@/features/recommendations/hooks/useRecommendations';
+import type { UseComplianceStatusResult } from '@/features/compliance/hooks/useComplianceStatus';
+import type { UseAISupervisorResult } from './useAISupervisor';
+
+export interface UseAgentStatusBoardParams {
+  compoundRisk: UseCompoundRiskEngineResult;
+  emergencyResponse: UseEmergencyResponseResult;
+  recommendation: UseRecommendationsResult;
+  compliance: UseComplianceStatusResult;
+  supervisor: UseAISupervisorResult;
+}
 
 export interface UseAgentStatusBoardResult {
   agents: AIAgentSummary[];
@@ -39,13 +54,14 @@ export interface UseAgentStatusBoardResult {
   refresh: () => void;
 }
 
-export function useAgentStatusBoard(): UseAgentStatusBoardResult {
-  const compoundRisk = useCompoundRiskEngine();
-  const emergencyResponse = useEmergencyResponse();
-  const recommendation = useRecommendations();
-  const compliance = useComplianceStatus();
+export function useAgentStatusBoard({
+  compoundRisk,
+  emergencyResponse,
+  recommendation,
+  compliance,
+  supervisor,
+}: UseAgentStatusBoardParams): UseAgentStatusBoardResult {
   const knowledgeGraph = useKnowledgeGraph();
-  const supervisor = useAISupervisor();
 
   const compoundRiskTime = useAgentExecutionTiming(compoundRisk.loading, compoundRisk.lastUpdated);
   const emergencyResponseTime = useAgentExecutionTiming(emergencyResponse.loading, emergencyResponse.lastUpdated);
@@ -125,12 +141,10 @@ export function useAgentStatusBoard(): UseAgentStatusBoardResult {
   const error = compoundRisk.error ?? emergencyResponse.error ?? recommendation.error ?? compliance.error ?? knowledgeGraph.error;
 
   const refresh = () => {
-    compoundRisk.refresh();
-    emergencyResponse.refresh();
-    recommendation.refresh();
-    compliance.refresh();
-    knowledgeGraph.refresh();
+    // supervisor.refresh() already covers compoundRisk/emergencyResponse/
+    // recommendation/compliance — they're the same shared instances.
     supervisor.refresh();
+    knowledgeGraph.refresh();
   };
 
   return { agents, loading, error, refresh };

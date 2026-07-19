@@ -1,21 +1,18 @@
 /**
  * aiService
  *
- * API-layer service for the AI endpoints: `POST /ai/chat`,
- * `POST /ai/query`, `POST /ai/explain`, `POST /ai/recommend`.
+ * API-layer service for the AI Copilot endpoints, all mounted by
+ * `ai_copilot_router` in `backend/server.py` under `/ai`:
+ * `POST /ai/chat`, `POST /ai/query`, `POST /ai/explain` (not used by
+ * this service — see note below), `POST /ai/recommend`.
  *
- * None of these routes exist on the backend yet — confirmed against
- * `backend/server.py` (every mounted router is imported there; there is
- * no `ai` router) and `backend/src/routes/rag.py` (the only real
- * AI-adjacent endpoint, `/rag/query`, is retrieval-only and explicitly
- * documents that answer generation "is a deliberately separate,
- * not-yet-built step"). Per this project's standing rule to never
- * implement AI logic client-side, every method below is a real,
- * unmodified `POST` to its target path — nothing is faked, mocked, or
- * short-circuited. Calling any of them today resolves to a real 404,
- * which flows through the normal `ApiError` handling like any other
- * failed request; once the backend adds these routes, no caller needs
- * to change.
+ * `explain()` below actually calls `POST /ai/explainability`, a
+ * distinct, real endpoint that returns a structured explainability
+ * report (see `backend/src/routes/ai_copilot.py`), not the
+ * natural-language-answer `POST /ai/explain` endpoint. Naming kept as
+ * `explain`/`AIExplainRequest`/`AIExplainabilityResponse` on the
+ * frontend to match this feature's actual use (explainability
+ * reporting), not a 1:1 mirror of the backend's route name.
  *
  * Uses `createService('/ai')`'s shared `post` escape hatch rather than
  * hand-rolling `apiClient.post` per endpoint — same pattern as

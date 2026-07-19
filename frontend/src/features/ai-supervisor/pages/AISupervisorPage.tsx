@@ -11,6 +11,10 @@ import { useState } from 'react';
 import { PageHeader, Card, CardHeader, CardContent, Alert, Button } from '@/components/ui';
 import { RotateCw } from 'lucide-react';
 import { AIRecommendationCardGrid } from '@/components/recommendations';
+import { useCompoundRiskEngine } from '@/features/risk/hooks/useCompoundRiskEngine';
+import { useEmergencyResponse } from '@/features/emergency/hooks/useEmergencyResponse';
+import { useRecommendations } from '@/features/recommendations/hooks/useRecommendations';
+import { useComplianceStatus } from '@/features/compliance/hooks/useComplianceStatus';
 import { useAISupervisor } from '../hooks/useAISupervisor';
 import { useAgentStatusBoard } from '../hooks/useAgentStatusBoard';
 import { useAIExplain } from '../hooks/useAIExplain';
@@ -28,8 +32,17 @@ import { aiSupervisorService } from '../services/aiSupervisor.service';
 import type { AIDecision } from '../types';
 
 export function AISupervisorPage() {
-  const { snapshot, loading, error, refresh } = useAISupervisor();
-  const agentStatusBoard = useAgentStatusBoard();
+  // Mounted once here and shared with both useAISupervisor and
+  // useAgentStatusBoard below, so each engine is polled by exactly one
+  // instance instead of one per consumer.
+  const compoundRisk = useCompoundRiskEngine();
+  const emergencyResponse = useEmergencyResponse();
+  const recommendation = useRecommendations();
+  const compliance = useComplianceStatus();
+
+  const supervisor = useAISupervisor({ compoundRisk, emergencyResponse, recommendation, compliance });
+  const { snapshot, loading, error, refresh } = supervisor;
+  const agentStatusBoard = useAgentStatusBoard({ compoundRisk, emergencyResponse, recommendation, compliance, supervisor });
   const [selectedDecision, setSelectedDecision] = useState<AIDecision | null>(null);
   const aiExplain = useAIExplain(selectedDecision?.id ?? null);
   const aiRecommend = useAIRecommend();

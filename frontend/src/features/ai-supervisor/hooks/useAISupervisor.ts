@@ -1,28 +1,41 @@
 /**
  * useAISupervisor
  *
- * Composes the four already-existing engine hooks (Compound Risk,
- * Emergency Response, Recommendation, Compliance) — each of which
- * independently polls its own real backend endpoint — and derives a
- * single `AISupervisorSnapshot` via `aiSupervisorService.buildSnapshot`.
+ * Derives a single `AISupervisorSnapshot` via
+ * `aiSupervisorService.buildSnapshot` from the four engine hook results
+ * (Compound Risk, Emergency Response, Recommendation, Compliance)
+ * passed in by the caller.
  *
- * Does not poll anything itself: each underlying hook owns its own
- * polling interval, so mounting this hook alongside (rather than
- * instead of) the dashboard's existing engine hooks does not create
- * any duplicate network calls — pass in results already fetched
- * higher up the tree where possible (see `AISupervisorCardSection`).
+ * Takes those results as parameters — rather than calling the four
+ * hooks itself — so every consumer on a page shares one polling
+ * instance of each engine instead of each `useAISupervisor()` call
+ * creating its own independent set (that used to multiply every
+ * engine's network call once per consumer). Mount the four engine
+ * hooks once, high enough in the tree to cover every consumer (see
+ * `AISupervisorPage`), and pass the results down.
  *
  * @example
- * const snapshot = useAISupervisor();
+ * const compoundRisk = useCompoundRiskEngine();
+ * const emergencyResponse = useEmergencyResponse();
+ * const recommendation = useRecommendations();
+ * const compliance = useComplianceStatus();
+ * const supervisor = useAISupervisor({ compoundRisk, emergencyResponse, recommendation, compliance });
  */
 
 import { useMemo } from 'react';
-import { useCompoundRiskEngine } from '@/features/risk/hooks/useCompoundRiskEngine';
-import { useEmergencyResponse } from '@/features/emergency/hooks/useEmergencyResponse';
-import { useRecommendations } from '@/features/recommendations/hooks/useRecommendations';
-import { useComplianceStatus } from '@/features/compliance/hooks/useComplianceStatus';
 import { aiSupervisorService } from '../services/aiSupervisor.service';
 import type { AISupervisorSnapshot } from '../types';
+import type { UseCompoundRiskEngineResult } from '@/features/risk/hooks/useCompoundRiskEngine';
+import type { UseEmergencyResponseResult } from '@/features/emergency/hooks/useEmergencyResponse';
+import type { UseRecommendationsResult } from '@/features/recommendations/hooks/useRecommendations';
+import type { UseComplianceStatusResult } from '@/features/compliance/hooks/useComplianceStatus';
+
+export interface UseAISupervisorParams {
+  compoundRisk: UseCompoundRiskEngineResult;
+  emergencyResponse: UseEmergencyResponseResult;
+  recommendation: UseRecommendationsResult;
+  compliance: UseComplianceStatusResult;
+}
 
 export interface UseAISupervisorResult {
   snapshot: AISupervisorSnapshot;
@@ -32,12 +45,12 @@ export interface UseAISupervisorResult {
   refresh: () => void;
 }
 
-export function useAISupervisor(): UseAISupervisorResult {
-  const compoundRisk = useCompoundRiskEngine();
-  const emergencyResponse = useEmergencyResponse();
-  const recommendation = useRecommendations();
-  const compliance = useComplianceStatus();
-
+export function useAISupervisor({
+  compoundRisk,
+  emergencyResponse,
+  recommendation,
+  compliance,
+}: UseAISupervisorParams): UseAISupervisorResult {
   const snapshot = useMemo(
     () =>
       aiSupervisorService.buildSnapshot({
