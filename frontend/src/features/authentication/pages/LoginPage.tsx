@@ -42,7 +42,7 @@ export function LoginPage() {
       <div className="text-center">
         <h2 className="text-xl font-semibold text-[var(--sf-text-primary)]">Sign in</h2>
         <p className="mt-1 text-sm text-[var(--sf-text-tertiary)]">
-          Access your {APP_NAME} dashboard
+          Access your AI Command Center
         </p>
       </div>
 
@@ -87,12 +87,9 @@ export function LoginPage() {
         />
 
         <div className="flex items-center justify-end">
-          <button
-            type="button"
-            className="text-xs text-primary-400 hover:text-primary-300 transition-colors"
-          >
-            Forgot password?
-          </button>
+          <span className="text-xs text-[var(--sf-text-tertiary)]">
+            Need access? Contact your Plant Administrator
+          </span>
         </div>
 
         <Button

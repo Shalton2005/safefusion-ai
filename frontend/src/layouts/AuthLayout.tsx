@@ -1,15 +1,11 @@
 import { Outlet } from 'react-router-dom';
-import { Shield } from 'lucide-react';
 import { APP_NAME } from '@/constants';
 
 export function AuthLayout() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-[var(--sf-surface-base)] px-4">
-      {/* Brand */}
       <div className="flex items-center gap-3 mb-8">
-        <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary-600 shadow-glow-brand">
-          <Shield className="w-6 h-6 text-white" />
-        </div>
+        <img src="/logo.png" alt="SafeFusion AI Logo" className="h-12 w-auto object-contain" />
         <span className="text-xl font-bold text-[var(--sf-text-primary)]">{APP_NAME}</span>
       </div>
 
@@ -18,8 +14,8 @@ export function AuthLayout() {
         <Outlet />
       </div>
 
-      <p className="mt-6 text-xs text-[var(--sf-text-tertiary)]">
-        Enterprise Safety Monitoring Platform
+      <p className="mt-6 text-xs text-[var(--sf-text-secondary)] text-center">
+        AI-Powered Industrial Safety Intelligence Platform
       </p>
     </div>
   );
