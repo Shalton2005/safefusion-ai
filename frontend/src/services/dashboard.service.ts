@@ -45,18 +45,7 @@ export const dashboardService = {
   /** Per-zone overview (worker/sensor/permit counts + risk level) for the `ZoneOverview` component. */
   getZoneOverview: async (options?: RequestOptions) => {
     const res = await base.get<ApiResponse<{ zones: ZoneOverview[] }>>('zones', undefined, options);
-    res.data.data.zones = res.data.data.zones.map(z => {
-       if (z.critical_count > 0 && z.risk_level === 'low') z.risk_level = 'critical';
-       else if (z.warning_count > 0 && z.risk_level === 'low') z.risk_level = 'medium';
-       if (z.zone === 'Confined-Space-1') {
-         z.risk_level = 'critical';
-       } else if (z.zone === 'Boiler-Area' || z.zone === 'Tank-Farm') {
-         z.risk_level = 'high';
-       } else {
-         z.risk_level = 'low';
-       }
-       return z;
-    });
+    // Returns unmodified array
     return res;
   },
 };

@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Input, Button, Alert } from '@/components/ui';
-import { APP_NAME } from '@/constants';
+
 import { ROUTES } from '@/constants/routes';
 import { useAuthStore } from '@/store/useAuthStore';
 import { ApiError } from '@/api/errors';

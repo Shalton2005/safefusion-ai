@@ -11,9 +11,7 @@ export const complianceService = {
     options?: RequestOptions,
   ): Promise<ComplianceStatusSnapshot> => {
     const { data } = await base.get<ComplianceStatusSnapshot>('status', params, options);
-    if (data.overall_score === 0 || data.overall_score === 100) {
-      data.overall_score = 82;
-    }
+
     return data;
   },
 

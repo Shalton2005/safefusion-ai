@@ -30,13 +30,14 @@ export function AISituationReport({
     const confidence = supervisorSnapshot?.overallConfidence ?? null;
 
     // 1. Verdict & Location
-    const levelStr = riskLevel.toUpperCase();
     const zone = explanation?.zone || 'the facility';
-    let s1 = `Anomalous telemetry detected in ${zone} indicates a ${levelStr} safety deviation.`;
+    let s1 = `Critical sensor fusion detected multiple simultaneous safety violations in ${zone}.`;
     if (riskLevel === 'low') {
-      s1 = `Continuous monitoring across ${zone} indicates nominal operational parameters.`;
+      s1 = `Continuous monitoring across ${zone} confirms stable operational parameters.`;
     } else if (riskLevel === 'medium') {
-      s1 = `Elevated operational risk detected within ${zone}.`;
+      s1 = `Sensor fusion detected elevated operational risk within ${zone}.`;
+    } else if (riskLevel === 'high') {
+      s1 = `Sensor fusion detected multiple safety violations in ${zone}.`;
     }
 
     // 2. Contributing Factors
@@ -54,26 +55,27 @@ export function AISituationReport({
       }
       
       if (riskLevel === 'low') {
-         s2 = `Minor deviations (e.g., ${factors}) remain well within acceptable safety thresholds (Risk Index: ${riskScore}/100).`;
+         s2 = `Minor deviations (${factors}) remain within acceptable thresholds (Risk Score: ${riskScore}).`;
       } else {
-         s2 = `The convergence of ${factors} has accelerated the compound risk index to ${riskScore}/100.`;
+         s2 = `${factors.charAt(0).toUpperCase() + factors.slice(1)} increased the compound risk score to ${riskScore}.`;
       }
     } else if (alerts.length > 0) {
-       s2 = `Correlated sensor alerts have increased the compound risk index to ${riskScore}/100.`;
+       s2 = `Correlated sensor alerts increased the compound risk score to ${riskScore}.`;
     } else if (riskLevel === 'low') {
-       s2 = `All safety metrics are stable (Risk Index: ${riskScore}/100).`;
+       s2 = `All safety metrics are stable (Risk Score: ${riskScore}).`;
     }
 
-    // 3. Actions / Recommendations & 4. Confidence
+    // 3. Actions / Recommendations & Confidence
     let s3 = '';
+    const confStr = confidence !== null ? ` with ${Math.round(confidence)}% AI confidence` : '';
+    const confStrStandalone = confidence !== null ? ` AI confidence: ${Math.round(confidence)}%.` : '';
+    
     if (['critical', 'high'].includes(riskLevel) && emergencyActions.length > 0) {
-      const dispatched = emergencyActions.length;
-      s3 = `Automated emergency protocols have been engaged, dispatching ${dispatched} mitigation directive${dispatched === 1 ? '' : 's'} with ${Math.round(confidence)}% diagnostic confidence.`;
+      s3 = `Emergency response protocols were automatically activated${confStr}.`;
     } else if (recommendations.length > 0) {
-      const rec = recommendations[0].message;
-      s3 = `Recommended operator intervention: ${rec} (Diagnostic confidence: ${Math.round(confidence)}%).`;
+      s3 = `Recommended operator intervention generated${confStr}.`;
     } else if (riskLevel === 'low') {
-      s3 = `Standard operational procedures govern current state (Diagnostic confidence: ${Math.round(confidence)}%).`;
+      s3 = `No intervention required.${confStrStandalone}`;
     }
 
     return [s1, s2, s3].filter(Boolean).join(' ');

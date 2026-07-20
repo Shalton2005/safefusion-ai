@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { formatLabel } from '@/utils/format';
 import { MessageSquareText, List, Radio, ShieldAlert, MapPin, BrainCircuit, AlertTriangle, FileCheck2, FileBarChart2, Settings } from 'lucide-react';
 import { Card } from '@/components/ui';
 import { QuickLinkCard } from '@/components/common/QuickLinkCard';
@@ -8,23 +9,16 @@ import { KpiCardGrid } from '@/features/dashboard/components/KpiCardGrid';
 import { ZoneOverviewSectionView } from '@/features/dashboard/components/ZoneOverviewSection';
 import { SafetyTimelineSectionView } from '@/features/dashboard/components/SafetyTimelineSection';
 import { SensorReadingsChart } from '@/components/charts';
-import { LiveCCTVPreview } from './components/LiveCCTVPreview';
+import { LiveCCTVPreview } from '../components/LiveCCTVPreview';
 import { RecommendationPanelSectionView } from '@/features/recommendations/components/RecommendationPanelSection';
 import { EmergencyResponsePanelSectionView } from '@/features/emergency/components/EmergencyResponsePanelSection';
 import { CriticalHazardBanner } from '@/features/computer-vision/components';
 import { AICommandCenter } from '@/features/dashboard/components/AICommandCenter';
 import { AIExplainabilityCard } from '@/features/dashboard/components/AIExplainabilityCard';
-import { useRecentAlerts } from '@/features/alerts/hooks/useRecentAlerts';
-import { useRecentRiskScores } from '@/features/dashboard/hooks/useRecentRiskScores';
-import { useZoneOverview } from '@/features/dashboard/hooks/useZoneOverview';
-import { useCompoundRiskEngine } from '@/features/risk/hooks/useCompoundRiskEngine';
-import { useEmergencyResponse } from '@/features/emergency/hooks/useEmergencyResponse';
-import { useRecommendations } from '@/features/recommendations/hooks/useRecommendations';
-import { useComplianceStatus } from '@/features/compliance/hooks/useComplianceStatus';
-import { useDashboardSummary } from '@/features/dashboard/hooks/useDashboardSummary';
-import { useRecentSensors } from '@/features/sensors/hooks/useRecentSensors';
 import { useAISupervisor } from '@/features/ai-supervisor/hooks/useAISupervisor';
-import { usePlantStatusStore } from '@/store';
+import { usePlantStatusStore, useDashboardStore } from '@/store';
+import { usePolling } from '@/hooks/usePolling';
+import { DASHBOARD_REFRESH_INTERVAL } from '@/constants';
 import { safetyTimelineService } from '@/services';
 import { cn } from '@/lib/cn';
 
@@ -35,18 +29,20 @@ export function DashboardPage() {
 
   const navigate = useNavigate();
 
-  // Hooks
-  const dashboardSummaryData = useDashboardSummary();
-  const zoneOverviewData = useZoneOverview();
-  const riskEngineData = useCompoundRiskEngine();
-  const emergencyData = useEmergencyResponse();
-  const recommendationsData = useRecommendations();
-  const complianceData = useComplianceStatus();
-  
-  // Investigation Data
-  const alertsData = useRecentAlerts({ limit: 100 });
-  const riskScoresData = useRecentRiskScores({ limit: TIMELINE_LIMIT });
-  const recentSensorsData = useRecentSensors({ limit: 100 });
+  // Unified Dashboard State
+  const store = useDashboardStore();
+  const { refresh } = usePolling(store.syncTick, DASHBOARD_REFRESH_INTERVAL);
+
+  // Map unified state to existing component prop shapes
+  const dashboardSummaryData = { summary: store.summary, loading: store.loading, error: store.error, lastUpdated: store.lastUpdated, refresh };
+  const zoneOverviewData = { zones: store.zones, loading: store.loading, error: store.error, lastUpdated: store.lastUpdated, refresh };
+  const riskEngineData = { assessment: store.assessment, explanation: store.explanation, loading: store.loading, error: store.error, lastUpdated: store.lastUpdated, refresh };
+  const emergencyData = { actions: store.emergencyActions, loading: store.loading, error: store.error, lastUpdated: store.lastUpdated, refresh };
+  const recommendationsData = { recommendations: store.recommendations, loading: store.loading, error: store.error, lastUpdated: store.lastUpdated, refresh };
+  const complianceData = { snapshot: store.compliance, loading: store.loading, error: store.error, lastUpdated: store.lastUpdated, refresh };
+  const alertsData = { alerts: store.alerts, loading: store.loading, error: store.error, lastUpdated: store.lastUpdated, refresh };
+  const riskScoresData = { riskScores: store.riskScores, loading: store.loading, error: store.error, lastUpdated: store.lastUpdated, refresh };
+  const recentSensorsData = { sensors: store.sensors, loading: store.loading, error: store.error, lastUpdated: store.lastUpdated, refresh };
   const aiSupervisor = useAISupervisor({
     compoundRisk: riskEngineData,
     emergencyResponse: emergencyData,
@@ -166,14 +162,6 @@ export function DashboardPage() {
         />
       )}
 
-      {/* SECTION 4: AI Reasoning (Explainability) */}
-      {!isCriticalMode && (
-        <AIExplainabilityCard
-          assessment={riskEngineData.assessment}
-          explanation={riskEngineData.explanation}
-          supervisorSnapshot={aiSupervisor.snapshot}
-        />
-      )}
 
       {/* SECTION 5: Top Emergency Actions (Dynamic) */}
       {(isEmergencyMode || isCriticalMode) && (
@@ -197,14 +185,14 @@ export function DashboardPage() {
 
       {/* SECTION 6: Investigation Hub */}
       <Card className="flex flex-col overflow-hidden bg-[var(--sf-surface-card)] border-[var(--sf-border-default)]">
-        <div className="flex flex-col gap-2 px-6 pt-5 pb-3 bg-[var(--sf-surface-base)]/50 border-b border-[var(--sf-border-default)]">
+        <div className="flex flex-col gap-3 px-8 pt-6 pb-5 bg-[var(--sf-surface-base)]/50 border-b border-[var(--sf-border-default)]">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-lg font-bold text-[var(--sf-text-primary)]">Investigation Hub</h2>
-              <p className="text-sm text-[var(--sf-text-tertiary)] mt-1">
+              <p className="text-sm text-[var(--sf-text-tertiary)] mt-2">
                 Showing telemetry for: <span className="font-semibold text-[var(--sf-text-secondary)]">{riskEngineData.explanation?.zone || 'All Zones'}</span>
                 {riskEngineData.explanation?.triggered_rules?.[0] && (
-                  <> &bull; Reason: <span className="font-medium text-[var(--sf-text-secondary)]">{formatLabel(riskEngineData.explanation.triggered_rules[0].name)}</span></>
+                  <> &bull; Primary Trigger: <span className="font-medium text-[var(--sf-text-secondary)]">{formatLabel(riskEngineData.explanation.triggered_rules[0].name)}</span></>
                 )}
               </p>
             </div>
@@ -239,7 +227,7 @@ export function DashboardPage() {
           </div>
         </div>
 
-        <div className="p-6">
+        <div className="p-8">
           {activeTab === 'timeline' && (
             <SafetyTimelineSectionView
               events={timelineEvents}
@@ -260,6 +248,15 @@ export function DashboardPage() {
           )}
         </div>
       </Card>
+
+      {/* SECTION 4: AI Reasoning (Explainability) */}
+      {!isCriticalMode && (
+        <AIExplainabilityCard
+          assessment={riskEngineData.assessment}
+          explanation={riskEngineData.explanation}
+          supervisorSnapshot={aiSupervisor.snapshot}
+        />
+      )}
 
       {/* SECTION 7: Zone Overview */}
       {!isCriticalMode && (

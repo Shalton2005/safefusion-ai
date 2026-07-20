@@ -7,6 +7,7 @@ export { useRightPanelStore }                from './useRightPanelStore';
 
 // ─── Cross-tree data bridges ──────────────────────────────────────
 export { usePlantStatusStore }               from './usePlantStatusStore';
+export { useDashboardStore }                 from './useDashboardStore';
 
 // ─── AI Supervisor ────────────────────────────────────────────────
 

@@ -1,0 +1,113 @@
+import { create } from 'zustand';
+import {
+  dashboardService,
+  compoundRiskService,
+  emergencyResponseService,
+  recommendationService,
+  complianceService,
+  alertsService,
+  sensorsService
+} from '@/services';
+import type {
+  DashboardSummary,
+  ZoneOverview,
+  CompoundRiskAssessment,
+  RiskExplanation,
+  EmergencyActionItem,
+  Recommendation,
+  ComplianceStatusSnapshot,
+  AlertRecord,
+  RiskScoreRecord,
+  SensorReading
+} from '@/types';
+import { ApiError } from '@/api/errors';
+
+export interface DashboardStoreState {
+  summary: DashboardSummary | null;
+  zones: ZoneOverview[] | null;
+  assessment: CompoundRiskAssessment | null;
+  explanation: RiskExplanation | null;
+  emergencyActions: EmergencyActionItem[];
+  recommendations: Recommendation[];
+  compliance: ComplianceStatusSnapshot | null;
+  alerts: AlertRecord[];
+  riskScores: RiskScoreRecord[];
+  sensors: SensorReading[];
+  
+  loading: boolean;
+  error: string | null;
+  lastUpdated: Date | null;
+  
+  syncTick: (signal?: AbortSignal) => Promise<void>;
+}
+
+export const useDashboardStore = create<DashboardStoreState>((set, get) => ({
+  summary: null,
+  zones: null,
+  assessment: null,
+  explanation: null,
+  emergencyActions: [],
+  recommendations: [],
+  compliance: null,
+  alerts: [],
+  riskScores: [],
+  sensors: [],
+  
+  loading: true,
+  error: null,
+  lastUpdated: null,
+  
+  syncTick: async (signal?: AbortSignal) => {
+    // Only set loading to true on the very first fetch
+    if (!get().lastUpdated) {
+      set({ loading: true, error: null });
+    }
+    
+    try {
+      const [
+        summaryRes,
+        zonesRes,
+        riskRes,
+        emergencyRes,
+        recRes,
+        compRes,
+        alertsRes,
+        scoresRes,
+        sensorsRes
+      ] = await Promise.all([
+        dashboardService.getSummary({ signal }),
+        dashboardService.getZoneOverview({ signal }),
+        compoundRiskService.calculate({ signal }),
+        emergencyResponseService.getActions({ signal }),
+        recommendationService.getRecommendations({ signal }),
+        complianceService.getStatus(undefined, { signal }),
+        alertsService.getRecentAlerts({ limit: 100 }, { signal }),
+        compoundRiskService.getRecent({ limit: 20 }, { signal }),
+        sensorsService.getSensors({ limit: 100 }, { signal })
+      ]);
+      
+      if (!signal?.aborted) {
+        set({
+          summary: summaryRes.data.data,
+          zones: zonesRes.data.data.zones,
+          assessment: compoundRiskService.toAssessment(riskRes),
+          explanation: compoundRiskService.toExplanation(riskRes),
+          emergencyActions: emergencyResponseService.toActionItems(emergencyRes),
+          recommendations: recRes.recommendations,
+          compliance: compRes,
+          alerts: alertsRes.data,
+          riskScores: scoresRes.data,
+          sensors: sensorsRes.data,
+          loading: false,
+          error: null,
+          lastUpdated: new Date()
+        });
+      }
+    } catch (err) {
+      const apiError = ApiError.from(err);
+      if (!apiError.isCancelledError && !signal?.aborted) {
+        set({ error: apiError.toUserMessage(), loading: false });
+      }
+    }
+  }
+}));
