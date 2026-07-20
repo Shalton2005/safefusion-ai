@@ -3,17 +3,18 @@
  *
  * Reusable, presentational widget showing a numerical risk score, its
  * bucketed risk level (Low / Medium / High / Critical), and a trend
- * placeholder. Purely props-driven — no data fetching — so it can be
+ * indicator. Purely props-driven — no data fetching — so it can be
  * reused wherever an overall risk reading needs to be surfaced.
  *
- * Trend is rendered as a fixed placeholder until historical risk-score
- * tracking is wired up.
+ * `trend` is derived by the caller from persisted `risk_scores` history
+ * (see `useRecentRiskScores`) by comparing the two most recent readings —
+ * `null` when there isn't at least one prior reading to compare against.
  *
  * @example
- * <RiskScoreWidget score={32} level="low" />
+ * <RiskScoreWidget score={32} level="low" trend="down" />
  */
 
-import { Gauge, Minus } from 'lucide-react';
+import { Gauge, Minus, TrendingDown, TrendingUp } from 'lucide-react';
 import { Badge } from '@/components/ui';
 import { cn } from '@/lib/cn';
 import { capitalise } from '@/utils/format';
@@ -27,15 +28,32 @@ const iconVariantClass: Record<SeverityLevel, string> = {
   critical: 'bg-danger-500/15  text-danger-500',
 };
 
+export type RiskScoreTrend = 'up' | 'down' | 'stable';
+
+const TREND_ICON: Record<RiskScoreTrend, typeof Minus> = {
+  up:      TrendingUp,
+  down:    TrendingDown,
+  stable:  Minus,
+};
+
+const TREND_LABEL: Record<RiskScoreTrend, string> = {
+  up:      'Rising vs. previous reading',
+  down:    'Falling vs. previous reading',
+  stable:  'Stable vs. previous reading',
+};
+
 export interface RiskScoreWidgetProps {
   /** Overall risk score, 0-100. */
   score: number;
   /** Bucketed risk level — drives the colour coding. */
   level: SeverityLevel;
+  /** Direction of change vs. the previous persisted reading, or `null` when there's no prior reading to compare against yet. */
+  trend?: RiskScoreTrend | null;
   className?: string;
 }
 
-export function RiskScoreWidget({ score, level, className }: RiskScoreWidgetProps) {
+export function RiskScoreWidget({ score, level, trend = null, className }: RiskScoreWidgetProps) {
+  const TrendIcon = trend ? TREND_ICON[trend] : Minus;
   return (
     <div
       className={cn(
@@ -67,10 +85,9 @@ export function RiskScoreWidget({ score, level, className }: RiskScoreWidgetProp
           {capitalise(level)}
         </Badge>
 
-        {/* Feature pending backend integration */}
-        <div className="flex items-center gap-1 text-xs font-medium text-[var(--sf-text-tertiary)]" title="Historical risk trend API pending backend integration">
-          <Minus className="w-3.5 h-3.5 flex-shrink-0" aria-hidden="true" />
-          <span>Pending backend integration</span>
+        <div className="flex items-center gap-1 text-xs font-medium text-[var(--sf-text-tertiary)]" title={trend ? TREND_LABEL[trend] : 'No prior reading to compare against yet'}>
+          <TrendIcon className="w-3.5 h-3.5 flex-shrink-0" aria-hidden="true" />
+          <span>{trend ? TREND_LABEL[trend] : 'No trend data yet'}</span>
         </div>
       </div>
     </div>

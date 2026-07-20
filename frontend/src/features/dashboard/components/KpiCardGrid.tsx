@@ -29,21 +29,24 @@ export interface KpiCardGridProps {
 export function KpiCardGrid({ dashboardSummary, complianceSnapshot, loading, lastUpdated }: KpiCardGridProps) {
   const isLoading = loading || (!dashboardSummary && !complianceSnapshot);
 
+  /** `null` when the risk engine hasn't persisted a reading yet — distinct from a confirmed low/zero score. */
+  const overallRiskScore = dashboardSummary?.overall_risk_score ?? null;
+  const hasComplianceData = Boolean(complianceSnapshot);
   const complianceScore = complianceSnapshot
     ? Math.max(0, 100 - complianceSnapshot.non_compliant_count * 10 - complianceSnapshot.incident_count * 15)
-    : 0;
+    : null;
 
   const timeStr = lastUpdated ? lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Syncing';
 
   const KPI_CARDS: StatCardProps[] = [
     {
       label: 'Overall Risk Score',
-      value: isLoading ? '--' : `${dashboardSummary?.overall_risk_score ?? 0}`,
-      subLabel: '/ 100',
+      value: isLoading ? '--' : overallRiskScore === null ? 'No data' : `${overallRiskScore}`,
+      subLabel: isLoading || overallRiskScore === null ? undefined : '/ 100',
       trend: 'stable',
       trendPositive: true,
       icon: Gauge,
-      iconVariant: (dashboardSummary?.overall_risk_score ?? 0) < 50 ? 'success' : 'warning',
+      iconVariant: overallRiskScore === null ? 'neutral' : overallRiskScore < 50 ? 'success' : 'warning',
       lastUpdated: `Updated ${timeStr}`,
       actionLabel: 'View Report',
       onClick: () => {},
@@ -54,7 +57,7 @@ export function KpiCardGrid({ dashboardSummary, complianceSnapshot, loading, las
       trend: 'stable',
       trendPositive: (dashboardSummary?.critical_alerts ?? 0) === 0,
       icon: Bell,
-      iconVariant: (dashboardSummary?.critical_alerts ?? 0) > 0 ? 'danger' : 'success',
+      iconVariant: !dashboardSummary ? 'neutral' : (dashboardSummary.critical_alerts ?? 0) > 0 ? 'danger' : 'success',
       lastUpdated: `Updated ${timeStr}`,
       actionLabel: 'Go to Alerts',
       onClick: () => {},
@@ -65,18 +68,18 @@ export function KpiCardGrid({ dashboardSummary, complianceSnapshot, loading, las
       trend: 'stable',
       trendPositive: true,
       icon: HardHat,
-      iconVariant: 'primary',
+      iconVariant: !dashboardSummary ? 'neutral' : 'primary',
       lastUpdated: `Updated ${timeStr}`,
       actionLabel: 'View Roster',
       onClick: () => {},
     },
     {
       label: 'Compliance Score',
-      value: isLoading ? '--%' : `${complianceScore}%`,
+      value: isLoading ? '--%' : complianceScore === null ? 'No data' : `${complianceScore}%`,
       trend: 'stable',
-      trendPositive: complianceScore >= 90,
+      trendPositive: hasComplianceData && (complianceScore ?? 0) >= 90,
       icon: ShieldCheck,
-      iconVariant: complianceScore >= 90 ? 'success' : 'warning',
+      iconVariant: complianceScore === null ? 'neutral' : complianceScore >= 90 ? 'success' : 'warning',
       lastUpdated: `Updated ${timeStr}`,
       actionLabel: 'Audit Details',
       onClick: () => {},

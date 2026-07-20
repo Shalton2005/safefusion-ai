@@ -56,6 +56,27 @@ class EmergencyResponseService:
         self._engine = engine
         self._incident_repository = incident_repository
 
+    def evaluate(
+        self, zone_results: list[ZoneCompoundRiskResult]
+    ) -> list[ZoneEmergencyResponseResult]:
+        """Map Compound Risk Engine output to emergency actions without dispatching them.
+
+        Pure, side-effect-free — no incident is persisted and no action is
+        logged as dispatched. Use this for any read-only view that needs
+        the same zone/action data ``respond()`` produces (status snapshots,
+        recommendations, incident reports) without triggering a real
+        dispatch. Only ``respond()`` should be called from a flow that is
+        actually meant to execute emergency actions.
+
+        Args:
+            zone_results: Output of the Compound Risk Engine.
+
+        Returns:
+            One ``ZoneEmergencyResponseResult`` per zone with at least one
+            matched action, sorted by risk score descending.
+        """
+        return self._engine.evaluate(zone_results)
+
     def respond(
         self, zone_results: list[ZoneCompoundRiskResult]
     ) -> list[ZoneEmergencyResponseResult]:

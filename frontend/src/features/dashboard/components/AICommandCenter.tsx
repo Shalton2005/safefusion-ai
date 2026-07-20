@@ -53,7 +53,8 @@ export function AICommandCenter({
   const isWarning = riskLevel === 'medium';
 
   const isFlashingRed = isCritical || isEmergency;
-  const confidence = supervisorSnapshot?.overallConfidence ?? (isFlashingRed ? 98 : 94);
+  /** `null` while the AI Supervisor snapshot hasn't reported yet — never a fabricated placeholder value. */
+  const confidence = supervisorSnapshot?.overallConfidence ?? null;
   
   let verdictTitle = 'Systems Nominal';
   if (isCritical) {
@@ -153,7 +154,9 @@ export function AICommandCenter({
             <div className="w-px h-6 bg-[var(--sf-border-default)]" />
             <div className="flex flex-col items-center">
               <span className="text-3xs uppercase tracking-widest text-[var(--sf-text-tertiary)] mb-1">Confidence</span>
-              <span className="text-sm font-mono text-[var(--sf-text-primary)]">{confidence}%</span>
+              <span className="text-sm font-mono text-[var(--sf-text-primary)]">
+                {confidence === null ? 'No data' : `${confidence}%`}
+              </span>
             </div>
           </div>
         </div>

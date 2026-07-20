@@ -34,6 +34,14 @@ class CameraMonitoringService:
         """Record ``result`` as the latest known state for its camera."""
         self._latest_by_camera[result.camera_id] = result
 
+    def get_latest_by_camera(self) -> dict[str, FrameComplianceResult]:
+        """Return the latest recorded ``FrameComplianceResult`` per camera, keyed by camera ID.
+
+        Backs every read endpoint that needs per-camera state (camera list,
+        frame detections, timeline) without duplicating the in-memory store.
+        """
+        return dict(self._latest_by_camera)
+
     def get_monitoring_summary(self) -> dict:
         """Return a structured camera-compliance summary across every tracked camera.
 

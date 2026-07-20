@@ -17,6 +17,7 @@ import {
   HazardDetectionSection,
   AiTimelineSection,
   CameraDetails,
+  ScenarioVideoPanel,
 } from '@/features/computer-vision/components';
 import type { Camera } from '@/features/computer-vision/types';
 
@@ -37,6 +38,8 @@ export function CctvMonitoringPage() {
           </Badge>
         }
       />
+
+      <ScenarioVideoPanel />
 
       <DetectionSummarySection />
 

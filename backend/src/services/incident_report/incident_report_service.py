@@ -37,7 +37,7 @@ class CompoundRiskPort(Protocol):
 class EmergencyResponsePort(Protocol):
     """Emergency Response contract required by ``IncidentReportService``."""
 
-    def respond(self, zone_results: list[ZoneCompoundRiskResult]) -> list[ZoneEmergencyResponseResult]: ...
+    def evaluate(self, zone_results: list[ZoneCompoundRiskResult]) -> list[ZoneEmergencyResponseResult]: ...
 
 
 class CompliancePort(Protocol):
@@ -88,12 +88,17 @@ class IncidentReportService:
         return self.generate_report_for_incident(incident)
 
     def generate_report_for_incident(self, incident: Incident) -> IncidentReport:
-        """Generate a report for an already-loaded incident."""
+        """Generate a report for an already-loaded incident.
+
+        Emergency Response context is evaluated (not dispatched — see
+        ``EmergencyResponseService.evaluate``) so viewing a report never
+        triggers a real action dispatch.
+        """
         compound_risk_results = self._compound_risk.detect_compound_risks() if self._compound_risk else []
 
         emergency_response_results: list[ZoneEmergencyResponseResult] = []
         if self._emergency_response is not None:
-            emergency_response_results = self._emergency_response.respond(compound_risk_results)
+            emergency_response_results = self._emergency_response.evaluate(compound_risk_results)
 
         compliance_result = self._compliance.evaluate_incident(incident) if self._compliance else None
 

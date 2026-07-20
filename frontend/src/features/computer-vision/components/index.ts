@@ -21,3 +21,7 @@ export { CameraShortcutCard }     from './CameraShortcutCard';
 export { VisionSummaryWidget }    from './VisionSummaryWidget';
 
 export { CriticalHazardBanner }   from './CriticalHazardBanner';
+
+export { ScenarioVideoPanel }     from './ScenarioVideoPanel';
+
+export { VideoObjectOverlay }     from './VideoObjectOverlay';

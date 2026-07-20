@@ -49,17 +49,15 @@ function toRiskExplanation(result: RiskScoreCalculationResult): RiskExplanation 
 
 export const compoundRiskService = {
   /**
-   * Runs the compound risk engine once. `getAssessment`/`getExplanation`
-   * both derive from this same call — prefer calling `calculate()` yourself
-   * and reducing locally (see `toAssessment`/`toExplanation` below) when a
-   * component needs both shapes, so the non-idempotent engine endpoint
-   * isn't invoked twice in parallel.
+   * Runs the compound risk engine once, persisting each zone's result as a
+   * new `RiskScore` record (backend default for `/calculate`). `getAssessment`/
+   * `getExplanation` both derive from this same call — prefer calling
+   * `calculate()` yourself and reducing locally (see `toAssessment`/
+   * `toExplanation` below) when a component needs both shapes, so the
+   * non-idempotent engine endpoint isn't invoked twice in parallel.
    */
   calculate: async (options?: RequestOptions): Promise<RiskScoreCalculationResult> => {
-    const { data } = await base.post<RiskScoreCalculationResult>('calculate', undefined, {
-      ...options,
-      params: { persist: false },
-    });
+    const { data } = await base.post<RiskScoreCalculationResult>('calculate', undefined, options);
     return data;
   },
 

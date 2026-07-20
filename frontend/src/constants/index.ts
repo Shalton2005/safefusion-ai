@@ -7,7 +7,7 @@ export const LS_SIDEBAR_KEY  = 'safefusion:sidebar-collapsed';
 export const LS_COPILOT_KEY  = 'safefusion:copilot-conversations';
 
 // Polling intervals (ms)
-export const DASHBOARD_REFRESH_INTERVAL = 10000;
+export const DASHBOARD_REFRESH_INTERVAL = 1000;
 
 // Severity levels
 export type SeverityLevel = 'low' | 'medium' | 'high' | 'critical';

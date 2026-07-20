@@ -23,11 +23,13 @@ Once running, the interactive API documentation is available at:
 """
 
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import AsyncIterator
 
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from fastapi import Depends
 
@@ -43,6 +45,7 @@ from src.routes import auth as auth_router
 from src.routes import compliance as compliance_router
 from src.routes import computer_vision as computer_vision_router
 from src.routes import dashboard as dashboard_router
+from src.routes import demo as demo_router
 from src.routes import emergency as emergency_router
 from src.routes import emergency_response as emergency_response_router
 from src.routes import graph as graph_router
@@ -63,6 +66,7 @@ from src.routes import status as status_router
 from src.routes import timeline as timeline_router
 from src.routes import workers as workers_router
 from src.services.event_bus.bus import get_default_dispatcher
+from src.services.scenario_playback.runner import get_scenario_playback_runner
 from src.services.timeline.subscriber import register_timeline_subscriber
 from src.utils.logger import configure_logging, get_logger
 
@@ -97,6 +101,7 @@ OPENAPI_TAGS_METADATA = [
     {"name": "AI Monitoring", "description": "Read-only observability over the AI layer: agent/routing configuration, live Neo4j/Ollama dependency health, aggregated operation performance metrics, and Supervisor workflow shape."},
     {"name": "Timeline", "description": "Chronological record of every platform event — source, severity, timestamp, and linked AI decision — published on the Unified Event Bus."},
     {"name": "Computer Vision", "description": "Pretrained-YOLO PPE compliance detection (helmet, safety vest, forklift proximity, smoke): ingests per-frame detections, evaluates the PPE Compliance Engine, publishes safety events to the Unified Event Bus, and exposes camera monitoring for compound-risk correlation."},
+    {"name": "Demo Scenario Playback", "description": "Starts/stops a timed JSON demo scenario that replays into the live database, driving the production risk/emergency/compliance/alert rule chain once per second so the dashboard updates end to end without manual refresh."},
 ]
 
 
@@ -125,6 +130,7 @@ async def _lifespan(_application: FastAPI) -> AsyncIterator[None]:
     ensure_constraints()
     register_timeline_subscriber(get_default_dispatcher())
     yield
+    await get_scenario_playback_runner().stop()
     close_driver()
 
 
@@ -180,6 +186,16 @@ def create_application() -> FastAPI:
     # ── Global exception handler ──────────────────────────────────────────────
     register_exception_handlers(application)
 
+    # ── Static media ─────────────────────────────────────────────────────────
+    # Public, unauthenticated — an HTML <video> tag cannot attach an
+    # Authorization header, so demo scenario video files are served openly
+    # from this one known-safe directory rather than through a protected
+    # route. Contains only operator-supplied demo clips (see
+    # backend/data/cctv/.gitignore), never user-uploaded or sensitive content.
+    cctv_media_dir = Path(__file__).resolve().parent / "data" / "cctv"
+    cctv_media_dir.mkdir(parents=True, exist_ok=True)
+    application.mount("/media/cctv", StaticFiles(directory=str(cctv_media_dir)), name="cctv-media")
+
     # ── Routers ───────────────────────────────────────────────────────────────
     # Public — no authentication required.
     application.include_router(root_router.router)
@@ -215,6 +231,7 @@ def create_application() -> FastAPI:
     application.include_router(ai_monitoring_router.router, prefix=settings.API_PREFIX, dependencies=protected_dependencies)
     application.include_router(timeline_router.router, prefix=settings.API_PREFIX, dependencies=protected_dependencies)
     application.include_router(computer_vision_router.router, prefix=settings.API_PREFIX, dependencies=protected_dependencies)
+    application.include_router(demo_router.router, prefix=settings.API_PREFIX, dependencies=protected_dependencies)
 
     return application
 

@@ -25,8 +25,9 @@ export function AISituationReport({
   const report = useMemo(() => {
     const riskLevel = assessment?.risk_level ?? 'low';
     const riskScore = assessment?.risk_score ?? 0;
-    const confidence = supervisorSnapshot?.overallConfidence ?? (['critical', 'high'].includes(riskLevel) ? 98 : 94);
-    
+    /** `null` while the AI Supervisor snapshot hasn't reported yet — never a fabricated placeholder value. */
+    const confidence = supervisorSnapshot?.overallConfidence ?? null;
+
     // 1. Verdict & Location
     const levelStr = riskLevel.toUpperCase();
     const zone = explanation?.zone || 'plant-wide';
@@ -75,7 +76,7 @@ export function AISituationReport({
     }
 
     // 4. Confidence
-    const s4 = `AI confidence is ${Math.round(confidence)}%.`;
+    const s4 = confidence === null ? '' : `AI confidence is ${Math.round(confidence)}%.`;
 
     return [s1, s2, s3, s4].filter(Boolean).join(' ');
   }, [assessment, explanation, alerts, recommendations, emergencyActions, supervisorSnapshot]);

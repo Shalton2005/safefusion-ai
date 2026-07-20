@@ -1,0 +1,123 @@
+{
+  "name": "factory_incident",
+  "title": "Factory Incident",
+  "narrative": "Zone-D: a normal shift escalates through a restricted-zone entry, a PPE violation, a gas leak that worsens, and a small fire, before emergency response and incident resolution bring the zone back to a safe state.",
+  "zone": "Zone-D",
+  "video_filename": "factory_incident.mp4",
+  "worker": {
+    "employee_id": "EMP-DEMO-FACTORY",
+    "name": "Arjun Kapoor",
+    "department": "Operations",
+    "role": "Field Operator",
+    "shift": "Morning"
+  },
+  "permit": {
+    "permit_id": "PTW-DEMO-FACTORY",
+    "permit_type": "hot_work",
+    "issued_by": "Safety Officer Rao",
+    "assigned_team": "Operations Team Alpha",
+    "start_offset_hours": -1.0,
+    "end_offset_hours": 7.0
+  },
+  "rows": [
+    {
+      "t": 0,
+      "label": "Normal",
+      "narration": "Shift start: all sensors nominal, worker on site, permit active.",
+      "sensors": [
+        { "sensor_id": "SEN-FACTORY-GAS", "sensor_type": "gas", "value": 35.0, "unit": "ppm" },
+        { "sensor_id": "SEN-FACTORY-TEMP", "sensor_type": "temperature", "value": 27.0, "unit": "C" },
+        { "sensor_id": "SEN-FACTORY-SMOKE", "sensor_type": "smoke", "value": 1.0, "unit": "ppm" }
+      ],
+      "worker_status": "working",
+      "ppe_status": true,
+      "permit_status": "active"
+    },
+    {
+      "t": 6,
+      "label": "Worker enters restricted zone",
+      "narration": "Worker moves into the restricted zone boundary while continuing hot work.",
+      "worker_status": "working",
+      "ppe_status": true
+    },
+    {
+      "t": 12,
+      "label": "Helmet removed",
+      "narration": "Worker removes helmet mid-task — PPE compliance violation detected.",
+      "worker_status": "working",
+      "ppe_status": false,
+      "incident": {
+        "severity": "medium",
+        "incident_type": "ppe_violation",
+        "description": "Field operator observed without required helmet while performing hot work in a restricted zone.",
+        "root_cause": "PPE compliance check was not enforced before task start."
+      }
+    },
+    {
+      "t": 18,
+      "label": "Gas leak",
+      "narration": "Gas concentration spikes to a critical level near the work area.",
+      "sensors": [
+        { "sensor_id": "SEN-FACTORY-GAS", "sensor_type": "gas", "value": 92.0, "unit": "ppm" }
+      ],
+      "worker_status": "emergency",
+      "incident": {
+        "severity": "critical",
+        "incident_type": "gas_leak",
+        "description": "Hydrocarbon vapor concentration spiked to 92 ppm near the Zone-D work area during active hot work.",
+        "root_cause": "Suspected valve seal failure on the nearby process line."
+      }
+    },
+    {
+      "t": 24,
+      "label": "Gas leak increases",
+      "narration": "Gas concentration continues climbing; conditions deteriorate further.",
+      "sensors": [
+        { "sensor_id": "SEN-FACTORY-GAS", "sensor_type": "gas", "value": 99.0, "unit": "ppm" }
+      ],
+      "worker_status": "emergency"
+    },
+    {
+      "t": 30,
+      "label": "Small fire",
+      "narration": "Temperature and smoke readings cross critical thresholds — a small fire has broken out.",
+      "sensors": [
+        { "sensor_id": "SEN-FACTORY-TEMP", "sensor_type": "temperature", "value": 61.0, "unit": "C" },
+        { "sensor_id": "SEN-FACTORY-SMOKE", "sensor_type": "smoke", "value": 9.0, "unit": "ppm" }
+      ],
+      "worker_status": "emergency",
+      "permit_status": "suspended",
+      "incident": {
+        "severity": "critical",
+        "incident_type": "fire",
+        "description": "Small fire detected near the Zone-D work area, coinciding with an active gas leak and critical temperature/smoke readings.",
+        "root_cause": "Ignition source suspected from ongoing hot work in proximity to the gas leak."
+      }
+    },
+    {
+      "t": 36,
+      "label": "Emergency response",
+      "narration": "Emergency response engine dispatches evacuation and stop-work actions; sensors begin trending back down as responders act.",
+      "sensors": [
+        { "sensor_id": "SEN-FACTORY-GAS", "sensor_type": "gas", "value": 70.0, "unit": "ppm" },
+        { "sensor_id": "SEN-FACTORY-TEMP", "sensor_type": "temperature", "value": 48.0, "unit": "C" },
+        { "sensor_id": "SEN-FACTORY-SMOKE", "sensor_type": "smoke", "value": 6.0, "unit": "ppm" }
+      ],
+      "worker_status": "emergency",
+      "permit_status": "suspended"
+    },
+    {
+      "t": 42,
+      "label": "Incident resolved",
+      "narration": "Zone stabilized: readings return to normal, worker safe, permit closed pending review.",
+      "sensors": [
+        { "sensor_id": "SEN-FACTORY-GAS", "sensor_type": "gas", "value": 36.0, "unit": "ppm" },
+        { "sensor_id": "SEN-FACTORY-TEMP", "sensor_type": "temperature", "value": 28.0, "unit": "C" },
+        { "sensor_id": "SEN-FACTORY-SMOKE", "sensor_type": "smoke", "value": 1.0, "unit": "ppm" }
+      ],
+      "worker_status": "idle",
+      "ppe_status": true,
+      "permit_status": "closed"
+    }
+  ]
+}

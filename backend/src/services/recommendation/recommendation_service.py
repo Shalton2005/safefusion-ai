@@ -27,7 +27,7 @@ class CompoundRiskPort(Protocol):
 class EmergencyResponsePort(Protocol):
     """Emergency Response contract required by ``RecommendationService``."""
 
-    def respond(self, zone_results: list[ZoneCompoundRiskResult]) -> list[ZoneEmergencyResponseResult]: ...
+    def evaluate(self, zone_results: list[ZoneCompoundRiskResult]) -> list[ZoneEmergencyResponseResult]: ...
 
 
 class CompliancePort(Protocol):
@@ -56,15 +56,16 @@ class RecommendationService:
 
         Each upstream source is optional — if its port wasn't supplied,
         it simply contributes no recommendations. Emergency Response is
-        evaluated against the same Compound Risk output used for the
-        Compound Risk recommendations, so both reflect one consistent
-        snapshot.
+        evaluated (not dispatched — see ``EmergencyResponseService.evaluate``)
+        against the same Compound Risk output used for the Compound Risk
+        recommendations, so both reflect one consistent snapshot without
+        triggering a real action dispatch on every read.
         """
         compound_risk_results = self._compound_risk.detect_compound_risks() if self._compound_risk else []
 
         emergency_response_results: list[ZoneEmergencyResponseResult] = []
         if self._emergency_response is not None:
-            emergency_response_results = self._emergency_response.respond(compound_risk_results)
+            emergency_response_results = self._emergency_response.evaluate(compound_risk_results)
 
         # Match the 500-row ceiling exposed by GET /compliance/status and
         # POST /compliance/evaluate — the repository-level default of 100

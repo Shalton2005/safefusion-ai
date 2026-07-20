@@ -11,3 +11,8 @@ export { useHazardDetections } from './useHazardDetections';
 export { useCvTimeline }       from './useCvTimeline';
 
 export { useFrameDetections }  from './useFrameDetections';
+
+export { useDemoPlayback }     from './useDemoPlayback';
+
+export { useVideoObjectDetection } from './useVideoObjectDetection';
+export type { VideoDetection } from './useVideoObjectDetection';

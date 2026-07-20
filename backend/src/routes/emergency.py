@@ -3,9 +3,13 @@
 Thin, read-only GET endpoints over the existing Compound Risk and
 Emergency Response services (``src.routes.monitoring``,
 ``src.routes.emergency_response``): both endpoints run the same
-detect-then-respond evaluation and simply project a different subset of
-the result — ``/emergency/status`` is a quick per-zone risk snapshot,
-``/emergency/actions`` is the full list of dispatched actions.
+detect-then-evaluate pass and simply project a different subset of the
+result — ``/emergency/status`` is a quick per-zone risk snapshot,
+``/emergency/actions`` is the full list of matched actions. Uses
+``EmergencyResponseService.evaluate()`` (not ``respond()``) since these
+are read-only views — dispatching/persisting an action here would fire on
+every poll of a plain GET. Only ``POST /emergency-response/run`` and
+``POST /emergency-response/evaluate`` are meant to actually dispatch.
 """
 
 from fastapi import APIRouter
@@ -30,7 +34,7 @@ def _evaluate(
     emergency_response_service: EmergencyResponseService,
 ) -> list[ZoneEmergencyResponseResult]:
     zone_results = compound_risk_service.detect_compound_risks()
-    return emergency_response_service.respond(zone_results)
+    return emergency_response_service.evaluate(zone_results)
 
 
 @router.get(
