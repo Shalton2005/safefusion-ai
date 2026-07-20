@@ -69,12 +69,11 @@ export function Sidebar() {
         ref={asideRef}
         className={cn(
           'fixed inset-y-0 left-0 z-50 flex flex-col h-screen bg-[var(--sf-surface-sidebar)]',
-          'border-r border-[var(--sf-border-default)] transition-all duration-300 ease-in-out',
+          'border-r border-[var(--sf-border-default)] transition-all duration-300 ease-in-out overflow-hidden',
           'lg:relative lg:z-auto',
-          collapsed ? 'lg:w-[4.5rem]' : 'lg:w-64',
-          'w-64',
           mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
         )}
+        style={{ width: isNarrow ? '4.5rem' : '16rem' }}
       >
         <SidebarBrand collapsed={isNarrow} />
 

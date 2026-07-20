@@ -11,6 +11,7 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@tanstack/react-virtual": "^3.14.7",
     "@types/leaflet": "^1.9.21",
     "@xyflow/react": "^12.11.2",
     "axios": "^1.7.9",

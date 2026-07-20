@@ -130,10 +130,10 @@ export function CardHeader({
 }: CardHeaderProps) {
   return (
     <div
-      className={cn('flex items-start justify-between gap-4 mb-4', className)}
+      className={cn('flex items-start justify-between gap-4 mb-4 flex-wrap', className)}
       {...props}
     >
-      <div className="min-w-0 flex-1">
+      <div className="min-w-[8rem] flex-1">
         {title && (
           <h3 className="text-sm font-semibold uppercase tracking-widest text-[var(--sf-text-primary)] leading-snug">
             {title}

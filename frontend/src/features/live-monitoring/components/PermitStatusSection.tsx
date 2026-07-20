@@ -1,13 +1,17 @@
 import { useRef, useState } from 'react';
 import { FileCheck2 } from 'lucide-react';
 import { Card, CardHeader, Badge, EmptyState, Skeleton, QueryState } from '@/components/ui';
+import { CardHeaderLink } from '@/components/common/CardHeaderLink';
 import { LastUpdated } from '@/components/common/LastUpdated';
 import { permitsService } from '@/services';
 import { ApiError } from '@/api/errors';
 import { usePolling } from '@/hooks/usePolling';
 import { DASHBOARD_REFRESH_INTERVAL } from '@/constants';
+import { ROUTES } from '@/constants/routes';
 import type { Permit, PermitType } from '@/types';
 import { PermitStatusIndicator } from '@/features/permits/components/PermitStatusIndicator';
+
+const SUMMARY_LIMIT = 3;
 
 const permitTypeLabel: Record<PermitType, string> = {
   hot_work:       'Hot Work',
@@ -59,40 +63,55 @@ export function PermitStatusSection() {
   const { lastUpdated, refresh } = usePolling(fetchPermits, DASHBOARD_REFRESH_INTERVAL);
 
   const expiredCount = permits.filter(isPermitExpired).length;
+  const activeCount = permits.filter((p) => p.status === 'active' && !isPermitExpired(p)).length;
+  const suspendedCount = permits.filter((p) => p.status === 'suspended').length;
+  const closedCount = permits.filter((p) => p.status === 'closed').length;
+
   const sorted = [...permits].sort((a, b) => permitPriority(b) - permitPriority(a));
+  const topPermits = sorted.slice(0, SUMMARY_LIMIT);
 
   return (
-    <Card padding="none">
+    <Card padding="none" className="h-full flex flex-col">
       <CardHeader
-        title="Permit Status"
-        description="Read-only view of Permit-to-Work records across all zones."
+        title="Permit Summary"
+        description="Status overview of Permit-to-Work records."
         className="px-6 pt-5 pb-0"
         action={
-          !loading && !error && permits.length > 0 && (
-            <Badge variant={expiredCount > 0 ? 'danger' : 'primary'} size="sm" dot pulsing={expiredCount > 0}>
-              {expiredCount > 0 ? `${expiredCount} expired` : `${permits.length} permit${permits.length === 1 ? '' : 's'}`}
-            </Badge>
-          )
+          <div className="flex items-center gap-3">
+            {!loading && !error && permits.length > 0 && (
+              <Badge variant={expiredCount > 0 ? 'danger' : 'primary'} size="sm" dot pulsing={expiredCount > 0}>
+                {expiredCount > 0 ? `${expiredCount} expired` : `${permits.length} permit${permits.length === 1 ? '' : 's'}`}
+              </Badge>
+            )}
+            <CardHeaderLink to={ROUTES.PERMITS} label="View All" />
+          </div>
         }
       />
 
-      <div className="px-6 pb-1">
+      <div className="px-6 pb-1 flex-shrink-0">
         <LastUpdated timestamp={lastUpdated} />
       </div>
 
-      <div className="p-4">
+      <div className="p-4 flex-1 overflow-y-auto min-h-0 custom-scrollbar">
         <QueryState
           loading={loading}
           error={error}
-          data={sorted}
+          data={permits}
           onRetry={refresh}
           errorTitle="Failed to load permits"
           isEmpty={(d) => d.length === 0}
           loadingFallback={
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <Skeleton key={i} className="h-20 rounded-lg" />
-              ))}
+            <div className="flex flex-col gap-4">
+              <div className="grid grid-cols-4 gap-2">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <Skeleton key={i} className="h-[3.25rem] rounded-lg" />
+                ))}
+              </div>
+              <div className="flex flex-col gap-2">
+                {Array.from({ length: SUMMARY_LIMIT }).map((_, i) => (
+                  <Skeleton key={i} className="h-[4.25rem] rounded-lg" />
+                ))}
+              </div>
             </div>
           }
           emptyState={
@@ -104,19 +123,42 @@ export function PermitStatusSection() {
             />
           }
         >
-          {(data) => (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {data.map((permit) => (
-                <PermitStatusIndicator
-                  key={permit.id}
-                  permitId={permit.id}
-                  permitType={permitTypeLabel[permit.permit_type]}
-                  worker={permit.assigned_team}
-                  status={permit.status}
-                  expiryTime={permit.end_time}
-                  isExpired={isPermitExpired(permit)}
-                />
-              ))}
+          {() => (
+            <div className="flex flex-col gap-4">
+              {/* Status counts */}
+              <div className="grid grid-cols-4 gap-2">
+                <div className="flex flex-col items-center gap-0.5 py-2 rounded-lg bg-primary-500/10 border border-primary-500/20">
+                  <span className="text-lg font-bold text-primary-500">{activeCount}</span>
+                  <span className="text-2xs font-semibold uppercase tracking-wide text-[var(--sf-text-tertiary)]">Active</span>
+                </div>
+                <div className="flex flex-col items-center gap-0.5 py-2 rounded-lg bg-danger-500/10 border border-danger-500/20">
+                  <span className="text-lg font-bold text-danger-500">{expiredCount}</span>
+                  <span className="text-2xs font-semibold uppercase tracking-wide text-[var(--sf-text-tertiary)]">Expired</span>
+                </div>
+                <div className="flex flex-col items-center gap-0.5 py-2 rounded-lg bg-caution-500/10 border border-caution-500/20">
+                  <span className="text-lg font-bold text-caution-500">{suspendedCount}</span>
+                  <span className="text-2xs font-semibold uppercase tracking-wide text-[var(--sf-text-tertiary)]">Suspended</span>
+                </div>
+                <div className="flex flex-col items-center gap-0.5 py-2 rounded-lg bg-[var(--sf-surface-sunken)] border border-[var(--sf-border-subtle)]">
+                  <span className="text-lg font-bold text-[var(--sf-text-secondary)]">{closedCount}</span>
+                  <span className="text-2xs font-semibold uppercase tracking-wide text-[var(--sf-text-tertiary)]">Closed</span>
+                </div>
+              </div>
+
+              {/* Most urgent permits */}
+              <div className="flex flex-col gap-2">
+                {topPermits.map((permit) => (
+                  <PermitStatusIndicator
+                    key={permit.id}
+                    permitId={permit.id}
+                    permitType={permitTypeLabel[permit.permit_type]}
+                    worker={permit.assigned_team}
+                    status={permit.status}
+                    expiryTime={permit.end_time}
+                    isExpired={isPermitExpired(permit)}
+                  />
+                ))}
+              </div>
             </div>
           )}
         </QueryState>

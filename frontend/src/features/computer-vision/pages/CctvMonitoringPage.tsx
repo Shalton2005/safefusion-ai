@@ -7,7 +7,8 @@
  * inference happens client-side.
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { ScanEye } from 'lucide-react';
 import { Badge, PageHeader } from '@/components/ui';
 import {
@@ -19,10 +20,29 @@ import {
   CameraDetails,
   ScenarioVideoPanel,
 } from '@/features/computer-vision/components';
+import { useCameras } from '@/features/computer-vision/hooks/useCameras';
 import type { Camera } from '@/features/computer-vision/types';
 
 export function CctvMonitoringPage() {
   const [selectedCamera, setSelectedCamera] = useState<Camera | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { cameras } = useCameras();
+
+  // Deep-link support: ?cameraId=CCTV-07 opens that camera's detail modal on load,
+  // e.g. from the Live Monitoring page's "View CCTV" action.
+  useEffect(() => {
+    const cameraId = searchParams.get('cameraId');
+    if (!cameraId || cameras.length === 0) return;
+    const match = cameras.find((c) => c.id === cameraId);
+    if (match) {
+      setSelectedCamera(match);
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete('cameraId');
+        return next;
+      }, { replace: true });
+    }
+  }, [cameras, searchParams, setSearchParams]);
 
   return (
     <div className="page-container">
