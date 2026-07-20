@@ -30,9 +30,9 @@ export interface ZoneOverviewProps {
 
 function ZoneCard({ zone, workers_present, active_sensors, active_permits, risk_level }: ZoneOverviewData) {
   const navigate = useNavigate();
-  const isCritical = risk_level === 'high' || risk_level === 'critical';
-  const isElevated = risk_level === 'medium';
-  const healthLabel = isCritical ? 'Critical' : isElevated ? 'Elevated' : 'Nominal';
+  const isCritical = risk_level === 'critical';
+  const isElevated = risk_level === 'high' || risk_level === 'medium';
+  const healthLabel = isCritical ? 'Emergency' : isElevated ? 'Monitoring' : 'Operational';
   const healthColor = isCritical ? 'text-danger-500' : isElevated ? 'text-caution-500' : 'text-success-500';
 
   return (

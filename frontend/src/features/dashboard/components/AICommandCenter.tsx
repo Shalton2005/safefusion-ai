@@ -1,7 +1,7 @@
 import { ShieldAlert, Activity, Siren, BrainCircuit, ShieldCheck, AlertTriangle, Info, Clock, Radio, HardHat, FileCheck2 } from 'lucide-react';
 import { Card, Button, Badge } from '@/components/ui';
 import { cn } from '@/lib/cn';
-import { formatRelativeTime, capitalise } from '@/utils/format';
+import { formatRelativeTime, capitalise, formatLabel } from '@/utils/format';
 import type { CompoundRiskAssessment, RiskExplanation, Recommendation, AlertRecord, EmergencyActionItem } from '@/types';
 import type { AISupervisorSnapshot } from '@/features/ai-supervisor/types';
 import { AISituationReport } from './AISituationReport';
@@ -119,7 +119,7 @@ export function AICommandCenter({
           <div className="flex flex-wrap gap-2 mt-auto">
             {findings.map((finding, idx) => (
               <Badge key={idx} variant="outline" className={cn("text-2xs font-mono py-1", isFlashingRed ? "border-danger-500/30 text-danger-300 bg-danger-500/10" : isWarning ? "border-caution-500/30 text-caution-300 bg-caution-500/10" : "border-[var(--sf-border-default)] text-[var(--sf-text-secondary)]")}>
-                {finding.label}
+                {formatLabel(finding.label)}
               </Badge>
             ))}
           </div>
@@ -167,7 +167,7 @@ export function AICommandCenter({
           
           <Button 
             variant={isFlashingRed ? 'danger' : 'outline'}
-            className={cn("w-full justify-start py-6", isCritical && "animate-pulse")}
+            className={cn("w-full justify-center py-6", isCritical && "animate-pulse")}
             onClick={onDispatchEmergency}
           >
             <Siren className="w-4 h-4 mr-2" />
@@ -176,7 +176,7 @@ export function AICommandCenter({
           
           <Button 
             variant="secondary"
-            className="w-full justify-start py-6"
+            className="w-full justify-center py-6"
             onClick={onViewReasoning}
           >
             <Info className="w-4 h-4 mr-2" />
@@ -185,7 +185,7 @@ export function AICommandCenter({
           
           <Button 
             variant="secondary"
-            className="w-full justify-start py-6"
+            className="w-full justify-center py-6"
             onClick={onOpenLiveMonitoring}
           >
             <Activity className="w-4 h-4 mr-2" />

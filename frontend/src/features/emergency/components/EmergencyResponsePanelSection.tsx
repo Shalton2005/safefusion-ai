@@ -39,12 +39,12 @@ export function EmergencyResponsePanelSectionView({
         action={
           !loading && !error && actions.length > 0 && (
             <Badge variant="danger" size="sm" dot pulsing>
-              {actions.length} action{actions.length === 1 ? '' : 's'}
+              {actions.length > 5 ? `Showing 5 of ${actions.length} Actions` : `${actions.length} Action${actions.length === 1 ? '' : 's'}`}
             </Badge>
           )
         }
       />
-      <div className="p-4 flex flex-col gap-4">
+      <div className="p-6 flex flex-col gap-6">
         <QueryState
           loading={loading}
           error={error}
@@ -73,7 +73,7 @@ export function EmergencyResponsePanelSectionView({
         </QueryState>
 
         {!error && (
-          <div className="flex items-center justify-between pt-2 border-t border-[var(--sf-border-default)]">
+          <div className="flex items-center justify-between pt-4 border-t border-[var(--sf-border-default)]">
             <LastUpdated timestamp={lastUpdated} className="px-1" />
             <Link to="/emergency" className="block w-full sm:w-auto">
               <Button variant="outline" className="w-full group bg-[var(--sf-surface-card)] hover:bg-[var(--sf-surface-hover)]">

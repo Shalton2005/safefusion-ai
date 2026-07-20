@@ -45,7 +45,7 @@ type StatCardIconVariant =
 // ─── Props ────────────────────────────────────────────────────────
 
 export interface StatCardProps {
-  value: string | number;
+  value: React.ReactNode;
   label: string;
   subLabel?: string;
   delta?: string | number;

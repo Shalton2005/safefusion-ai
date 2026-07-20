@@ -9,6 +9,25 @@ import { AIStatusBadge } from '@/features/ai-supervisor/components/AIStatusBadge
 import type { CompoundRiskAssessment, RiskExplanation } from '@/types';
 import type { AISupervisorSnapshot } from '@/features/ai-supervisor/types';
 
+function formatRuleName(name: string): string {
+  const map: Record<string, string> = {
+    critical_sensors: 'Critical Sensors',
+    warning_sensors: 'Warning Sensors',
+    expired_permits: 'Expired Permits',
+    restricted_zone_workers: 'Restricted Zone Workers',
+    critical_sensor_without_active_permit: 'Critical Sensor Without Active Permit',
+    expired_permit_with_worker_present: 'Expired Permit With Worker Present',
+    critical_sensor_with_worker_present: 'Critical Sensor With Worker Present',
+    restricted_zone_without_active_permit: 'Restricted Zone Without Active Permit',
+    multiple_warning_sensors: 'Multiple Warning Sensors',
+    degraded_equipment_with_worker_present: 'Degraded Equipment With Worker Present',
+    critical_sensor_near_degraded_equipment: 'Critical Sensor Near Degraded Equipment',
+    camera_critical_detection_without_active_permit: 'Camera Critical Detection Without Active Permit',
+    ppe_violation_with_worker_present: 'PPE Violation With Worker Present',
+  };
+  return map[name] || name.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+}
+
 export interface AIExplainabilityCardProps {
   assessment: CompoundRiskAssessment | null;
   explanation: RiskExplanation | null;
@@ -32,7 +51,7 @@ export function AIExplainabilityCard({
   return (
     <Card className={cn("flex flex-col overflow-hidden bg-[var(--sf-surface-card)] border-[var(--sf-border-default)] shadow-sm", className)}>
       {/* Header / Summary State */}
-      <div className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-[var(--sf-border-default)] bg-[var(--sf-surface-base)]/50">
+      <div className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-[var(--sf-border-default)] bg-[var(--sf-surface-base)]/50">
         
         <div className="flex-1 flex flex-col gap-2">
           <div className="flex items-center gap-2">
@@ -42,7 +61,7 @@ export function AIExplainabilityCard({
               {capitalise(riskLevel)} Risk
             </Badge>
           </div>
-          <p className="text-base font-medium text-[var(--sf-text-primary)] leading-relaxed">
+          <p className="text-base font-medium text-[var(--sf-text-primary)] leading-relaxed whitespace-pre-line">
             {textExplanation}
           </p>
         </div>
@@ -66,7 +85,7 @@ export function AIExplainabilityCard({
 
       {/* Visible Content: Key Contributing Factors (Always Visible) */}
       {contributingFactors.length > 0 && (
-        <div className="p-5 flex flex-col gap-3 bg-[var(--sf-surface-card)] animate-in fade-in duration-300">
+        <div className="p-6 flex flex-col gap-3 bg-[var(--sf-surface-card)] animate-in fade-in duration-300">
           <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-[var(--sf-text-tertiary)]">
             <SlidersHorizontal className="w-3.5 h-3.5" />
             Key Contributing Factors
@@ -74,7 +93,7 @@ export function AIExplainabilityCard({
           <div className="flex flex-wrap gap-2">
             {contributingFactors.map((factor) => (
               <div key={factor.name} className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--sf-surface-sunken)] border border-[var(--sf-border-subtle)] text-sm">
-                <span className="font-medium text-[var(--sf-text-primary)]">{factor.name.replace(/_/g, ' ')}</span>
+                <span className="font-medium text-[var(--sf-text-primary)]">{formatRuleName(factor.name)}</span>
                 <span className={cn("font-mono font-bold text-xs", factor.points > 20 ? "text-danger-400" : factor.points > 10 ? "text-caution-400" : "text-[var(--sf-text-secondary)]")}>
                   +{factor.points.toFixed(0)}
                 </span>
@@ -102,7 +121,7 @@ export function AIExplainabilityCard({
               <ul className="flex flex-col gap-2">
                 {triggeredRules.map((rule) => (
                   <li key={rule.name} className="flex flex-col gap-1 px-4 py-3 rounded-lg bg-[var(--sf-surface-sunken)] border border-[var(--sf-border-subtle)]">
-                    <span className="text-sm font-medium text-[var(--sf-text-primary)] capitalize">{rule.name.replace(/_/g, ' ')}</span>
+                    <span className="text-sm font-medium text-[var(--sf-text-primary)] capitalize">{formatRuleName(rule.name)}</span>
                     <span className="text-xs text-[var(--sf-text-tertiary)] leading-relaxed">{rule.detail}</span>
                   </li>
                 ))}
@@ -131,7 +150,7 @@ export function AIExplainabilityCard({
                 {contributingFactors.map((factor) => (
                   <li key={factor.name} className="flex items-start justify-between gap-3 px-4 py-3 rounded-lg bg-[var(--sf-surface-sunken)] border border-[var(--sf-border-subtle)]">
                     <div className="flex flex-col gap-1 min-w-0">
-                      <span className="text-sm font-medium text-[var(--sf-text-primary)] capitalize">{factor.name.replace(/_/g, ' ')}</span>
+                      <span className="text-sm font-medium text-[var(--sf-text-primary)] capitalize">{formatRuleName(factor.name)}</span>
                       <span className="text-xs text-[var(--sf-text-tertiary)] leading-relaxed">{factor.detail}</span>
                     </div>
                     <div className="flex flex-col items-end gap-1 flex-shrink-0 text-right bg-[var(--sf-surface-base)] px-2 py-1 rounded-md border border-[var(--sf-border-default)]">

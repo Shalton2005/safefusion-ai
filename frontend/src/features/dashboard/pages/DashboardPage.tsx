@@ -8,6 +8,7 @@ import { KpiCardGrid } from '@/features/dashboard/components/KpiCardGrid';
 import { ZoneOverviewSectionView } from '@/features/dashboard/components/ZoneOverviewSection';
 import { SafetyTimelineSectionView } from '@/features/dashboard/components/SafetyTimelineSection';
 import { SensorReadingsChart } from '@/components/charts';
+import { LiveCCTVPreview } from './components/LiveCCTVPreview';
 import { RecommendationPanelSectionView } from '@/features/recommendations/components/RecommendationPanelSection';
 import { EmergencyResponsePanelSectionView } from '@/features/emergency/components/EmergencyResponsePanelSection';
 import { CriticalHazardBanner } from '@/features/computer-vision/components';
@@ -159,12 +160,22 @@ export function DashboardPage() {
         <KpiCardGrid
           dashboardSummary={dashboardSummaryData.summary}
           complianceSnapshot={complianceData.snapshot}
+          riskAssessment={riskEngineData.assessment}
           loading={dashboardSummaryData.loading || complianceData.loading}
           lastUpdated={dashboardSummaryData.lastUpdated}
         />
       )}
 
-      {/* SECTION 4: Top Emergency Actions (Dynamic) */}
+      {/* SECTION 4: AI Reasoning (Explainability) */}
+      {!isCriticalMode && (
+        <AIExplainabilityCard
+          assessment={riskEngineData.assessment}
+          explanation={riskEngineData.explanation}
+          supervisorSnapshot={aiSupervisor.snapshot}
+        />
+      )}
+
+      {/* SECTION 5: Top Emergency Actions (Dynamic) */}
       {(isEmergencyMode || isCriticalMode) && (
         <EmergencyResponsePanelSectionView
           actions={emergencyData.actions}
@@ -184,15 +195,6 @@ export function DashboardPage() {
         />
       )}
 
-      {/* SECTION 5: AI Reasoning (Explainability) */}
-      {!isCriticalMode && (
-        <AIExplainabilityCard
-          assessment={riskEngineData.assessment}
-          explanation={riskEngineData.explanation}
-          supervisorSnapshot={aiSupervisor.snapshot}
-        />
-      )}
-
       {/* SECTION 6: Investigation Hub */}
       <Card className="flex flex-col overflow-hidden bg-[var(--sf-surface-card)] border-[var(--sf-border-default)]">
         <div className="flex flex-col gap-2 px-6 pt-5 pb-3 bg-[var(--sf-surface-base)]/50 border-b border-[var(--sf-border-default)]">
@@ -202,7 +204,7 @@ export function DashboardPage() {
               <p className="text-sm text-[var(--sf-text-tertiary)] mt-1">
                 Showing telemetry for: <span className="font-semibold text-[var(--sf-text-secondary)]">{riskEngineData.explanation?.zone || 'All Zones'}</span>
                 {riskEngineData.explanation?.triggered_rules?.[0] && (
-                  <> &bull; Reason: <span className="font-medium text-[var(--sf-text-secondary)]">{riskEngineData.explanation.triggered_rules[0].name.replace(/_/g, ' ')}</span></>
+                  <> &bull; Reason: <span className="font-medium text-[var(--sf-text-secondary)]">{formatLabel(riskEngineData.explanation.triggered_rules[0].name)}</span></>
                 )}
               </p>
             </div>
@@ -247,8 +249,13 @@ export function DashboardPage() {
             />
           )}
           {activeTab === 'sensors' && (
-            <div className="h-[300px]">
-              <SensorReadingsChart data={sensorReadingsData} />
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-auto lg:h-[300px]">
+              <div className="lg:col-span-2 min-h-[300px] lg:min-h-0 h-full">
+                <SensorReadingsChart data={sensorReadingsData} />
+              </div>
+              <div className="lg:col-span-1 min-h-[300px] lg:min-h-0 h-full">
+                <LiveCCTVPreview />
+              </div>
             </div>
           )}
         </div>

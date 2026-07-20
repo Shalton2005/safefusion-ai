@@ -83,7 +83,7 @@ export function SafetyTimeline({ events, className }: SafetyTimelineProps) {
                 </Badge>
               </div>
 
-              <p className="text-sm text-[var(--sf-text-secondary)] leading-relaxed">
+              <p className="text-sm text-[var(--sf-text-secondary)] leading-relaxed whitespace-pre-line">
                 {event.description}
               </p>
 

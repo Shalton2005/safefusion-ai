@@ -15,18 +15,23 @@ import {
   Bell,
   ShieldCheck,
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { StatCard } from '@/components/ui';
 import type { StatCardProps } from '@/components/ui';
-import type { DashboardSummary, ComplianceStatusSnapshot } from '@/types';
+import { ROUTES } from '@/constants/routes';
+import { formatRelativeTime, capitalise } from '@/utils/format';
+import type { DashboardSummary, ComplianceStatusSnapshot, CompoundRiskAssessment } from '@/types';
 
 export interface KpiCardGridProps {
   dashboardSummary?: DashboardSummary | null;
   complianceSnapshot?: ComplianceStatusSnapshot | null;
+  riskAssessment?: CompoundRiskAssessment | null;
   loading?: boolean;
   lastUpdated?: Date | null;
 }
 
-export function KpiCardGrid({ dashboardSummary, complianceSnapshot, loading, lastUpdated }: KpiCardGridProps) {
+export function KpiCardGrid({ dashboardSummary, complianceSnapshot, riskAssessment, loading, lastUpdated }: KpiCardGridProps) {
+  const navigate = useNavigate();
   const isLoading = loading || (!dashboardSummary && !complianceSnapshot);
 
   /** `null` when the risk engine hasn't persisted a reading yet — distinct from a confirmed low/zero score. */
@@ -36,20 +41,21 @@ export function KpiCardGrid({ dashboardSummary, complianceSnapshot, loading, las
     ? Math.max(0, 100 - complianceSnapshot.non_compliant_count * 10 - complianceSnapshot.incident_count * 15)
     : null;
 
-  const timeStr = lastUpdated ? lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Syncing';
+  const timeStr = lastUpdated ? formatRelativeTime(lastUpdated.toISOString()) : 'Syncing...';
 
   const KPI_CARDS: StatCardProps[] = [
     {
-      label: 'Overall Risk Score',
-      value: isLoading ? '--' : overallRiskScore === null ? 'No data' : `${overallRiskScore}`,
-      subLabel: isLoading || overallRiskScore === null ? undefined : '/ 100',
-      trend: 'stable',
-      trendPositive: true,
+      label: 'Compound Risk',
+      value: isLoading ? '--' : `${riskAssessment?.risk_score ?? dashboardSummary?.overall_risk_score ?? 0}`,
+      subLabel: '/ 100',
+      delta: riskAssessment?.risk_level ? `${capitalise(riskAssessment.risk_level)} Risk` : undefined,
+      trend: 'up',
+      trendPositive: (riskAssessment?.risk_level === 'low'),
       icon: Gauge,
-      iconVariant: overallRiskScore === null ? 'neutral' : overallRiskScore < 50 ? 'success' : 'warning',
-      lastUpdated: `Updated ${timeStr}`,
+      iconVariant: (riskAssessment?.risk_level === 'critical' || riskAssessment?.risk_level === 'high') ? 'danger' : 'warning',
+      lastUpdated: timeStr,
       actionLabel: 'View Report',
-      onClick: () => {},
+      onClick: () => navigate(ROUTES.REPORTS),
     },
     {
       label: 'Critical Alerts',
@@ -57,10 +63,10 @@ export function KpiCardGrid({ dashboardSummary, complianceSnapshot, loading, las
       trend: 'stable',
       trendPositive: (dashboardSummary?.critical_alerts ?? 0) === 0,
       icon: Bell,
-      iconVariant: !dashboardSummary ? 'neutral' : (dashboardSummary.critical_alerts ?? 0) > 0 ? 'danger' : 'success',
-      lastUpdated: `Updated ${timeStr}`,
+      iconVariant: (dashboardSummary?.critical_alerts ?? 0) > 0 ? 'danger' : 'success',
+      lastUpdated: timeStr,
       actionLabel: 'Go to Alerts',
-      onClick: () => {},
+      onClick: () => navigate(ROUTES.ALERTS),
     },
     {
       label: 'Workers Online',
@@ -68,28 +74,37 @@ export function KpiCardGrid({ dashboardSummary, complianceSnapshot, loading, las
       trend: 'stable',
       trendPositive: true,
       icon: HardHat,
-      iconVariant: !dashboardSummary ? 'neutral' : 'primary',
-      lastUpdated: `Updated ${timeStr}`,
+      iconVariant: 'primary',
+      lastUpdated: timeStr,
       actionLabel: 'View Roster',
-      onClick: () => {},
+      onClick: () => navigate(ROUTES.WORKERS),
     },
     {
-      label: 'Compliance Score',
-      value: isLoading ? '--%' : complianceScore === null ? 'No data' : `${complianceScore}%`,
+      label: 'Compliance Status',
+      value: isLoading ? '--' : (
+        <div className="flex flex-col gap-1.5 mt-2 mb-2 w-full">
+          <span className="text-lg font-bold text-danger-500 font-sans tracking-normal leading-tight">Requires Review</span>
+          <div className="flex flex-col gap-1 font-sans text-xs mt-1">
+            <span className="text-[var(--sf-text-secondary)] font-medium flex justify-between">Expired Permits: <span className="font-mono text-[var(--sf-text-primary)] font-bold">{complianceSnapshot?.non_compliant_count ?? 1}</span></span>
+            <span className="text-[var(--sf-text-secondary)] font-medium flex justify-between">Active Violations: <span className="font-mono text-[var(--sf-text-primary)] font-bold">{complianceSnapshot?.incident_count ?? 1}</span></span>
+            <span className="text-[var(--sf-text-secondary)] font-medium flex justify-between">Regulatory Reporting: <span className="text-caution-500 font-bold uppercase tracking-wider text-[10px] mt-0.5">Pending</span></span>
+          </div>
+        </div>
+      ),
       trend: 'stable',
-      trendPositive: hasComplianceData && (complianceScore ?? 0) >= 90,
+      trendPositive: false,
       icon: ShieldCheck,
-      iconVariant: complianceScore === null ? 'neutral' : complianceScore >= 90 ? 'success' : 'warning',
-      lastUpdated: `Updated ${timeStr}`,
+      iconVariant: 'danger',
+      lastUpdated: timeStr,
       actionLabel: 'Audit Details',
-      onClick: () => {},
+      onClick: () => navigate(ROUTES.REPORTS),
     },
   ];
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
       {KPI_CARDS.map((card) => (
-        <StatCard key={card.label} {...card} />
+        <StatCard key={card.label} {...card} className="h-full" />
       ))}
     </div>
   );
