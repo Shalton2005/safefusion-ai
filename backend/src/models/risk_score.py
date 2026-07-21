@@ -8,11 +8,11 @@ risk analysis results for individual plant zones.
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, Enum, Float, Index, String, Text, func
+from sqlalchemy import DateTime, Float, Index, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.database.base import Base
-from src.models.enums import RiskLevel
+from src.models.enums import RiskLevel, enum_column
 
 
 class RiskScore(Base):
@@ -31,9 +31,7 @@ class RiskScore(Base):
     risk_score: Mapped[float] = mapped_column(
         Float, nullable=False, comment="Compound risk score between 0.0 and 100.0"
     )
-    risk_level: Mapped[RiskLevel] = mapped_column(
-        Enum(RiskLevel, native_enum=False, length=20), nullable=False
-    )
+    risk_level: Mapped[RiskLevel] = mapped_column(enum_column(RiskLevel, length=20), nullable=False)
     contributing_factors: Mapped[str | None] = mapped_column(Text, nullable=True)
     recommendation: Mapped[str | None] = mapped_column(Text, nullable=True)
     analyzed_at: Mapped[datetime] = mapped_column(

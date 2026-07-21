@@ -40,6 +40,26 @@ interface CompoundRiskDetectionResult {
   results: CompoundRiskZoneResult[];
 }
 
+function compoundRiskZone(
+  result: CompoundRiskDetectionResult,
+  preferredZone?: string | null,
+): CompoundRiskZoneResult | undefined {
+  if (preferredZone) {
+    const preferred = result.results.find((zone) => zone.zone === preferredZone);
+    if (preferred) return preferred;
+
+    return {
+      zone: preferredZone,
+      risk_score: 0,
+      risk_level: 'low',
+      triggered_rules: [],
+      explanation: '',
+    };
+  }
+
+  return worstCompoundRiskZone(result);
+}
+
 function worstCompoundRiskZone(result: CompoundRiskDetectionResult): CompoundRiskZoneResult | undefined {
   return result.results.reduce<CompoundRiskZoneResult | undefined>(
     (acc, zone) => (!acc || RISK_LEVEL_ORDER[zone.risk_level] > RISK_LEVEL_ORDER[acc.risk_level] ? zone : acc),
@@ -48,8 +68,11 @@ function worstCompoundRiskZone(result: CompoundRiskDetectionResult): CompoundRis
 }
 
 /** Reduces the real Compound Risk Engine's per-zone output into the same card-friendly `CompoundRiskAssessment` shape `toCompoundRiskAssessment` produces for the v1 engine, so `AICommandCenter` doesn't need a different prop shape. */
-function toRealCompoundRiskAssessment(result: CompoundRiskDetectionResult): CompoundRiskAssessment {
-  const worst = worstCompoundRiskZone(result);
+function toRealCompoundRiskAssessment(
+  result: CompoundRiskDetectionResult,
+  preferredZone?: string | null,
+): CompoundRiskAssessment {
+  const worst = compoundRiskZone(result, preferredZone);
   return {
     risk_score: worst?.risk_score ?? 0,
     risk_level: worst?.risk_level ?? 'low',
@@ -59,8 +82,11 @@ function toRealCompoundRiskAssessment(result: CompoundRiskDetectionResult): Comp
 }
 
 /** Same as `toRiskExplanation`, but from the real Compound Risk Engine's output and using its own backend-authored `explanation` text — no client-side placeholder text. */
-function toRealRiskExplanation(result: CompoundRiskDetectionResult): RiskExplanation | null {
-  const worst = worstCompoundRiskZone(result);
+function toRealRiskExplanation(
+  result: CompoundRiskDetectionResult,
+  preferredZone?: string | null,
+): RiskExplanation | null {
+  const worst = compoundRiskZone(result, preferredZone);
   if (!worst) return null;
 
   return {

@@ -31,6 +31,7 @@ export interface DemoScenarioStatus {
   total_seconds: number;
   current_row_index: number;
   current_row_label: string | null;
+  zone: string | null;
   video_url: string | null;
   /** Scripted CV overlay boxes for the current row (helmet/vest/smoke/fire/restricted-zone) — see `backend/demo_scenarios/*.json`'s `cv_events`. Hand-authored, not live model inference. */
   cv_events: DemoDetection[];

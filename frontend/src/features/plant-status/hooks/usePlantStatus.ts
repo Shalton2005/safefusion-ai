@@ -9,11 +9,12 @@
  *   - The highest-risk zone's `risk_level`, bucketed into
  *     Normal/Warning/Critical when not in emergency — read from
  *     `usePlantStatusStore` if a page (e.g. `DashboardPage`, via its own
- *     `useCompoundRiskEngine`) has already published a fresh one, since
- *     `POST /risk-scores/calculate` is non-idempotent and shouldn't be
- *     called twice in parallel. Only self-fetches via
- *     `compoundRiskService.getAssessment()` when nothing has been
- *     published — the common case for pages other than the dashboard.
+ *     `useDashboardStore`) has already published a fresh one, since a
+ *     live Compound Risk poll should not be duplicated. Only self-fetches
+ *     via `compoundRiskService.getRealAssessment()` (the same real 9-rule
+ *     camera-aware engine the dashboard uses — `GET /monitoring/compound-risk`)
+ *     when nothing has been published — the common case for pages other than
+ *     the dashboard.
  *
  * Never fabricates a status the backend didn't produce — Emergency Mode
  * and Risk Level are both surfaced verbatim alongside the derived status.
@@ -65,7 +66,7 @@ export function usePlantStatus(): UsePlantStatusResult {
         emergencyResponseService.getStatus({ signal }),
         published.riskLevel !== null
           ? Promise.resolve(published.riskLevel)
-          : compoundRiskService.getAssessment({ signal }).then((a) => a.risk_level),
+          : compoundRiskService.getRealAssessment({ signal }).then((a) => a.risk_level),
       ]);
 
       setInEmergency(emergencyStatus.in_emergency);

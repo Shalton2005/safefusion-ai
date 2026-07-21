@@ -8,11 +8,11 @@ Permit-to-Work (PTW) records for controlled high-risk tasks.
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, Enum, Index, String, func
+from sqlalchemy import DateTime, Index, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.database.base import Base
-from src.models.enums import PermitStatus, PermitType
+from src.models.enums import PermitStatus, PermitType, enum_column
 
 
 class Permit(Base):
@@ -28,9 +28,7 @@ class Permit(Base):
     )
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
-    permit_type: Mapped[PermitType] = mapped_column(
-        Enum(PermitType, native_enum=False, length=30), nullable=False
-    )
+    permit_type: Mapped[PermitType] = mapped_column(enum_column(PermitType, length=30), nullable=False)
     zone: Mapped[str] = mapped_column(String(50), nullable=False)
     issued_by: Mapped[str] = mapped_column(
         String(100), nullable=False, comment="Safety officer who issued the permit"
@@ -41,7 +39,7 @@ class Permit(Base):
         DateTime(timezone=True), nullable=False, comment="Permit expiry time"
     )
     status: Mapped[PermitStatus] = mapped_column(
-        Enum(PermitStatus, native_enum=False, length=20),
+        enum_column(PermitStatus, length=20),
         default=PermitStatus.ACTIVE,
         nullable=False,
     )

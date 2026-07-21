@@ -31,6 +31,7 @@ const IDLE_STATUS: DemoScenarioStatus = {
   total_seconds: 0,
   current_row_index: -1,
   current_row_label: null,
+  zone: null,
   video_url: null,
   cv_events: [],
 };

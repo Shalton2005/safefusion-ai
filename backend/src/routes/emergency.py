@@ -65,7 +65,13 @@ def get_emergency_status(
     ]
     return EmergencyStatusResponse(
         zone_count=len(zones),
-        in_emergency=len(zones) > 0,
+        # True only when at least one zone has matched emergency-response
+        # rules (i.e. its risk score cleared a dispatch threshold) — not
+        # merely when compound risk zones exist.  The previous
+        # ``len(zones) > 0`` made Emergency Mode permanently Active from
+        # the moment any compound risk fired, even at low/medium levels
+        # with zero dispatched actions.
+        in_emergency=any(z.action_count > 0 for z in zones),
         zones=zones,
     )
 

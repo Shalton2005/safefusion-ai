@@ -19,6 +19,14 @@ from __future__ import annotations
 
 import asyncio
 
+from sqlalchemy import delete, select
+
+from src.models.alert import Alert
+from src.models.incident import Incident
+from src.models.permit import Permit
+from src.models.risk_score import RiskScore
+from src.models.sensor import Sensor
+from src.models.worker import Worker
 from src.config.risk_rules import RISK_SCORE_LEVEL_BANDS, RISK_SCORE_RULES
 from src.database.session import db_session
 from src.repositories.permit import PermitRepository
@@ -68,6 +76,7 @@ from src.utils.logger import get_logger
 logger = get_logger(__name__)
 
 _TICK_SECONDS: float = 1.0
+_DEMO_WORKER_EMPLOYEE_ID_PREFIX = "EMP-DEMO-"
 
 #: How often (seconds of playback) the scenario persists a risk-score
 #: snapshot. Independent of the 1-second tick and of however many browser
@@ -87,6 +96,49 @@ _RISK_SCORE_PERSIST_INTERVAL_SECONDS: float = 30.0
 _camera_compliance_engine = PPEComplianceEngine(
     rules=[MissingHelmetRule(), MissingSafetyVestRule(), SmokeDetectedRule()]
 )
+
+
+def _purge_demo_runtime_records(db) -> None:
+    """Delete persisted demo-only records that would contaminate the next run.
+
+    The real monitoring endpoints are plant-wide: they read every latest
+    sensor, worker, permit, alert, incident, and risk-score row in the DB.
+    Demo playback therefore must start from a clean demo-owned slice or the
+    Compound Risk Engine will keep seeing critical rows from previous demo
+    runs and unrelated seeded demo scenarios, causing the dashboard to stay
+    pinned to their worst zone instead of the currently playing scenario.
+
+    Demo workers already carry a stable, dedicated ``EMP-DEMO-*`` employee-id
+    namespace. Use the zones those workers occupy as the ownership boundary
+    for every persisted demo record type we need to clear between runs.
+    """
+    demo_rows = db.execute(
+        select(Worker.employee_id, Worker.current_zone).where(
+            Worker.employee_id.like(f"{_DEMO_WORKER_EMPLOYEE_ID_PREFIX}%")
+        )
+    ).all()
+    if not demo_rows:
+        return
+
+    demo_employee_ids = [employee_id for employee_id, _zone in demo_rows]
+    demo_zones = sorted({zone for _employee_id, zone in demo_rows if zone})
+
+    if demo_zones:
+        db.execute(delete(Alert).where(Alert.zone.in_(demo_zones)))
+        db.execute(delete(Incident).where(Incident.zone.in_(demo_zones)))
+        db.execute(delete(Permit).where(Permit.zone.in_(demo_zones)))
+        db.execute(delete(RiskScore).where(RiskScore.zone.in_(demo_zones)))
+        db.execute(delete(Sensor).where(Sensor.zone.in_(demo_zones)))
+
+    db.execute(delete(Worker).where(Worker.employee_id.in_(demo_employee_ids)))
+    db.commit()
+
+    logger.info(
+        "Purged demo runtime state for %d worker(s) across %d zone(s): %s",
+        len(demo_employee_ids),
+        len(demo_zones),
+        ", ".join(demo_zones) or "(none)",
+    )
 
 
 class _RunnerPermitSummaryAdapter:
@@ -127,6 +179,25 @@ class ScenarioPlaybackRunner:
         #: was persisted (see ``_maybe_persist_risk_score``).
         self._seconds_since_risk_score_persist: float = _RISK_SCORE_PERSIST_INTERVAL_SECONDS
 
+    def _reset_demo_runtime_state(self) -> None:
+        """Clear in-memory and persisted demo-owned state before a fresh run.
+
+        This keeps the real plant-wide monitoring endpoints honest across
+        refreshes and loop restarts: no stale camera findings, no leftover
+        demo workers/permits/sensors from a previous loop, and no reused
+        runner timers that would skew the next run's cadence.
+        """
+        if self._camera_detection_task is not None:
+            self._camera_detection_task.cancel()
+            self._camera_detection_task = None
+
+        get_default_camera_monitoring_service().clear()
+        with db_session() as db:
+            _purge_demo_runtime_records(db)
+
+        self._seconds_since_camera_detection = CAMERA_DETECTION_INTERVAL_SECONDS
+        self._seconds_since_risk_score_persist = _RISK_SCORE_PERSIST_INTERVAL_SECONDS
+
     @property
     def is_running(self) -> bool:
         return self._task is not None and not self._task.done()
@@ -154,6 +225,7 @@ class ScenarioPlaybackRunner:
                 exactly like a brand-new ``start()`` call would.
         """
         await self.stop()
+        self._reset_demo_runtime_state()
 
         self._loop = loop
         self._scenario_name = scenario_name
@@ -295,6 +367,7 @@ class ScenarioPlaybackRunner:
 
                 assert self._scenario_name is not None
                 logger.info("Scenario playback looping: restarting %s", self._scenario_name)
+                self._reset_demo_runtime_state()
                 self._engine = ScenarioPlaybackEngine(
                     timeline=load_scenario_by_name(self._scenario_name), dispatcher=get_default_dispatcher()
                 )

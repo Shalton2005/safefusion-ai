@@ -34,6 +34,24 @@ class CameraMonitoringService:
         """Record ``result`` as the latest known state for its camera."""
         self._latest_by_camera[result.camera_id] = result
 
+    def clear(self) -> None:
+        """Discard all recorded per-camera state.
+
+        Called by ``ScenarioPlaybackRunner`` on every scenario loop restart
+        so stale detections from the previous loop's peak (e.g. smoke,
+        missing helmet, PPE violations at t=38–40 s) do not carry over into
+        the first few seconds of the new loop, where the Compound Risk Engine
+        would otherwise score 100 from frame 0 until the next real camera
+        detection pass (~3 s later) overwrites them with fresh data.
+
+        Distinct from :func:`reset_default_camera_monitoring_service`, which
+        *replaces* the singleton (test teardown); ``clear()`` wipes the
+        in-memory dict while keeping the same instance alive so all route-
+        handler references (``get_default_camera_monitoring_service()``) stay
+        valid.
+        """
+        self._latest_by_camera.clear()
+
     def get_latest_by_camera(self) -> dict[str, FrameComplianceResult]:
         """Return the latest recorded ``FrameComplianceResult`` per camera, keyed by camera ID.
 

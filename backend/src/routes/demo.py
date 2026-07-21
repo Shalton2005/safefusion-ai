@@ -70,6 +70,7 @@ class ScenarioStatusResponse(AppBaseModel):
     total_seconds: float = 0.0
     current_row_index: int = -1
     current_row_label: str | None = None
+    zone: str | None = None
     #: Public URL of the scenario's illustrative CCTV clip (served from the
     #: ``/media/cctv`` static mount in ``server.py``), or ``None`` if the
     #: scenario has no associated video. Purely visual — has no bearing on
@@ -91,6 +92,7 @@ def _to_status_response(running: bool) -> ScenarioStatusResponse:
         total_seconds=state.total_seconds,
         current_row_index=state.current_row_index,
         current_row_label=state.current_row_label,
+        zone=state.zone,
         video_url=f"/media/cctv/{state.video_filename}" if state.video_filename else None,
         compound_risk=[
             ZoneCompoundRiskResultResponse.model_validate(result, from_attributes=True)

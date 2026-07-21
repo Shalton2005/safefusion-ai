@@ -8,11 +8,11 @@ produced by the detection and risk-analysis engines.
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, Enum, Index, String, Text, func
+from sqlalchemy import DateTime, Index, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.database.base import Base
-from src.models.enums import AlertSeverity, AlertSource, AlertStatus, AlertType
+from src.models.enums import AlertSeverity, AlertSource, AlertStatus, AlertType, enum_column
 
 
 class Alert(Base):
@@ -31,17 +31,15 @@ class Alert(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     zone: Mapped[str] = mapped_column(String(50), nullable=False)
-    alert_type: Mapped[AlertType] = mapped_column(
-        Enum(AlertType, native_enum=False, length=20), nullable=False
-    )
+    alert_type: Mapped[AlertType] = mapped_column(enum_column(AlertType, length=20), nullable=False)
     severity: Mapped[AlertSeverity] = mapped_column(
-        Enum(AlertSeverity, native_enum=False, length=20),
+        enum_column(AlertSeverity, length=20),
         nullable=False,
         default=AlertSeverity.MEDIUM,
         comment="Alert severity assigned by the rule that generated it",
     )
     source: Mapped[AlertSource] = mapped_column(
-        Enum(AlertSource, native_enum=False, length=30),
+        enum_column(AlertSource, length=30),
         nullable=False,
         default=AlertSource.SENSOR_MONITORING,
         comment="Monitoring subsystem that produced the triggering data",
@@ -54,7 +52,7 @@ class Alert(Base):
         comment="Source system that generated the alert",
     )
     status: Mapped[AlertStatus] = mapped_column(
-        Enum(AlertStatus, native_enum=False, length=20),
+        enum_column(AlertStatus, length=20),
         default=AlertStatus.ACTIVE,
         nullable=False,
     )

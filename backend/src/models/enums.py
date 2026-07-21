@@ -6,9 +6,37 @@ serialize them directly to their string values without extra conversion.
 
 SQLAlchemy stores them as VARCHAR columns (``native_enum=False``) to
 avoid PostgreSQL ``CREATE TYPE`` overhead and keep migrations portable.
+
+Every model column wrapping one of these must go through
+:func:`enum_column` (see below), never a bare ``sqlalchemy.Enum(...)``
+directly — SQLAlchemy's ``Enum`` type stores a Python enum member's
+``.name`` (e.g. ``"HOT_WORK"``) by default, not its ``.value`` (e.g.
+``"hot_work"``), regardless of the enum inheriting from ``str``. That
+default silently diverged from what every part of this codebase (schema
+examples, seed data equality checks, this very docstring) assumes is
+stored — every enum column was writing uppercase member names to
+Postgres until this was found and fixed. ``enum_column`` passes the
+``values_callable`` SQLAlchemy actually requires to store ``.value``.
 """
 
 from enum import Enum
+
+from sqlalchemy import Enum as SqlEnum
+
+
+def enum_column(enum_cls: type[Enum], *, length: int, **kwargs: object) -> SqlEnum:
+    """Build a ``sqlalchemy.Enum`` column type that stores ``enum_cls`` members by
+    their ``.value``, not their ``.name`` — see this module's docstring for why
+    the default behavior is wrong for every enum here. Use this instead of a bare
+    ``Enum(SomeEnum, native_enum=False, length=N)`` in every model column.
+    """
+    return SqlEnum(
+        enum_cls,
+        native_enum=False,
+        length=length,
+        values_callable=lambda cls: [member.value for member in cls],
+        **kwargs,
+    )
 
 
 class WorkerStatus(str, Enum):

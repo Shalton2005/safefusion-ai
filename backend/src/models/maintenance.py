@@ -8,11 +8,11 @@ activities for industrial equipment throughout their lifecycle.
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, Enum, Index, String, func
+from sqlalchemy import DateTime, Index, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.database.base import Base
-from src.models.enums import MaintenanceStatus, MaintenanceType
+from src.models.enums import MaintenanceStatus, MaintenanceType, enum_column
 
 
 class MaintenanceLog(Base):
@@ -33,11 +33,11 @@ class MaintenanceLog(Base):
     )
     equipment_name: Mapped[str] = mapped_column(String(100), nullable=False)
     maintenance_type: Mapped[MaintenanceType] = mapped_column(
-        Enum(MaintenanceType, native_enum=False, length=20), nullable=False
+        enum_column(MaintenanceType, length=20), nullable=False
     )
     assigned_team: Mapped[str] = mapped_column(String(100), nullable=False)
     status: Mapped[MaintenanceStatus] = mapped_column(
-        Enum(MaintenanceStatus, native_enum=False, length=20),
+        enum_column(MaintenanceStatus, length=20),
         default=MaintenanceStatus.PLANNED,
         nullable=False,
     )

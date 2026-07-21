@@ -8,11 +8,11 @@ current zone location, PPE compliance, and operational status.
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, Enum, Index, String, func
+from sqlalchemy import Boolean, DateTime, Index, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.database.base import Base
-from src.models.enums import WorkerStatus
+from src.models.enums import WorkerStatus, enum_column
 
 
 class Worker(Base):
@@ -54,7 +54,7 @@ class Worker(Base):
         String(20), nullable=False, comment="Morning / Afternoon / Night"
     )
     status: Mapped[WorkerStatus] = mapped_column(
-        Enum(WorkerStatus, native_enum=False, length=20),
+        enum_column(WorkerStatus, length=20),
         default=WorkerStatus.WORKING,
         nullable=False,
     )

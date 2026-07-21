@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import {
   dashboardService,
   compoundRiskService,
+  demoService,
   emergencyResponseService,
   recommendationService,
   complianceService,
@@ -67,6 +68,7 @@ export const useDashboardStore = create<DashboardStoreState>((set, get) => ({
       const [
         summaryRes,
         zonesRes,
+        demoRes,
         riskRes,
         emergencyRes,
         recRes,
@@ -77,6 +79,7 @@ export const useDashboardStore = create<DashboardStoreState>((set, get) => ({
       ] = await Promise.all([
         dashboardService.getSummary({ signal }),
         dashboardService.getZoneOverview({ signal }),
+        demoService.getStatus({ signal }),
         // The real, camera-aware Compound Risk Engine (9 rules, including
         // PPE/fire/smoke) — not the legacy v1 weighted scorer
         // (`compoundRiskService.calculate`), which has no camera signal at
@@ -92,12 +95,14 @@ export const useDashboardStore = create<DashboardStoreState>((set, get) => ({
         sensorsService.getSensors({ limit: 100 }, { signal })
       ]);
 
+      const activeDemoZone = demoRes.running ? demoRes.zone : null;
+
       if (!signal?.aborted) {
         set({
           summary: summaryRes.data.data,
           zones: zonesRes.data.data.zones,
-          assessment: compoundRiskService.toRealAssessment(riskRes),
-          explanation: compoundRiskService.toRealExplanation(riskRes),
+          assessment: compoundRiskService.toRealAssessment(riskRes, activeDemoZone),
+          explanation: compoundRiskService.toRealExplanation(riskRes, activeDemoZone),
           emergencyActions: emergencyResponseService.toActionItems(emergencyRes),
           recommendations: recRes.recommendations,
           compliance: compRes,

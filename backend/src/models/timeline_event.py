@@ -13,12 +13,12 @@ stay independent of how events are produced or consumed.
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, Enum, Index, String, func
+from sqlalchemy import DateTime, Index, String, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.database.base import Base
-from src.models.enums import SeverityLevel
+from src.models.enums import SeverityLevel, enum_column
 
 
 class TimelineEvent(Base):
@@ -47,7 +47,7 @@ class TimelineEvent(Base):
         String(30), nullable=False, comment="Occurrence category, e.g. created/updated/threshold_crossed"
     )
     severity: Mapped[SeverityLevel] = mapped_column(
-        Enum(SeverityLevel, native_enum=False, length=20),
+        enum_column(SeverityLevel, length=20),
         nullable=False,
         default=SeverityLevel.LOW,
         comment="Severity classified at ingestion time from the event's source/type/payload",

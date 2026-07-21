@@ -8,11 +8,11 @@ sensor reading snapshot captured at a specific point in time.
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, Enum, Float, Index, String, func
+from sqlalchemy import DateTime, Float, Index, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.database.base import Base
-from src.models.enums import SensorStatus, SensorType
+from src.models.enums import SensorStatus, SensorType, enum_column
 
 
 class Sensor(Base):
@@ -30,15 +30,13 @@ class Sensor(Base):
     zone: Mapped[str] = mapped_column(
         String(50), nullable=False, comment="Plant zone identifier"
     )
-    sensor_type: Mapped[SensorType] = mapped_column(
-        Enum(SensorType, native_enum=False, length=20), nullable=False
-    )
+    sensor_type: Mapped[SensorType] = mapped_column(enum_column(SensorType, length=20), nullable=False)
     value: Mapped[float] = mapped_column(Float, nullable=False, comment="Sensor reading value")
     unit: Mapped[str] = mapped_column(
         String(20), nullable=False, comment="Measurement unit (e.g. °C, ppm, bar)"
     )
     status: Mapped[SensorStatus] = mapped_column(
-        Enum(SensorStatus, native_enum=False, length=20),
+        enum_column(SensorStatus, length=20),
         default=SensorStatus.NORMAL,
         nullable=False,
     )
