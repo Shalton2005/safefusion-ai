@@ -109,10 +109,27 @@ class TextChunker:
         return chunks
 
     def chunk_document(self, document: "IngestedDocument") -> list[Chunk]:
-        """Convenience wrapper: chunk an :class:`IngestedDocument`'s text with its metadata attached."""
+        """Convenience wrapper: chunk an :class:`IngestedDocument`'s text with its metadata attached.
+
+        Additionally resolves a ``page`` number for each chunk (1-based,
+        the page its ``start_offset`` falls within) from the document's
+        ``metadata.pages`` offset table — populated for paginated sources
+        (PDF) only; ``None`` for markdown/text sources or if a chunk's
+        offset couldn't be resolved (e.g. the substring-search fallback
+        in :meth:`chunk_text` failed to locate it). This is what lets a
+        retrieved chunk cite "Document.pdf, Page 12" instead of just the
+        source file.
+        """
         from dataclasses import asdict
 
-        return self.chunk_text(document.page_content, asdict(document.metadata))
+        chunks = self.chunk_text(document.page_content, asdict(document.metadata))
+        if not document.metadata.pages:
+            return chunks
+
+        return [
+            Chunk(content=chunk.content, metadata={**chunk.metadata, "page": _resolve_page(chunk, document)})
+            for chunk in chunks
+        ]
 
     def chunk_documents(self, documents: list["IngestedDocument"]) -> list[Chunk]:
         """Chunk multiple documents, returning one flat list of chunks."""
@@ -120,3 +137,24 @@ class TextChunker:
         for document in documents:
             result.extend(self.chunk_document(document))
         return result
+
+
+def _resolve_page(chunk: Chunk, document: "IngestedDocument") -> int | None:
+    """Find the 1-based page number containing a chunk's start offset.
+
+    ``document.metadata.pages`` is an ordered list of
+    ``(page_number, start_offset, end_offset)`` triples (see
+    ``DocumentMetadata``) — a linear scan is fine here since a source
+    document has at most a few hundred pages and this runs once per
+    chunk at ingestion time, not on the retrieval hot path.
+    """
+    start_offset = chunk.metadata.get("start_offset")
+    if start_offset is None:
+        return None
+    for page_number, page_start, page_end in document.metadata.pages:
+        if page_start <= start_offset < page_end:
+            return page_number
+    # A chunk starting exactly at (or past) the last page's end offset —
+    # e.g. the final chunk ending flush with the document — falls back to
+    # the last known page rather than None.
+    return document.metadata.pages[-1][0] if document.metadata.pages else None

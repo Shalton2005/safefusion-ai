@@ -180,17 +180,37 @@ def _build_llm_context(supervisor_response: SupervisorResponse) -> LlmContext:
     return LlmContext(rag=rag_items, graph=graph_items, risk=risk_items)
 
 
+def _append_sources(answer: str, context: LlmContext) -> str:
+    """Append a deterministic "Sources:" citation block (see
+    :meth:`~src.ai.llm.context.LlmContext.format_sources`) to a
+    successfully generated answer.
+
+    Deliberately independent of whether the model's own text already
+    cited its sources inline (the system prompts ask it to, but local
+    models don't reliably comply) — this guarantees every answer grounded
+    in retrieved document context ends with a citation, matching what a
+    safety officer needs to verify a claim against its regulation.
+    """
+    sources = context.format_sources()
+    if not sources:
+        return answer
+    return f"{answer}\n\n{sources}"
+
+
 def _extract_rag_items(result: AgentResult) -> list[RagContextItem]:
     if result.agent == "knowledge":
         # KnowledgeAgent.data is list[RetrievedChunk].
         return [RagContextItem.from_retrieved_chunk(chunk) for chunk in result.data]
     # ComplianceAgent.data is a single ComplianceAssessment whose
-    # compliance_notes are the retrieved passage text, paired 1:1 with
-    # relevant_regulations as the closest available source label.
+    # compliance_notes are the retrieved passage text, paired 1:1 (by
+    # index) with note_sources — NOT relevant_regulations, which is
+    # deduped by document and would misalign as soon as one document
+    # contributes more than one retrieved chunk (see
+    # ComplianceAssessment's docstring).
     assessment = result.data
     return [
-        RagContextItem(content=note, source=regulation)
-        for note, regulation in zip(assessment.compliance_notes, assessment.relevant_regulations)
+        RagContextItem(content=note, source=source, title=title, page=page)
+        for note, (source, title, page) in zip(assessment.compliance_notes, assessment.note_sources)
     ]
 
 
@@ -321,7 +341,7 @@ class AiCopilotService:
             )
         return ExplainResult(
             request_text=text,
-            answer=llm_response.answer,
+            answer=_append_sources(llm_response.answer, context),
             explanation=llm_response.reasoning,
             reasoning=_build_reasoning(supervisor_response, model=llm_response.model),
         )
@@ -404,7 +424,7 @@ class AiCopilotService:
                 reasoning=_build_reasoning(supervisor_response, warnings=warnings),
             )
         return ChatResult(
-            reply=llm_response.answer,
+            reply=_append_sources(llm_response.answer, context),
             explanation=llm_response.reasoning,
             reasoning=_build_reasoning(supervisor_response, model=llm_response.model),
         )

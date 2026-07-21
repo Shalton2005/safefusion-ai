@@ -43,15 +43,33 @@ class RagContextItem:
     content: str
     source: str
     title: str | None = None
+    page: int | None = None
 
     @classmethod
     def from_retrieved_chunk(cls, chunk: object) -> "RagContextItem":
         """Adapt a :class:`~src.services.rag.schemas.RetrievedChunk` (or duck-typed equivalent)."""
-        return cls(content=chunk.content, source=chunk.source, title=getattr(chunk, "title", None))
+        return cls(
+            content=chunk.content,
+            source=chunk.source,
+            title=getattr(chunk, "title", None),
+            page=getattr(chunk, "page", None),
+        )
+
+    @property
+    def display_name(self) -> str:
+        """Filename-style label a citation should show — prefers the source path's
+        basename over ``title`` when a title exists (some PDFs' embedded
+        document-info title is a generic string, not the filename the user
+        actually recognizes), falling back to the raw ``source`` if it has
+        no path separators at all (e.g. already a bare filename)."""
+        from pathlib import PurePath
+
+        return PurePath(self.source).name or self.title or self.source
 
     def format(self) -> str:
-        label = self.title or self.source
-        return f"- [{label}] {self.content}"
+        label = self.title or self.display_name
+        location = f", Page {self.page}" if self.page is not None else ""
+        return f"- [{label}{location}] {self.content}"
 
 
 # ── Knowledge graph context ──────────────────────────────────────────────────
@@ -146,3 +164,38 @@ class LlmContext:
     @property
     def is_empty(self) -> bool:
         return not (self.rag or self.graph or self.risk)
+
+    def format_sources(self) -> str:
+        """Render a deterministic "Sources:" citation block from ``rag``, deduped by
+        (document, page) and in first-seen order (retrieval's own relevance
+        ranking, since ``rag`` is built from ranked chunks — see
+        ``src.ai.copilot.service._build_llm_context``).
+
+        Built independently of whatever the model's own generated text
+        says — appended by :func:`~src.ai.copilot.service._generate_or_degrade`'s
+        callers after generation, so a citation is guaranteed to appear
+        even if the model doesn't mention its sources by name (local
+        models don't reliably follow that instruction — see
+        :mod:`src.ai.prompts`' system prompts, which additionally *ask*
+        the model to cite inline; this is the deterministic backstop, not
+        a replacement for that instruction).
+
+        Returns an empty string when there is no RAG context to cite —
+        callers should skip appending in that case rather than show an
+        empty "Sources:" heading.
+        """
+        if not self.rag:
+            return ""
+
+        seen: dict[tuple[str, int | None], None] = {}
+        for item in self.rag:
+            seen.setdefault((item.display_name, item.page), None)
+
+        entries = list(seen.keys())
+        if len(entries) == 1:
+            name, page = entries[0]
+            location = f"\nPage: {page}" if page is not None else ""
+            return f"Source:\n{name}{location}"
+
+        lines = [f"{name} (Page {page})" if page is not None else name for name, page in entries]
+        return "Sources:\n" + "\n".join(lines)

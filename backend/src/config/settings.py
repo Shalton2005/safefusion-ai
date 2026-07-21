@@ -45,8 +45,29 @@ class Settings(BaseSettings):
     # Request timeouts (seconds) so an unreachable/hanging Ollama server
     # fails fast instead of hanging a request indefinitely — see
     # src/ai/llm/ollama_provider.py and src/services/embedding/ollama_provider.py.
-    OLLAMA_LLM_TIMEOUT_SECONDS: float = 30.0
+    # 30s was tuned assuming a GPU or fast host; measured against this
+    # project's actual CPU-only Ollama container, a trivial one-sentence
+    # llama3.1:8b completion alone takes ~40s, and a real Copilot
+    # chat/explain call additionally has a full RAG-grounded prompt to
+    # process — 120s gives that realistic headroom without being long
+    # enough to mask a genuinely hung/unreachable server.
+    OLLAMA_LLM_TIMEOUT_SECONDS: float = 120.0
     OLLAMA_EMBEDDING_TIMEOUT_SECONDS: float = 15.0
+
+    # ── RAG document ingestion ────────────────────────────────────────────────
+    # Source directory scripts/ingest_rag_documents.py scans for regulatory
+    # PDFs to chunk/embed/index — see that script's module docstring for the
+    # full ingestion flow. Relative to the backend/ working directory the
+    # script is run from (matches how DEMO_AUTOSTART_SCENARIO's sibling
+    # paths are resolved elsewhere in this file).
+    RAG_DOCUMENTS_DIR: str = "rag"
+    # Chunk size/overlap for regulatory documents specifically — larger than
+    # TextChunker's 1000/200 default (see src/services/chunking/config.py)
+    # because legislative/regulatory text has long clauses and cross-references
+    # that lose meaning when split too aggressively; a bigger window keeps
+    # more of a clause's surrounding context in one chunk.
+    RAG_CHUNK_SIZE: int = 1500
+    RAG_CHUNK_OVERLAP: int = 300
 
     # ── pgvector (RAG document embeddings) ───────────────────────────────────
     # Must match the output width of OLLAMA_EMBEDDING_MODEL — nomic-embed-text

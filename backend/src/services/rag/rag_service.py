@@ -52,6 +52,33 @@ if TYPE_CHECKING:
 
 logger = get_logger(__name__)
 
+#: Filename prefixes (see ``scripts/ingest_rag_documents.py``, which names
+#: every ingested file ``NN_Description.pdf``) mapped to a retrieval
+#: priority tier — lower sorts first. Indian regulations (OSHWC, Factories
+#: Act, NDMA) rank ahead of OSHA guidance so a query with comparably
+#: relevant matches in both prefers the jurisdiction this plant actually
+#: operates under; OSHA is still returned (never excluded) when it's the
+#: more relevant or only match, satisfying "then OSHA if additional
+#: context is needed" rather than hard-filtering it out.
+_INDIAN_SOURCE_PREFIXES: tuple[str, ...] = ("01_", "02_", "03_", "04_", "05_", "06_")
+_PRIORITY_BOOST = 0.05
+
+
+def _source_priority_boost(source: str) -> float:
+    """Small cosine-similarity boost applied to Indian-regulation sources.
+
+    Deliberately additive and small (not a hard tier sort) — a
+    genuinely more relevant OSHA passage still outranks a marginally
+    relevant Indian one; this only breaks near-ties and mild differences
+    in the Indian sources' favor, matching "prioritize Indian regulations,
+    then OSHA guidance if additional context is needed" without ever
+    hiding a clearly-better OSHA match.
+    """
+    from pathlib import PurePath
+
+    name = PurePath(source).name
+    return _PRIORITY_BOOST if name.startswith(_INDIAN_SOURCE_PREFIXES) else 0.0
+
 
 class QueryEmbedderPort(Protocol):
     """Contract for turning a query string into a vector.
@@ -112,11 +139,22 @@ class RagService:
 
         with timed(logger, "retrieval", query_length=len(query)):
             query_vector = self._embedder.embed_query(query)
+            # Over-fetch beyond `limit` before applying the source-priority
+            # boost and re-trimming (see `_source_priority_boost`) — a
+            # boosted Indian-source match ranked just outside the raw
+            # top-`limit` window should still be able to displace an
+            # unboosted OSHA match inside it, which a plain `limit`-only
+            # fetch would never surface for re-ranking to begin with.
             matches = self._repository.search_by_cosine_similarity(
                 query_vector,
-                limit=limit,
+                limit=limit * 3,
                 min_similarity=min_similarity,
             )
+            matches.sort(
+                key=lambda match: match.similarity + _source_priority_boost(match.embedding.source),
+                reverse=True,
+            )
+            matches = matches[:limit]
 
         logger.info("Semantic search query_length=%d matches=%d", len(query), len(matches))
         return [_to_retrieved_chunk(match) for match in matches]
@@ -146,6 +184,7 @@ def _to_retrieved_chunk(row: "DocumentEmbedding | SimilarityMatch") -> Retrieved
     else:
         embedding, similarity = row, None
 
+    page = (embedding.chunk_metadata or {}).get("page")
     return RetrievedChunk(
         id=str(embedding.id),
         content=embedding.content,
@@ -153,5 +192,6 @@ def _to_retrieved_chunk(row: "DocumentEmbedding | SimilarityMatch") -> Retrieved
         title=embedding.title,
         file_type=embedding.file_type,
         chunk_index=embedding.chunk_index,
+        page=page,
         similarity=similarity,
     )

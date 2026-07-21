@@ -24,6 +24,12 @@ class RetrievedChunk:
         title: Source document title, if known.
         file_type: Normalized source format (``pdf``, ``markdown``, ``text``), if known.
         chunk_index: 0-based position of this chunk within its source document, if known.
+        page: 1-based source page number this chunk's text starts on, if
+            known (paginated formats — PDF — only; ``None`` for
+            markdown/text sources). Read out of the underlying row's
+            ``chunk_metadata["page"]`` — see
+            ``src.services.chunking.chunker.TextChunker.chunk_document``,
+            which is what actually resolves it at ingestion time.
         similarity: Cosine similarity to the query, in ``[-1, 1]``. ``None``
             for lookups that don't rank by similarity (plain document search).
     """
@@ -34,4 +40,5 @@ class RetrievedChunk:
     title: str | None
     file_type: str | None
     chunk_index: int | None
+    page: int | None
     similarity: float | None

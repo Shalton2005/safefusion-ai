@@ -49,11 +49,21 @@ class ComplianceAssessment:
     Attributes:
         relevant_regulations: Distinct source regulation documents the
             retrieved chunks came from (e.g. an OISD or Factory Act
-            document title/path), most-relevant first.
+            document title/path), most-relevant first. Deduped by
+            document — use ``note_sources``, not this list, to pair a
+            given ``compliance_notes`` entry with its exact source.
         applicable_sections: One entry per retrieved chunk, identifying
             where within its source document the passage came from.
         compliance_notes: The retrieved passages themselves — the raw
             grounding context, verbatim. Not a generated summary.
+        note_sources: One ``(source, title, page)`` triple per entry in
+            ``compliance_notes``, same index — the per-chunk citation
+            this note actually came from. Deliberately *not* zipped
+            against ``relevant_regulations`` (that list is deduped by
+            document, so a document contributing more than one chunk
+            would misalign) — this is what
+            ``src.ai.copilot.service._extract_rag_items`` pairs with
+            each note to build accurate citations.
         recommendations: Deterministic, retrieval-derived guidance (see
             :func:`_build_recommendations`) — never model-generated
             text, since this agent makes no LLM call.
@@ -62,6 +72,7 @@ class ComplianceAssessment:
     relevant_regulations: list[str]
     applicable_sections: list[str]
     compliance_notes: list[str]
+    note_sources: list[tuple[str, str | None, int | None]] = field(default_factory=list)
     recommendations: list[str] = field(default_factory=list)
 
 
@@ -103,6 +114,7 @@ class ComplianceAgent:
                     relevant_regulations=[],
                     applicable_sections=[],
                     compliance_notes=[],
+                    note_sources=[],
                     recommendations=[_NO_CONTEXT_RECOMMENDATION],
                 ),
             )
@@ -125,12 +137,14 @@ def _build_assessment(chunks: list[object]) -> ComplianceAssessment:
     relevant_regulations = list(dict.fromkeys(chunk.title or chunk.source for chunk in chunks))
     applicable_sections = [_section_reference(chunk) for chunk in chunks]
     compliance_notes = [chunk.content for chunk in chunks]
+    note_sources = [(chunk.source, chunk.title, getattr(chunk, "page", None)) for chunk in chunks]
     recommendations = _build_recommendations(chunks, relevant_regulations)
 
     return ComplianceAssessment(
         relevant_regulations=relevant_regulations,
         applicable_sections=applicable_sections,
         compliance_notes=compliance_notes,
+        note_sources=note_sources,
         recommendations=recommendations,
     )
 

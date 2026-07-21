@@ -70,6 +70,7 @@ def _to_response(chunk: RetrievedChunk) -> RetrievedChunkResponse:
         title=chunk.title,
         file_type=chunk.file_type,
         chunk_index=chunk.chunk_index,
+        page=chunk.page,
         similarity=chunk.similarity,
     )
 

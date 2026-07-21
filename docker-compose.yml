@@ -40,6 +40,58 @@ services:
       timeout: 5s
       retries: 10
 
+  ollama:
+    # Local LLM/embedding server — nomic-embed-text (RAG document
+    # embeddings, see src/services/embedding/) and llama3.1:8b (Copilot
+    # chat/explain generation, see src/ai/llm/ollama_provider.py) both
+    # require this to be reachable. Models aren't baked into the image
+    # (they're several GB) — `ollama-pull` below fetches them into the
+    # named volume on first startup instead.
+    image: ollama/ollama:latest
+    container_name: safefusion_ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    # GPU passthrough (RTX 4050, 6GB VRAM) — without this block Docker
+    # never attaches an NVIDIA device to the container at all (confirmed:
+    # `docker inspect` showed HostConfig.DeviceRequests=null and Ollama's
+    # own startup log went straight to `id=cpu library=cpu`, never
+    # attempting GPU discovery against a real device). This is the
+    # Compose-native equivalent of `docker run --gpus all` and is what
+    # Docker Desktop's WSL2 NVIDIA integration expects — no extra runtime
+    # flag needed beyond this, since Docker Desktop registers the
+    # `nvidia` container runtime and CDI device (`docker.com/gpu=webgpu`)
+    # automatically once "Enable GPU support" (Settings > Resources) is on.
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  ollama-pull:
+    # One-shot init container: pulls the two models this project needs
+    # into the `ollama_data` volume, then exits. Runs every `docker
+    # compose up`, but `ollama pull` is a no-op (fast manifest check) once
+    # a model is already present, so this isn't a multi-GB download on
+    # every restart — only the first time.
+    image: ollama/ollama:latest
+    container_name: safefusion_ollama_pull
+    depends_on:
+      ollama:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c", "ollama pull nomic-embed-text && ollama pull llama3.1:8b"]
+    environment:
+      OLLAMA_HOST: ollama:11434
+
   backend:
     build:
       context: ./backend
@@ -58,12 +110,15 @@ services:
       NEO4J_USERNAME: neo4j
       NEO4J_PASSWORD: change-this-password-in-production
       NEO4J_DATABASE: neo4j
+      OLLAMA_BASE_URL: http://ollama:11434
     ports:
       - "8000:8000"
     depends_on:
       db:
         condition: service_healthy
       neo4j:
+        condition: service_healthy
+      ollama:
         condition: service_healthy
     volumes:
       - ./backend:/app
@@ -89,3 +144,4 @@ services:
 volumes:
   postgres_data:
   neo4j_data:
+  ollama_data:

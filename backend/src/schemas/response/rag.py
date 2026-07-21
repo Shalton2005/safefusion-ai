@@ -12,6 +12,7 @@ class RetrievedChunkResponse(AppBaseModel):
     title: str | None
     file_type: str | None
     chunk_index: int | None
+    page: int | None = None
     similarity: float | None = None
 
 
