@@ -52,7 +52,14 @@ export function useStreamedText(fullText: string, active: boolean): UseStreamedT
       }
     }, WORD_INTERVAL_MS);
 
-    return () => clearInterval(id);
+    return () => {
+      clearInterval(id);
+      // Undo the "already revealed" mark if this run gets torn down before
+      // finishing (e.g. StrictMode's dev-only mount/cleanup/remount) so the
+      // next effect run doesn't see a false match and skip re-arming —
+      // otherwise the text stays stuck at '' with isStreaming true forever.
+      if (revealedTextRef.current === fullText) revealedTextRef.current = null;
+    };
   }, [fullText, active]);
 
   return { displayedText, isStreaming };

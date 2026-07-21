@@ -42,6 +42,7 @@ import { aiService } from '@/services';
 import { LS_COPILOT_KEY } from '@/constants';
 import { copilotApiService } from '@/features/copilot/services/copilotApi.service';
 import { createConversation, createMessage, deriveConversationTitle } from '@/features/copilot/utils/conversation';
+import { buildEmergencyBriefingMessage } from '@/features/copilot/utils/emergencyBriefing';
 import type { CopilotConversation, CopilotMessage } from '@/features/copilot/types';
 import type { AIReasoningData } from '@/features/ai-supervisor/types';
 import type { AIRecommendation } from '@/components/recommendations';
@@ -93,6 +94,8 @@ interface CopilotStoreState {
   sendMessage: (content: string) => Promise<void>;
   /** Starts a new, empty conversation and makes it active. */
   startNewConversation: () => void;
+  /** Starts a new conversation pre-seeded with an AI-generated emergency briefing, so the Copilot opens already reporting the active emergency instead of an empty state. */
+  startEmergencyBriefing: () => void;
   /** Makes a previously saved conversation active. */
   selectConversation: (id: string) => void;
   /** Removes a conversation from history; clears the active thread if it was the one deleted. */
@@ -152,6 +155,21 @@ export const useCopilotStore = create<CopilotStoreState>()(
         });
       },
 
+      startEmergencyBriefing: () => {
+        const created = createConversation();
+        const conversation: CopilotConversationMeta = {
+          id: created.id, title: created.title, createdAt: created.createdAt, updatedAt: created.updatedAt,
+        };
+        const briefing = buildEmergencyBriefingMessage();
+
+        set((state) => ({
+          conversation,
+          messages: [briefing],
+          error: null,
+          conversationHistory: syncActiveIntoHistory(state.conversationHistory, conversation, [briefing]),
+        }));
+      },
+
       selectConversation: (id) => {
         const saved = get().conversationHistory.find((c) => c.id === id);
         if (!saved) return;
@@ -203,7 +221,7 @@ export const useCopilotStore = create<CopilotStoreState>()(
 
           const messages = get().messages.map((m) =>
             m.id === pendingReply.id
-              ? { ...m, content: response.reply, status: 'complete' as const, sources: response.sources }
+              ? { ...m, content: response.reply, status: 'complete' as const, sources: response.sources, explainability: response.explainability }
               : m,
           );
           set((state) => ({
