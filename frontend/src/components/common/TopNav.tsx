@@ -8,6 +8,7 @@ import { useRouteConfig } from '@/hooks/useRouteConfig';
 import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '@/constants/routes';
 import { useDashboardSummary } from '@/features/dashboard/hooks/useDashboardSummary';
+import { useRecentAlerts } from '@/features/alerts/hooks/useRecentAlerts';
 import { APP_NAME } from '@/constants';
 import { Badge } from '@/components/ui';
 
@@ -17,12 +18,16 @@ export function TopNav() {
   const toggleRightPanel = useRightPanelStore((s) => s.toggle);
   const currentRoute = useRouteConfig();
   const { summary } = useDashboardSummary();
-  const unreadCount = summary?.critical_alerts ?? 0;
+  const alertsData = useRecentAlerts({ limit: 10 });
+  const clearedAt = useRightPanelStore((s) => s.clearedAt);
+  const unreadCount = alertsData.alerts.filter(a => new Date(a.generated_at).getTime() > clearedAt || clearedAt === 0).length;
 
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [logoutLoading, setLogoutLoading] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const logout = useAuthStore((s) => s.logout);
+  const user = useAuthStore((s) => s.user);
 
   const handleLogout = () => {
     logout();
@@ -71,10 +76,10 @@ export function TopNav() {
       </div>
 
       {/* Center: Environment Badge */}
-      <div className="hidden md:flex w-full max-w-xs items-center justify-center">
-        <Badge variant="primary" className="flex items-center gap-1.5 px-3 py-1.5 shadow-sm">
-          <Activity className="w-3.5 h-3.5 animate-pulse" />
-          SafeFusion Demo Plant - Active Shift
+      <div className="hidden md:flex w-full max-w-sm items-center justify-center">
+        <Badge variant="primary" className="flex items-center gap-2 px-4 py-1.5 shadow-sm border border-primary-500/20 bg-primary-500/10 text-primary-400">
+          <Activity className="w-4 h-4 animate-pulse text-primary-400" />
+          <span className="font-medium tracking-wide">Global Manufacturing Facility • Active Shift</span>
         </Badge>
       </div>
 
@@ -120,19 +125,22 @@ export function TopNav() {
             aria-label="User menu"
             className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-[var(--sf-surface-raised)] transition-colors"
           >
-            <div className="w-8 h-8 rounded-full bg-primary-700 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-full bg-primary-700 flex items-center justify-center overflow-hidden">
               <User className="w-4 h-4 text-primary-200" />
             </div>
             <span className="hidden sm:block text-sm font-medium text-[var(--sf-text-primary)] max-w-[8rem] truncate">
-              {APP_NAME}
+              {user?.full_name || APP_NAME}
             </span>
           </button>
 
           {isProfileOpen && (
             <div className="absolute right-0 mt-2 w-56 rounded-xl bg-[var(--sf-surface-card)] border border-[var(--sf-border-default)] shadow-xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
               <div className="px-4 py-3 border-b border-[var(--sf-border-default)]">
-                <p className="text-sm font-semibold text-[var(--sf-text-primary)]">{APP_NAME} Admin</p>
-                <p className="text-xs text-[var(--sf-text-tertiary)]">admin@safefusion.ai</p>
+                <div className="flex items-center justify-between">
+                   <p className="text-sm font-semibold text-[var(--sf-text-primary)] truncate max-w-[130px]">{user?.full_name || 'Admin'}</p>
+                   {user?.role && <Badge variant="default" size="sm">{user.role}</Badge>}
+                </div>
+                <p className="text-xs text-[var(--sf-text-tertiary)] truncate">{user?.email || 'admin@safefusion.ai'}</p>
               </div>
               <div className="py-1">
                 <button onClick={handleSystemStatus} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-[var(--sf-text-primary)] hover:bg-[var(--sf-surface-raised)] transition-colors">
@@ -143,8 +151,17 @@ export function TopNav() {
                 </button>
               </div>
               <div className="py-1 border-t border-[var(--sf-border-default)]">
-                <button onClick={handleLogout} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-danger-500 hover:bg-danger-500/10 transition-colors">
-                  <LogOut className="w-4 h-4" /> Logout
+                <button 
+                  onClick={async () => {
+                    setLogoutLoading(true);
+                    await new Promise(r => setTimeout(r, 500));
+                    handleLogout();
+                    setLogoutLoading(false);
+                  }} 
+                  disabled={logoutLoading}
+                  className="w-full flex items-center gap-2 px-4 py-2 text-sm text-danger-500 hover:bg-danger-500/10 transition-colors disabled:opacity-50"
+                >
+                  <LogOut className="w-4 h-4" /> {logoutLoading ? 'Logging out...' : 'Logout'}
                 </button>
               </div>
             </div>

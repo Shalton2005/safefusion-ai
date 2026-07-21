@@ -64,6 +64,7 @@ from src.routes import sensor_simulator as sensor_simulator_router
 from src.routes import sensors as sensors_router
 from src.routes import status as status_router
 from src.routes import timeline as timeline_router
+from src.routes import user as user_router
 from src.routes import workers as workers_router
 from src.services.event_bus.bus import get_default_dispatcher
 from src.services.scenario_playback.runner import get_scenario_playback_runner
@@ -218,6 +219,7 @@ def create_application() -> FastAPI:
     protected_dependencies = [Depends(get_current_user)]
 
     application.include_router(status_router.router, prefix=settings.API_PREFIX, dependencies=protected_dependencies)
+    application.include_router(user_router.router, prefix=settings.API_PREFIX, dependencies=protected_dependencies)
     application.include_router(dashboard_router.router, prefix=settings.API_PREFIX, dependencies=protected_dependencies)
     application.include_router(analytics_router.router, prefix=settings.API_PREFIX, dependencies=protected_dependencies)
     application.include_router(workers_router.router, prefix=settings.API_PREFIX, dependencies=protected_dependencies)

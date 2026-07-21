@@ -23,6 +23,7 @@ export { safetyTimelineService } from './safetyTimeline.service';
 export { sensorsService }  from './sensors.service';
 export { visionService }   from './vision.service';
 export { workersService }  from './workers.service';
+export { userService }     from './user.service';
 
 export { createService }    from './base.service';
 export type { BaseService } from './base.service';

@@ -2,7 +2,6 @@ import { useId } from 'react';
 import { PanelRightClose, X } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { useRightPanelStore } from '@/store';
-import { useState } from 'react';
 import { ActivityPanel } from '@/components/common/activity-panel';
 import { Button } from '@/components/ui';
 
@@ -13,11 +12,11 @@ import type { ActivityFeedItem } from '@/components/common/activity-panel/types'
 export function RightPanel() {
   const open = useRightPanelStore((s) => s.open);
   const setOpen = useRightPanelStore((s) => s.setOpen);
+  const clearedAt = useRightPanelStore((s) => s.clearedAt);
+  const setClearedAt = useRightPanelStore((s) => s.setClearedAt);
   const headingId = useId();
 
   const alertsData = useRecentAlerts({ limit: 10 });
-
-  const [clearedAt, setClearedAt] = useState<number>(0);
   
   const alertsFeed = alertsData.alerts
     .filter(a => new Date(a.generated_at).getTime() > clearedAt || clearedAt === 0)

@@ -22,6 +22,10 @@ export interface AuthUser {
   role: 'admin' | 'safety_officer' | 'viewer';
   is_active: boolean;
   created_at: string;
+  department?: string;
+  phone_number?: string;
+  employee_id?: string;
+  last_login?: string;
 }
 
 // ─── Service ────────────────────────────────────────────────────────

@@ -19,6 +19,7 @@ interface AuthState {
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   loadCurrentUser: () => Promise<void>;
+  updateUser: (data: Partial<AuthUser>) => void;
 }
 
 /** True when the server rejected the token itself, not merely unreachable. */
@@ -57,6 +58,12 @@ export const useAuthStore = create<AuthState>((set) => ({
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
     set({ user: null, isAuthenticated: false, error: null });
+  },
+
+  updateUser: (data: Partial<AuthUser>) => {
+    set((state) => ({
+      user: state.user ? { ...state.user, ...data } : null,
+    }));
   },
 
   loadCurrentUser: async () => {

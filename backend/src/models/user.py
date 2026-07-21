@@ -31,6 +31,17 @@ class User(Base):
     )
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
     full_name: Mapped[str] = mapped_column(String(150), nullable=False)
+    
+    # --- New fields for Profile Settings ---
+    department: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    phone_number: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    employee_id: Mapped[str | None] = mapped_column(String(50), unique=True, nullable=True)
+    last_login: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    
+    # --- New fields for Preferences Settings ---
+    from sqlalchemy import JSON
+    preferences: Mapped[dict | None] = mapped_column(JSON, nullable=True, default=dict)
+    
     role: Mapped[UserRole] = mapped_column(
         enum_column(UserRole, length=20),
         default=UserRole.VIEWER,
