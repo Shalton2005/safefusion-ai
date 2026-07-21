@@ -430,7 +430,28 @@ class ScenarioPlaybackEngine:
         emergency_response_service = EmergencyResponseService(
             engine=_build_emergency_response_engine(), incident_repository=IncidentRepository(db)
         )
-        self.last_emergency_response_results = emergency_response_service.respond(compound_risk_results)
+        
+        new_emergency_results = emergency_response_service.evaluate(compound_risk_results)
+        
+        # Deduplicate dispatching to prevent 1-second spam for seeded background zones:
+        # only call respond() for zones whose triggered emergency actions have changed.
+        last_actions = {
+            r.zone: {m.action for m in r.actions}
+            for r in self.last_emergency_response_results
+        }
+        
+        zones_to_dispatch = []
+        for r in new_emergency_results:
+            current_actions = {m.action for m in r.actions}
+            if current_actions != last_actions.get(r.zone, set()):
+                # Find the matching compound_risk_result to pass to respond()
+                cr_result = next(cr for cr in compound_risk_results if cr.zone == r.zone)
+                zones_to_dispatch.append(cr_result)
+                
+        if zones_to_dispatch:
+            emergency_response_service.respond(zones_to_dispatch)
+            
+        self.last_emergency_response_results = new_emergency_results
 
         compliance_service = ComplianceService(
             engine=_build_compliance_engine(), incident_repository=IncidentRepository(db)
