@@ -22,7 +22,7 @@ class ZoneCompoundRiskResultRequest(AppBaseModel):
     ``/monitoring/compound-risk`` run) for emergency response evaluation.
     """
 
-    zone: str = Field(..., min_length=2, max_length=50, examples=["Zone-A"])
+    zone: str = Field(..., min_length=2, max_length=50, examples=["Distillation-Unit"])
     risk_score: float = Field(..., ge=0.0, le=100.0, examples=[82.5])
     risk_level: RiskLevel = Field(..., examples=[RiskLevel.CRITICAL])
     triggered_rules: list[CompoundRiskRuleMatchRequest] = Field(default_factory=list)

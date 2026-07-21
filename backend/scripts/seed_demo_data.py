@@ -12,22 +12,22 @@ Also seeds eight coherent, independently-selectable demo scenarios, each
 in its own zone so they never collide with each other or with the bulk
 data above:
 
-1. Normal Plant       (Zone-D)          — all sensors nominal, valid permit, worker present.
-2. Gas Leak           (Tank-Farm)       — critical gas reading, worker present, valid permit,
+1. Normal Plant       (Distillation Unit)          — all sensors nominal, valid permit, worker present.
+2. Gas Leak           (Tank Farm)       — critical gas reading, worker present, valid permit,
                                            linked critical Incident record.
-3. Expired Permit     (Zone-B)          — nominal sensors, expired permit, worker present.
-4. Compound Risk      (Boiler-Area)     — critical sensor + expired permit + worker present in
+3. Expired Permit     (Substation)          — nominal sensors, expired permit, worker present.
+4. Compound Risk      (Boiler House)     — critical sensor + expired permit + worker present in
                                            a restricted zone, deliberately triggering several
                                            Compound Risk Engine rules at once.
-5. Fire               (Zone-E)          — critical temperature/smoke readings consistent with
+5. Fire               (Pipe Rack)          — critical temperature/smoke readings consistent with
                                            an active fire, worker in emergency status, linked
                                            Incident record (triggers Factory Act / OISD fire
                                            and major-hazard compliance rules).
-6. Permit Violation   (Zone-F)          — worker actively performing hot work under a permit
+6. Permit Violation   (Control Room)          — worker actively performing hot work under a permit
                                            that was suspended mid-task (not merely expired),
                                            a distinct violation from scenario 3, linked
                                            PPE_VIOLATION Incident record for Factory Act review.
-7. Worker Collapse    (Zone-G)          — nominal sensors and a valid permit, but the assigned
+7. Worker Collapse    (Compressor Station)          — nominal sensors and a valid permit, but the assigned
                                            worker is down/unresponsive: isolates a pure
                                            worker-safety emergency with no sensor or permit
                                            signal, linked Incident record (new
@@ -112,7 +112,7 @@ from src.services.graph_ingestion import GraphIngestionService
 
 
 BASE_TIME = datetime(2026, 7, 8, 6, 0, tzinfo=UTC)
-ZONES = ["Tank-Farm", "Boiler-Area", "Zone-A", "Zone-B", "Zone-C", "Zone-D"]
+ZONES = ["Tank Farm", "Boiler House", "Cooling Tower", "Substation", "Loading Bay", "Distillation Unit"]
 SHIFTS = ["Morning", "Afternoon", "Night"]
 FIRST_NAMES = [
     "Aarav",
@@ -157,37 +157,37 @@ WORKER_PROFILES = [
     ("Process", "Shift Supervisor"),
 ]
 ZONE_SENSOR_BLUEPRINTS: dict[str, list[tuple[SensorType, float, str, SensorStatus]]] = {
-    "Tank-Farm": [
+    "Tank Farm": [
         (SensorType.GAS, 84.0, "ppm", SensorStatus.CRITICAL),
         (SensorType.TEMPERATURE, 39.0, "C", SensorStatus.WARNING),
         (SensorType.PRESSURE, 6.2, "bar", SensorStatus.WARNING),
         (SensorType.HUMIDITY, 55.0, "%", SensorStatus.NORMAL),
     ],
-    "Boiler-Area": [
+    "Boiler House": [
         (SensorType.TEMPERATURE, 44.5, "C", SensorStatus.CRITICAL),
         (SensorType.PRESSURE, 8.9, "bar", SensorStatus.CRITICAL),
         (SensorType.GAS, 52.0, "ppm", SensorStatus.NORMAL),
         (SensorType.HUMIDITY, 49.0, "%", SensorStatus.NORMAL),
     ],
-    "Zone-A": [
+    "Cooling Tower": [
         (SensorType.GAS, 58.0, "ppm", SensorStatus.WARNING),
         (SensorType.TEMPERATURE, 34.0, "C", SensorStatus.NORMAL),
         (SensorType.PRESSURE, 5.8, "bar", SensorStatus.NORMAL),
         (SensorType.HUMIDITY, 63.0, "%", SensorStatus.WARNING),
     ],
-    "Zone-B": [
+    "Substation": [
         (SensorType.GAS, 42.0, "ppm", SensorStatus.NORMAL),
         (SensorType.TEMPERATURE, 31.5, "C", SensorStatus.NORMAL),
         (SensorType.PRESSURE, 7.4, "bar", SensorStatus.WARNING),
         (SensorType.HUMIDITY, 59.0, "%", SensorStatus.NORMAL),
     ],
-    "Zone-C": [
+    "Loading Bay": [
         (SensorType.GAS, 76.0, "ppm", SensorStatus.WARNING),
         (SensorType.TEMPERATURE, 37.5, "C", SensorStatus.WARNING),
         (SensorType.PRESSURE, 6.6, "bar", SensorStatus.NORMAL),
         (SensorType.HUMIDITY, 68.0, "%", SensorStatus.WARNING),
     ],
-    "Zone-D": [
+    "Distillation Unit": [
         (SensorType.GAS, 35.0, "ppm", SensorStatus.NORMAL),
         (SensorType.TEMPERATURE, 29.5, "C", SensorStatus.NORMAL),
         (SensorType.PRESSURE, 5.2, "bar", SensorStatus.NORMAL),
@@ -195,47 +195,51 @@ ZONE_SENSOR_BLUEPRINTS: dict[str, list[tuple[SensorType, float, str, SensorStatu
     ],
 }
 EQUIPMENT_CATALOG = [
-    {"equipment_id": "EQ-TF-001", "equipment_name": "Tank Farm Vapor Recovery Unit", "zone": "Tank-Farm", "team": "Mechanical Team Bravo"},
-    {"equipment_id": "EQ-TF-002", "equipment_name": "Tank 12 Transfer Pump", "zone": "Tank-Farm", "team": "Operations Team Alpha"},
-    {"equipment_id": "EQ-BA-001", "equipment_name": "Boiler Feedwater Pump", "zone": "Boiler-Area", "team": "Utilities Team Echo"},
-    {"equipment_id": "EQ-BA-002", "equipment_name": "Boiler Drum Safety Valve", "zone": "Boiler-Area", "team": "Mechanical Team Bravo"},
-    {"equipment_id": "EQ-ZA-001", "equipment_name": "Compressor Unit 3", "zone": "Zone-A", "team": "Mechanical Team Bravo"},
-    {"equipment_id": "EQ-ZA-002", "equipment_name": "Gas Scrubber Skid", "zone": "Zone-A", "team": "Process Team Delta"},
-    {"equipment_id": "EQ-ZB-001", "equipment_name": "Electrical MCC Panel B", "zone": "Zone-B", "team": "Electrical Team Sigma"},
-    {"equipment_id": "EQ-ZB-002", "equipment_name": "Nitrogen Manifold", "zone": "Zone-B", "team": "Utilities Team Echo"},
-    {"equipment_id": "EQ-ZC-001", "equipment_name": "Solvent Mixing Vessel", "zone": "Zone-C", "team": "Process Team Delta"},
-    {"equipment_id": "EQ-ZC-002", "equipment_name": "Exhaust Ventilation Fan 2", "zone": "Zone-C", "team": "Mechanical Team Bravo"},
-    {"equipment_id": "EQ-ZD-001", "equipment_name": "Cooling Water Pump 4", "zone": "Zone-D", "team": "Utilities Team Echo"},
-    {"equipment_id": "EQ-ZD-002", "equipment_name": "Firewater Isolation Valve", "zone": "Zone-D", "team": "Safety Response Team"},
+    {"equipment_id": "EQ-TF-001", "equipment_name": "Tank Farm Vapor Recovery Unit", "zone": "Tank Farm", "team": "Mechanical Team Bravo"},
+    {"equipment_id": "EQ-TF-002", "equipment_name": "Tank 12 Transfer Pump", "zone": "Tank Farm", "team": "Operations Team Alpha"},
+    {"equipment_id": "EQ-BA-001", "equipment_name": "Boiler Feedwater Pump", "zone": "Boiler House", "team": "Utilities Team Echo"},
+    {"equipment_id": "EQ-BA-002", "equipment_name": "Boiler Drum Safety Valve", "zone": "Boiler House", "team": "Mechanical Team Bravo"},
+    {"equipment_id": "EQ-ZA-001", "equipment_name": "Compressor Unit 3", "zone": "Cooling Tower", "team": "Mechanical Team Bravo"},
+    {"equipment_id": "EQ-ZA-002", "equipment_name": "Gas Scrubber Skid", "zone": "Cooling Tower", "team": "Process Team Delta"},
+    {"equipment_id": "EQ-ZB-001", "equipment_name": "Electrical MCC Panel B", "zone": "Substation", "team": "Electrical Team Sigma"},
+    {"equipment_id": "EQ-ZB-002", "equipment_name": "Nitrogen Manifold", "zone": "Substation", "team": "Utilities Team Echo"},
+    {"equipment_id": "EQ-ZC-001", "equipment_name": "Solvent Mixing Vessel", "zone": "Loading Bay", "team": "Process Team Delta"},
+    {"equipment_id": "EQ-ZC-002", "equipment_name": "Exhaust Ventilation Fan 2", "zone": "Loading Bay", "team": "Mechanical Team Bravo"},
+    {"equipment_id": "EQ-ZD-001", "equipment_name": "Cooling Water Pump 4", "zone": "Distillation Unit", "team": "Utilities Team Echo"},
+    {"equipment_id": "EQ-ZD-002", "equipment_name": "Firewater Isolation Valve", "zone": "Distillation Unit", "team": "Safety Response Team"},
 ]
 PERMIT_ASSIGNMENTS = [
-    (PermitType.HOT_WORK, "Tank-Farm", "Safety Officer Patel", "Mechanical Team Bravo"),
-    (PermitType.CONFINED_SPACE, "Zone-C", "Safety Officer Sharma", "Process Team Delta"),
-    (PermitType.ELECTRICAL, "Zone-B", "Safety Officer Nair", "Electrical Team Sigma"),
-    (PermitType.HOT_WORK, "Boiler-Area", "Safety Officer Patel", "Utilities Team Echo"),
-    (PermitType.CONFINED_SPACE, "Zone-A", "Safety Officer Sharma", "Mechanical Team Bravo"),
+    (PermitType.HOT_WORK, "Tank Farm", "Safety Officer Patel", "Mechanical Team Bravo"),
+    (PermitType.CONFINED_SPACE, "Loading Bay", "Safety Officer Sharma", "Process Team Delta"),
+    (PermitType.ELECTRICAL_ISOLATION, "Substation", "Safety Officer Nair", "Electrical Team Sigma"),
+    (PermitType.WORKING_AT_HEIGHT, "Cooling Tower", "Safety Officer Patel", "Mechanical Team Bravo"),
+    (PermitType.EXCAVATION, "Boiler House", "Safety Officer Reddy", "Utilities Team Echo"),
+    (PermitType.PRESSURE_TESTING, "Distillation Unit", "Safety Officer Sharma", "Process Team Delta"),
+    (PermitType.LINE_BREAKING, "Pipe Rack", "Safety Officer Patel", "Mechanical Team Bravo"),
+    (PermitType.LOTO, "Compressor Station", "Safety Officer Nair", "Electrical Team Sigma"),
+    (PermitType.CHEMICAL_TRANSFER, "Tank Farm", "Safety Officer Sharma", "Operations Team Alpha"),
 ]
 
 
-SCENARIO_NORMAL_ZONE = "Zone-D"
+SCENARIO_NORMAL_ZONE = "Distillation Unit"
 SCENARIO_NORMAL_EMPLOYEE_ID = "EMP-DEMO-NORMAL"
 
-SCENARIO_GAS_LEAK_ZONE = "Tank-Farm"
+SCENARIO_GAS_LEAK_ZONE = "Tank Farm"
 SCENARIO_GAS_LEAK_EMPLOYEE_ID = "EMP-DEMO-GASLEAK"
 
-SCENARIO_EXPIRED_PERMIT_ZONE = "Zone-B"
+SCENARIO_EXPIRED_PERMIT_ZONE = "Substation"
 SCENARIO_EXPIRED_PERMIT_EMPLOYEE_ID = "EMP-DEMO-EXPIREDPERMIT"
 
-SCENARIO_COMPOUND_RISK_ZONE = "Boiler-Area"
+SCENARIO_COMPOUND_RISK_ZONE = "Boiler House"
 SCENARIO_COMPOUND_RISK_EMPLOYEE_ID = "EMP-DEMO-COMPOUNDRISK"
 
-SCENARIO_FIRE_ZONE = "Zone-E"
+SCENARIO_FIRE_ZONE = "Pipe Rack"
 SCENARIO_FIRE_EMPLOYEE_ID = "EMP-DEMO-FIRE"
 
-SCENARIO_PERMIT_VIOLATION_ZONE = "Zone-F"
+SCENARIO_PERMIT_VIOLATION_ZONE = "Control Room"
 SCENARIO_PERMIT_VIOLATION_EMPLOYEE_ID = "EMP-DEMO-PERMITVIOLATION"
 
-SCENARIO_WORKER_COLLAPSE_ZONE = "Zone-G"
+SCENARIO_WORKER_COLLAPSE_ZONE = "Compressor Station"
 SCENARIO_WORKER_COLLAPSE_EMPLOYEE_ID = "EMP-DEMO-WORKERCOLLAPSE"
 
 SCENARIO_CONFINED_SPACE_ZONE = "Confined-Space-1"
@@ -290,7 +294,7 @@ def seed_workers(db: Session, target_count: int) -> int:
                 shift=SHIFTS[i % len(SHIFTS)],
                 status=(
                     WorkerStatus.EMERGENCY
-                    if zone in {"Tank-Farm", "Boiler-Area"} and i in {0, 9}
+                    if zone in {"Tank Farm", "Boiler House"} and i in {0, 9}
                     else WorkerStatus.IDLE if i % 7 == 0 else WorkerStatus.WORKING
                 ),
             )
@@ -359,16 +363,31 @@ def seed_sensors(db: Session, target_count: int) -> int:
 
 def seed_permits(db: Session, target_count: int) -> int:
     created = 0
+    now = datetime.now(UTC)
 
     for i in range(target_count):
         permit_type, zone, issued_by, assigned_team = PERMIT_ASSIGNMENTS[i % len(PERMIT_ASSIGNMENTS)]
-        start_time = BASE_TIME - timedelta(hours=18) + timedelta(hours=3 * i)
-        end_time = start_time + timedelta(hours=8 if permit_type == PermitType.CONFINED_SPACE else 6)
-        permit_status = (
-            PermitStatus.SUSPENDED if zone == "Tank-Farm" and i % 5 == 0
-            else PermitStatus.CLOSED if i % 4 == 0
-            else PermitStatus.ACTIVE
-        )
+        # Distribute permits around 'now'
+        # Some in the past, some currently active
+        offset_hours = -24 + (i * 2)
+        start_time = now + timedelta(hours=offset_hours)
+        
+        # Round to nearest 30 mins to look realistic
+        start_time = start_time.replace(minute=30 if start_time.minute >= 30 else 0, second=0, microsecond=0)
+        
+        duration = 8 if permit_type == PermitType.CONFINED_SPACE else 6
+        end_time = start_time + timedelta(hours=duration)
+        
+        # Logical consistency for status
+        if end_time < now:
+            # Past permits must be closed or suspended
+            permit_status = PermitStatus.CLOSED if i % 5 != 0 else PermitStatus.SUSPENDED
+        elif start_time > now:
+            # Future permits can be active (pending start) or suspended
+            permit_status = PermitStatus.ACTIVE
+        else:
+            # Currently active period
+            permit_status = PermitStatus.SUSPENDED if zone == "Tank Farm" and i % 5 == 0 else PermitStatus.ACTIVE
 
         exists = db.execute(
             select(Permit.id)
@@ -406,7 +425,7 @@ def seed_maintenance_logs(db: Session, target_count: int) -> int:
         start_time = BASE_TIME - timedelta(hours=36) + timedelta(hours=5 * i)
         maintenance_type = (
             MaintenanceType.CORRECTIVE
-            if equipment["zone"] in {"Tank-Farm", "Boiler-Area", "Zone-C"} and i % 3 == 0
+            if equipment["zone"] in {"Tank Farm", "Boiler House", "Loading Bay"} and i % 3 == 0
             else MaintenanceType.PREVENTIVE
         )
         maintenance_status = (
@@ -448,35 +467,35 @@ def seed_incidents(db: Session, target_count: int) -> int:
     created = 0
     scenarios = [
         (
-            "Tank-Farm",
+            "Tank Farm",
             SeverityLevel.CRITICAL,
             IncidentType.GAS_LEAK,
             "Elevated hydrocarbon vapors detected near transfer pump.",
             "Corroded flange gasket on transfer line.",
         ),
         (
-            "Boiler-Area",
+            "Boiler House",
             SeverityLevel.HIGH,
             IncidentType.FIRE,
             "Localized flame detected near burner access platform.",
             "Fuel nozzle fouling caused unstable ignition.",
         ),
         (
-            "Zone-C",
+            "Loading Bay",
             SeverityLevel.HIGH,
             IncidentType.PPE_VIOLATION,
             "Contractor entered confined area without full respiratory protection.",
             "Entry checklist was bypassed during shift handover.",
         ),
         (
-            "Zone-B",
+            "Substation",
             SeverityLevel.MEDIUM,
             IncidentType.EXPLOSION,
             "Pressure surge triggered emergency shutdown of electrical panel room.",
             "Arc flash risk increased after moisture intrusion.",
         ),
         (
-            "Zone-A",
+            "Cooling Tower",
             SeverityLevel.MEDIUM,
             IncidentType.GAS_LEAK,
             "Solvent vapors rose above warning threshold near scrubber skid.",
@@ -518,27 +537,27 @@ def seed_incidents(db: Session, target_count: int) -> int:
 def seed_alerts(db: Session, target_count: int) -> int:
     created = 0
     alert_messages = {
-        "Tank-Farm": (
+        "Tank Farm": (
             AlertType.CRITICAL,
             "Critical gas concentration near Tank 12; suspend hot work and isolate transfer operations.",
         ),
-        "Boiler-Area": (
+        "Boiler House": (
             AlertType.CRITICAL,
             "Boiler pressure and temperature exceed safe threshold; dispatch utilities team immediately.",
         ),
-        "Zone-C": (
+        "Loading Bay": (
             AlertType.WARNING,
             "Confined space activity and rising solvent vapors require supervisory verification.",
         ),
-        "Zone-B": (
+        "Substation": (
             AlertType.WARNING,
             "Electrical panel room shows unstable pressure trend; inspect ventilation and moisture ingress.",
         ),
-        "Zone-A": (
+        "Cooling Tower": (
             AlertType.WARNING,
             "Gas readings trending upward near scrubber skid; verify permit controls before work starts.",
         ),
-        "Zone-D": (
+        "Distillation Unit": (
             AlertType.WARNING,
             "Routine anomaly detected in cooling water circuit; continue observation and schedule inspection.",
         ),
@@ -748,7 +767,7 @@ def _seed_scenario_incident(
 def seed_scenario_normal(db: Session) -> int:
     """Scenario 1: Normal Plant — all sensors nominal, valid permit, worker present.
 
-    A healthy baseline in Zone-D: no sensor exceeds warning thresholds, the
+    A healthy baseline in Distillation Unit: no sensor exceeds warning thresholds, the
     permit covering the zone is active and valid, and the assigned worker
     is working normally. Both risk engines should report a low/no-risk
     result for this zone, giving the demo a clean control case to contrast
@@ -798,7 +817,7 @@ def seed_scenario_normal(db: Session) -> int:
 def seed_scenario_gas_leak(db: Session) -> int:
     """Scenario 2: Gas Leak — critical gas reading with a worker present and a valid permit.
 
-    A critical gas sensor in Tank-Farm with the assigned worker still on
+    A critical gas sensor in Tank Farm with the assigned worker still on
     site. The active permit is valid, isolating the gas reading itself as
     the driver of risk: this should trigger ``critical_sensors`` /
     ``critical_sensor_with_worker_present`` without an accompanying
@@ -847,7 +866,7 @@ def seed_scenario_gas_leak(db: Session) -> int:
         SCENARIO_GAS_LEAK_ZONE,
         SeverityLevel.CRITICAL,
         IncidentType.GAS_LEAK,
-        "Hydrocarbon vapor concentration spiked to 95 ppm near the Tank-Farm "
+        "Hydrocarbon vapor concentration spiked to 95 ppm near the Tank Farm "
         "transfer pump while a field operator remained on site under an "
         "active confined-space permit.",
         "Suspected seal failure on the transfer line following a recent "
@@ -861,7 +880,7 @@ def seed_scenario_gas_leak(db: Session) -> int:
 def seed_scenario_expired_permit(db: Session) -> int:
     """Scenario 3: Expired Permit — nominal sensors, expired permit, worker present.
 
-    Sensors in Zone-B read entirely normal, but the permit that should
+    Sensors in Substation read entirely normal, but the permit that should
     cover the zone expired two hours ago while a worker remains assigned
     there. Isolates the ``expired_permits`` / ``expired_permit_with_worker_present``
     rules from any sensor-driven signal, showing a compliance-only violation.
@@ -914,7 +933,7 @@ def seed_scenario_expired_permit(db: Session) -> int:
 def seed_scenario_compound_risk(db: Session) -> int:
     """Scenario 4: Compound Risk — critical sensor + expired permit + worker, in a restricted zone.
 
-    Stacks multiple independently-modest conditions in Boiler-Area (a
+    Stacks multiple independently-modest conditions in Boiler House (a
     configured restricted zone, see ``settings.ALERT_RESTRICTED_ZONES``):
     a critical temperature reading, an expired permit, and a worker still
     present. This is designed to trigger several Compound Risk Engine
@@ -971,7 +990,7 @@ def seed_scenario_compound_risk(db: Session) -> int:
 def seed_scenario_fire(db: Session) -> int:
     """Scenario 5: Fire — critical temperature/smoke readings, worker in emergency status.
 
-    Zone-E shows a critical temperature reading alongside elevated smoke,
+    Pipe Rack shows a critical temperature reading alongside elevated smoke,
     consistent with an active fire near a process unit. The assigned
     worker is flagged in emergency status and a matching Incident record
     is seeded, so this scenario exercises the Factory Act fire-safety and
@@ -1022,7 +1041,7 @@ def seed_scenario_fire(db: Session) -> int:
         SCENARIO_FIRE_ZONE,
         SeverityLevel.CRITICAL,
         IncidentType.FIRE,
-        "Flames observed near a welding station in Zone-E during active "
+        "Flames observed near a welding station in Pipe Rack during active "
         "hot work; smoke and temperature sensors both crossed critical "
         "thresholds within the same reporting cycle.",
         "Spark from grinding operation ignited residual solvent-soaked "
@@ -1038,7 +1057,7 @@ def seed_scenario_permit_violation(db: Session) -> int:
     """Scenario 6: Permit Violation — active work continues under a suspended permit.
 
     Distinct from the Expired Permit scenario (3): here the hot-work
-    permit covering Zone-F has been actively ``SUSPENDED`` by a safety
+    permit covering Control Room has been actively ``SUSPENDED`` by a safety
     officer (e.g. after a stop-work order) rather than simply lapsing on
     schedule, yet the assigned worker remains on site performing the
     work. Nominal sensors isolate the violation to permit/process
@@ -1091,7 +1110,7 @@ def seed_scenario_permit_violation(db: Session) -> int:
         SCENARIO_PERMIT_VIOLATION_ZONE,
         SeverityLevel.MEDIUM,
         IncidentType.PPE_VIOLATION,
-        "Process technician continued hot work in Zone-F after the "
+        "Process technician continued hot work in Control Room after the "
         "covering permit was suspended by the safety officer; worker also "
         "found without required respiratory protection.",
         "Stop-work notification was not relayed to the on-site technician "
@@ -1105,7 +1124,7 @@ def seed_scenario_permit_violation(db: Session) -> int:
 def seed_scenario_worker_collapse(db: Session) -> int:
     """Scenario 7: Worker Collapse — worker down/unresponsive with no sensor or permit signal.
 
-    Zone-G reads entirely nominal and its permit is valid — this scenario
+    Compressor Station reads entirely nominal and its permit is valid — this scenario
     isolates a pure worker-safety medical emergency from any
     environmental or compliance driver, exercising the
     ``EmergencyCondition.WORKER_DOWN`` -> ``notify_medical_team`` mapping
@@ -1130,7 +1149,7 @@ def seed_scenario_worker_collapse(db: Session) -> int:
     permit_end_time = now + timedelta(hours=6, minutes=30)
     created += _seed_scenario_permit(
         db,
-        PermitType.ELECTRICAL,
+        PermitType.ELECTRICAL_ISOLATION,
         SCENARIO_WORKER_COLLAPSE_ZONE,
         "Safety Officer Reddy",
         "Electrical Team Sigma",
@@ -1156,7 +1175,7 @@ def seed_scenario_worker_collapse(db: Session) -> int:
         SeverityLevel.CRITICAL,
         IncidentType.WORKER_COLLAPSE,
         "Field operator found collapsed and unresponsive near the "
-        "electrical panel in Zone-G during a routine round; no "
+        "electrical panel in Compressor Station during a routine round; no "
         "environmental hazard indicated by surrounding sensors.",
         "Suspected heat exhaustion following an extended shift without a "
         "scheduled rest break; medical response dispatched immediately.",

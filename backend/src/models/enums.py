@@ -42,7 +42,13 @@ class SensorStatus(str, Enum):
 class PermitType(str, Enum):
     HOT_WORK = "hot_work"
     CONFINED_SPACE = "confined_space"
-    ELECTRICAL = "electrical"
+    ELECTRICAL_ISOLATION = "electrical_isolation"
+    WORKING_AT_HEIGHT = "working_at_height"
+    EXCAVATION = "excavation"
+    PRESSURE_TESTING = "pressure_testing"
+    LINE_BREAKING = "line_breaking"
+    LOTO = "loto"
+    CHEMICAL_TRANSFER = "chemical_transfer"
 
 
 class PermitStatus(str, Enum):

@@ -11,7 +11,7 @@
  *
  * @example
  * <RiskExplanationPanel
- *   zone="Zone-A"
+ *   zone="Distillation-Unit"
  *   riskLevel="high"
  *   triggeredRules={[{ name: 'critical_sensors', detail: '2/5 sensors critical' }]}
  *   explanation={null}

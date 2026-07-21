@@ -178,7 +178,7 @@ class ScenarioPlaybackState:
     current_row_index: int
     current_row_label: str | None
     video_filename: str | None = None
-    #: The scenario's zone name (e.g. "Zone-D") — used to look up a
+    #: The scenario's zone name (e.g. "Control-Room") — used to look up a
     #: restricted-zone polygon for the real-time video detection overlay
     #: (see ``src.services.scenario_playback.video_detection.RESTRICTED_ZONES``).
     zone: str | None = None

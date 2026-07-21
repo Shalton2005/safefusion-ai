@@ -26,7 +26,7 @@ const severityColor = {
 export function AIIncidentSummary({
   title = 'AI Incident Summary',
   verdict = 'Compound Risk Detected',
-  zone = 'Tank Farm',
+  zone = 'Tank Farm A',
   severity = 'critical',
   confidence = 98.4,
   factors = ['Gas Leak', 'Active Hot Work', 'PPE Non Compliance', 'Wind Direction'],

@@ -117,7 +117,7 @@ def evaluate_emergency_response(
                     "value": {
                         "zone_results": [
                             {
-                                "zone": "Zone-A",
+                                "zone": "Distillation-Unit",
                                 "risk_score": 82.5,
                                 "risk_level": "critical",
                                 "triggered_rules": [
@@ -125,7 +125,7 @@ def evaluate_emergency_response(
                                         "rule_name": "critical_sensor_with_worker_present",
                                         "points": 40.0,
                                         "explanation": (
-                                            "Zone 'Zone-A' has 1 critical sensor reading(s) "
+                                            "Zone 'Distillation-Unit' has 1 critical sensor reading(s) "
                                             "with 2 worker(s) currently present."
                                         ),
                                     }

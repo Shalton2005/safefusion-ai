@@ -99,7 +99,7 @@ export interface Incident {
 }
 
 // ─── Permit-to-Work ────────────────────────────────────────────────
-export type PermitType   = 'hot_work' | 'confined_space' | 'electrical';
+export type PermitType   = 'hot_work' | 'confined_space' | 'electrical_isolation' | 'working_at_height' | 'excavation' | 'pressure_testing' | 'line_breaking' | 'loto' | 'chemical_transfer';
 export type PermitStatus = 'active' | 'closed' | 'suspended';
 
 export interface Permit {

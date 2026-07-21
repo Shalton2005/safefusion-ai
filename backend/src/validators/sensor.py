@@ -11,7 +11,7 @@ from src.schemas.base import AppBaseModel
 class SensorSchema(AppBaseModel):
     """Canonical validation model for Sensor domain fields."""
 
-    zone: str = Field(..., min_length=2, max_length=50, examples=["Zone-A"])
+    zone: str = Field(..., min_length=2, max_length=50, examples=["Distillation-Unit"])
     sensor_type: SensorType = Field(..., examples=[SensorType.GAS])
     value: float = Field(..., examples=[42.5])
     unit: str = Field(..., min_length=1, max_length=20, examples=["ppm"])

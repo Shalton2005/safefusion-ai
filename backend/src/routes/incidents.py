@@ -74,7 +74,7 @@ def create_incident(
                 "default": {
                     "summary": "Create incident example",
                     "value": {
-                        "zone": "Zone-C",
+                        "zone": "Substation",
                         "severity": "high",
                         "incident_type": "gas_leak",
                         "description": "Gas leak detected near compressor unit.",

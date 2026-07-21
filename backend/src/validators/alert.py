@@ -9,7 +9,7 @@ from src.schemas.base import AppBaseModel
 class AlertSchema(AppBaseModel):
     """Canonical validation model for Alert domain fields."""
 
-    zone: str = Field(..., min_length=2, max_length=50, examples=["Zone-A"])
+    zone: str = Field(..., min_length=2, max_length=50, examples=["Distillation-Unit"])
     alert_type: AlertType = Field(..., examples=[AlertType.CRITICAL])
     severity: AlertSeverity = Field(default=AlertSeverity.MEDIUM, examples=[AlertSeverity.CRITICAL])
     source: AlertSource = Field(default=AlertSource.SENSOR_MONITORING, examples=[AlertSource.SENSOR_MONITORING])

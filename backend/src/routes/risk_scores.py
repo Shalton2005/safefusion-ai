@@ -207,7 +207,7 @@ def create_risk_score(
                 "default": {
                     "summary": "Create risk score example",
                     "value": {
-                        "zone": "Zone-A",
+                        "zone": "Distillation-Unit",
                         "risk_score": 72.5,
                         "risk_level": "high",
                         "contributing_factors": "High gas reading, active hot-work permit, wet conditions.",

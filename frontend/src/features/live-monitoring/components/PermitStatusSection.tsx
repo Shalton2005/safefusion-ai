@@ -14,9 +14,15 @@ import { PermitStatusIndicator } from '@/features/permits/components/PermitStatu
 const SUMMARY_LIMIT = 3;
 
 const permitTypeLabel: Record<PermitType, string> = {
-  hot_work:       'Hot Work',
-  confined_space: 'Confined Space',
-  electrical:     'Electrical',
+  hot_work:             'Hot Work',
+  confined_space:       'Confined Space',
+  electrical_isolation: 'Electrical Isolation',
+  working_at_height:    'Working at Height',
+  excavation:           'Excavation',
+  pressure_testing:     'Pressure Testing',
+  line_breaking:        'Line Breaking',
+  loto:                 'LOTO',
+  chemical_transfer:    'Chemical Transfer',
 };
 
 function isPermitExpired(permit: Permit): boolean {

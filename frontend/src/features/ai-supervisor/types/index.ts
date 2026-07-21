@@ -274,7 +274,7 @@ interface ReasoningGraphReference {
   label: string;
   /** Human-readable name/identifier for the node, e.g. a worker's name or a zone code. */
   name: string;
-  /** How this node relates to the reasoning, e.g. "LOCATED_IN Zone-A". `null` when the backend doesn't report a relationship. */
+  /** How this node relates to the reasoning, e.g. "LOCATED_IN Distillation-Unit". `null` when the backend doesn't report a relationship. */
   relationship: string | null;
 }
 

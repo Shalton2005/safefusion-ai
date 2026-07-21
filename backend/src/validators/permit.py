@@ -12,7 +12,7 @@ class PermitSchema(AppBaseModel):
     """Canonical validation model for Permit domain fields."""
 
     permit_type: PermitType = Field(..., examples=[PermitType.HOT_WORK])
-    zone: str = Field(..., min_length=2, max_length=50, examples=["Zone-B"])
+    zone: str = Field(..., min_length=2, max_length=50, examples=["Pump-House"])
     issued_by: str = Field(..., min_length=2, max_length=100, examples=["Safety Officer Patel"])
     assigned_team: str = Field(..., min_length=2, max_length=100, examples=["Maintenance Team Alpha"])
     start_time: datetime = Field(..., examples=["2026-07-08T10:00:00Z"])

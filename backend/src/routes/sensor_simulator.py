@@ -64,7 +64,7 @@ def get_simulated_reading(
     zone: Annotated[
         list[str],
         Query(description="Plant zone(s) to simulate. Repeat the parameter for multiple zones."),
-    ] = ["Zone-A"],
+    ] = ["Distillation-Unit"],
     kind: Annotated[
         list[SensorKind] | None,
         Query(description="Sensor kind(s) to simulate. Defaults to all seven when omitted."),

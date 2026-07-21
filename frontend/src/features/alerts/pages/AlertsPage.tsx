@@ -166,10 +166,10 @@ export function AlertsPage() {
       let insightColor: 'primary' | 'secondary' | 'success' | 'warning' | 'danger' | 'ghost' | 'outline' = 'outline';
       let realisticSource = 'IoT Gateway';
       
-      const locationsGas = ['Tank Farm A-12', 'Scrubber Line S-02', 'Confined Space CS-07'];
+      const locationsGas = ['Tank Farm A A-12', 'Scrubber Line S-02', 'Confined Space CS-07'];
       const locationsThermal = ['Boiler Unit B-03', 'Cooling Tower CT-02'];
       const locationsPressure = ['Pump House P-04', 'Boiler Unit B-03'];
-      const locationsGeneral = ['Tank Farm A-12', 'Boiler Unit B-03', 'Scrubber Line S-02', 'Pump House P-04', 'Control Room CR-01', 'Confined Space CS-07', 'Cooling Tower CT-02'];
+      const locationsGeneral = ['Tank Farm A A-12', 'Boiler Unit B-03', 'Scrubber Line S-02', 'Pump House P-04', 'Control Room CR-01', 'Confined Space CS-07', 'Cooling Tower CT-02'];
 
       let realisticLocation = locationsGeneral[seed % locationsGeneral.length];
 
@@ -357,7 +357,7 @@ export function AlertsPage() {
                        <label className="text-xs font-semibold text-[var(--sf-text-secondary)] mb-1 block">Location</label>
                        <select className="w-full bg-[var(--sf-surface-sunken)] border border-[var(--sf-border-default)] rounded px-2 py-1 text-sm text-[var(--sf-text-primary)]" value={filterLocation} onChange={e => { setFilterLocation(e.target.value); setCurrentPage(1); }}>
                          <option value="">All</option>
-                         <option value="Tank Farm A-12">Tank Farm A-12</option>
+                         <option value="Tank Farm A A-12">Tank Farm A A-12</option>
                          <option value="Boiler Unit B-03">Boiler Unit B-03</option>
                          <option value="Pump House P-04">Pump House P-04</option>
                          <option value="Scrubber Line S-02">Scrubber Line S-02</option>

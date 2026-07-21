@@ -10,7 +10,7 @@ export function LiveCCTVPreview() {
           <h2 className="text-sm font-bold text-[var(--sf-text-primary)]">Live CCTV Preview</h2>
         </div>
         <Badge variant="danger" size="sm" dot pulsing>
-          Confined-Space-1
+          Confined-Space-CS-07
         </Badge>
       </div>
 

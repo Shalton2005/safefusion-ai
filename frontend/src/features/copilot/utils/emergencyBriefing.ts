@@ -18,7 +18,7 @@ const BRIEFING_REFERENCES = [
 ];
 
 const BRIEFING_SUMMARY =
-  'High compound risk detected around Tank Farm A-12. Gas concentration has exceeded warning thresholds ' +
+  'High compound risk detected around Tank Farm A A-12. Gas concentration has exceeded warning thresholds ' +
   'while an active Hot Work permit remains open. Two workers remain inside the affected exclusion zone.';
 
 const BRIEFING_RECOMMENDATIONS = [

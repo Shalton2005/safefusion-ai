@@ -140,7 +140,7 @@ class Settings(BaseSettings):
     PERMIT_VALIDATION_EXPIRED_GRACE_SECONDS: int = 0
 
     # ── Alert generation rules ───────────────────────────────────────────────
-    ALERT_RESTRICTED_ZONES: list[str] = ["Boiler-Area", "Confined-Space-1"]
+    ALERT_RESTRICTED_ZONES: list[str] = ["Boiler-Area", "Confined-Space-CS-07"]
 
     # ── Equipment health (compound risk engine) ──────────────────────────────
     # ``MaintenanceLog`` has no ``zone`` column (see
@@ -150,18 +150,18 @@ class Settings(BaseSettings):
     # scripts/seed_demo_data.py. Extend alongside that catalog when adding
     # new equipment.
     EQUIPMENT_ZONE_MAP: dict[str, str] = {
-        "EQ-TF-001": "Tank-Farm",
-        "EQ-TF-002": "Tank-Farm",
+        "EQ-TF-001": "Tank-Farm-A",
+        "EQ-TF-002": "Tank-Farm-A",
         "EQ-BA-001": "Boiler-Area",
         "EQ-BA-002": "Boiler-Area",
-        "EQ-ZA-001": "Zone-A",
-        "EQ-ZA-002": "Zone-A",
-        "EQ-ZB-001": "Zone-B",
-        "EQ-ZB-002": "Zone-B",
-        "EQ-ZC-001": "Zone-C",
-        "EQ-ZC-002": "Zone-C",
-        "EQ-ZD-001": "Zone-D",
-        "EQ-ZD-002": "Zone-D",
+        "EQ-ZA-001": "Distillation-Unit",
+        "EQ-ZA-002": "Distillation-Unit",
+        "EQ-ZB-001": "Pump-House",
+        "EQ-ZB-002": "Pump-House",
+        "EQ-ZC-001": "Substation",
+        "EQ-ZC-002": "Substation",
+        "EQ-ZD-001": "Control-Room",
+        "EQ-ZD-002": "Control-Room",
     }
     EQUIPMENT_HEALTH_AT_RISK_CORRECTIVE_RATIO: float = 0.3
     EQUIPMENT_HEALTH_DEGRADED_CORRECTIVE_RATIO: float = 0.6

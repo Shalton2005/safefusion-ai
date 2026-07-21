@@ -9,19 +9,19 @@ making every scenario runnable with zero DB dependency, live-event
 publishing, and guaranteed-identical AI recommendations on every run (see
 ``src.services.demo_scenarios.runner.DemoScenarioRunner``).
 
-1. Normal Plant       (Zone-D)          — all sensors nominal, valid permit, worker present.
-2. Gas Leak           (Tank-Farm)       — critical gas reading, worker present, valid permit.
-3. Expired Permit     (Zone-B)          — nominal sensors, expired permit, worker present.
+1. Normal Plant       (Control-Room)          — all sensors nominal, valid permit, worker present.
+2. Gas Leak           (Tank-Farm-A)       — critical gas reading, worker present, valid permit.
+3. Expired Permit     (Pump-House)          — nominal sensors, expired permit, worker present.
 4. Compound Risk      (Boiler-Area)     — critical sensor + expired permit + worker present in
                                            a restricted zone, deliberately triggering several
                                            Compound Risk Engine rules at once.
-5. Fire               (Zone-E)          — critical temperature/smoke readings, worker in
+5. Fire               (Loading-Bay)          — critical temperature/smoke readings, worker in
                                            emergency status, linked Incident record.
-6. Permit Violation   (Zone-F)          — worker performing hot work under a permit suspended
+6. Permit Violation   (Cooling-Tower)          — worker performing hot work under a permit suspended
                                            mid-task, linked PPE_VIOLATION Incident record.
-7. Worker Collapse    (Zone-G)          — nominal sensors and a valid permit, but the assigned
+7. Worker Collapse    (Boiler-Unit-B-03)          — nominal sensors and a valid permit, but the assigned
                                            worker is down/unresponsive, linked Incident record.
-8. Confined Space     (Confined-Space-1)— a restricted zone with a critical gas reading, a
+8. Confined Space     (Confined-Space-CS-07)— a restricted zone with a critical gas reading, a
                                            worker present, and no valid permit for entry.
 """
 
@@ -51,12 +51,12 @@ NORMAL = DemoScenario(
     name="normal",
     title="Normal Plant",
     narrative=(
-        "Zone-D: all sensors nominal, a valid permit covers the zone, and the "
+        "Control-Room: all sensors nominal, a valid permit covers the zone, and the "
         "assigned worker is on shift. Baseline case — both risk engines should "
         "report low/no risk here, giving the demo a clean control to contrast "
         "against every other scenario."
     ),
-    zone="Zone-D",
+    zone="Control-Room",
     sensors=(
         DemoSensorReading("SEN-NORMAL-GAS", SensorType.GAS, 38.0, "ppm", SensorStatus.NORMAL),
         DemoSensorReading("SEN-NORMAL-TEMP", SensorType.TEMPERATURE, 28.5, "C", SensorStatus.NORMAL),
@@ -64,8 +64,8 @@ NORMAL = DemoScenario(
     ),
     workers=(
         DemoWorker(
-            employee_id="EMP-DEMO-NORMAL",
-            worker_id="WRK-DEMO-NORMAL",
+            employee_id="EMP-1024",
+            worker_id="WRK-1024",
             name="Pooja Das",
             department="Utilities",
             role="Control Room Operator",
@@ -90,12 +90,12 @@ GAS_LEAK = DemoScenario(
     name="gas_leak",
     title="Gas Leak",
     narrative=(
-        "Tank-Farm: hydrocarbon vapor concentration spikes to a critical gas "
+        "Tank-Farm-A: hydrocarbon vapor concentration spikes to a critical gas "
         "reading while a field operator remains on site under an active "
         "permit. Isolates a single-cause emergency — critical sensor with a "
         "worker present, no permit-related rule involved."
     ),
-    zone="Tank-Farm",
+    zone="Tank-Farm-A",
     sensors=(
         DemoSensorReading("SEN-GASLEAK-GAS", SensorType.GAS, 95.0, "ppm", SensorStatus.CRITICAL),
         DemoSensorReading("SEN-GASLEAK-TEMP", SensorType.TEMPERATURE, 33.0, "C", SensorStatus.NORMAL),
@@ -103,8 +103,8 @@ GAS_LEAK = DemoScenario(
     ),
     workers=(
         DemoWorker(
-            employee_id="EMP-DEMO-GASLEAK",
-            worker_id="WRK-DEMO-GASLEAK",
+            employee_id="EMP-1031",
+            worker_id="WRK-1031",
             name="Vikram Singh",
             department="Operations",
             role="Field Operator",
@@ -130,7 +130,7 @@ GAS_LEAK = DemoScenario(
             incident_type=IncidentType.GAS_LEAK,
             description=(
                 "Hydrocarbon vapor concentration spiked to 95 ppm near the "
-                "Tank-Farm transfer pump while a field operator remained on "
+                "Tank-Farm-A transfer pump while a field operator remained on "
                 "site under an active confined-space permit."
             ),
             root_cause=(
@@ -146,11 +146,11 @@ EXPIRED_PERMIT = DemoScenario(
     name="expired_permit",
     title="Expired Permit",
     narrative=(
-        "Zone-B: sensors read entirely normal, but the permit covering the "
+        "Pump-House: sensors read entirely normal, but the permit covering the "
         "zone expired two hours ago while a worker remains assigned there. "
         "Isolates a compliance-only violation with no environmental signal."
     ),
-    zone="Zone-B",
+    zone="Pump-House",
     sensors=(
         DemoSensorReading("SEN-EXPIREDPERMIT-GAS", SensorType.GAS, 40.0, "ppm", SensorStatus.NORMAL),
         DemoSensorReading("SEN-EXPIREDPERMIT-TEMP", SensorType.TEMPERATURE, 30.0, "C", SensorStatus.NORMAL),
@@ -158,8 +158,8 @@ EXPIRED_PERMIT = DemoScenario(
     ),
     workers=(
         DemoWorker(
-            employee_id="EMP-DEMO-EXPIREDPERMIT",
-            worker_id="WRK-DEMO-EXPIREDPERMIT",
+            employee_id="EMP-1107",
+            worker_id="WRK-1107",
             name="Neha Iyer",
             department="Maintenance",
             role="Maintenance Engineer",
@@ -199,8 +199,8 @@ COMPOUND_RISK = DemoScenario(
     ),
     workers=(
         DemoWorker(
-            employee_id="EMP-DEMO-COMPOUNDRISK",
-            worker_id="WRK-DEMO-COMPOUNDRISK",
+            employee_id="EMP-1128",
+            worker_id="WRK-1128",
             name="Kabir Gupta",
             department="Safety",
             role="Safety Officer",
@@ -246,13 +246,13 @@ FIRE = DemoScenario(
     name="fire",
     title="Fire",
     narrative=(
-        "Zone-E: critical temperature alongside elevated smoke, consistent "
+        "Loading-Bay: critical temperature alongside elevated smoke, consistent "
         "with an active fire near a process unit. The assigned worker is in "
         "emergency status and a matching Incident record is included, "
         "exercising the fire-safety and major-hazard compliance rules end "
         "to end."
     ),
-    zone="Zone-E",
+    zone="Loading-Bay",
     sensors=(
         DemoSensorReading("SEN-FIRE-TEMP", SensorType.TEMPERATURE, 62.0, "C", SensorStatus.CRITICAL),
         DemoSensorReading("SEN-FIRE-SMOKE", SensorType.SMOKE, 9.5, "ppm", SensorStatus.CRITICAL),
@@ -260,8 +260,8 @@ FIRE = DemoScenario(
     ),
     workers=(
         DemoWorker(
-            employee_id="EMP-DEMO-FIRE",
-            worker_id="WRK-DEMO-FIRE",
+            employee_id="EMP-1142",
+            worker_id="WRK-1142",
             name="Rahul Mehta",
             department="Maintenance",
             role="Maintenance Engineer",
@@ -286,7 +286,7 @@ FIRE = DemoScenario(
             severity=SeverityLevel.CRITICAL,
             incident_type=IncidentType.FIRE,
             description=(
-                "Flames observed near a welding station in Zone-E during "
+                "Flames observed near a welding station in Loading-Bay during "
                 "active hot work; smoke and temperature sensors both "
                 "crossed critical thresholds within the same reporting cycle."
             ),
@@ -303,12 +303,12 @@ PERMIT_VIOLATION = DemoScenario(
     name="permit_violation",
     title="Permit Violation",
     narrative=(
-        "Zone-F: a worker continues hot work after the covering permit was "
+        "Cooling-Tower: a worker continues hot work after the covering permit was "
         "actively suspended by a safety officer (not merely expired). "
         "Nominal sensors isolate the violation to permit/process discipline "
         "rather than an environmental hazard."
     ),
-    zone="Zone-F",
+    zone="Cooling-Tower",
     sensors=(
         DemoSensorReading("SEN-PERMITVIOLATION-GAS", SensorType.GAS, 37.0, "ppm", SensorStatus.NORMAL),
         DemoSensorReading("SEN-PERMITVIOLATION-TEMP", SensorType.TEMPERATURE, 29.0, "C", SensorStatus.NORMAL),
@@ -316,8 +316,8 @@ PERMIT_VIOLATION = DemoScenario(
     ),
     workers=(
         DemoWorker(
-            employee_id="EMP-DEMO-PERMITVIOLATION",
-            worker_id="WRK-DEMO-PERMITVIOLATION",
+            employee_id="EMP-1156",
+            worker_id="WRK-1156",
             name="Tarun Reddy",
             department="Operations",
             role="Process Technician",
@@ -343,7 +343,7 @@ PERMIT_VIOLATION = DemoScenario(
             severity=SeverityLevel.MEDIUM,
             incident_type=IncidentType.PPE_VIOLATION,
             description=(
-                "Process technician continued hot work in Zone-F after the "
+                "Process technician continued hot work in Cooling-Tower after the "
                 "covering permit was suspended by the safety officer; "
                 "worker also found without required respiratory protection."
             ),
@@ -360,12 +360,12 @@ WORKER_COLLAPSE = DemoScenario(
     name="worker_collapse",
     title="Worker Collapse",
     narrative=(
-        "Zone-G: sensors read nominal and the permit is valid — this "
+        "Boiler-Unit-B-03: sensors read nominal and the permit is valid — this "
         "isolates a pure worker-safety medical emergency from any "
         "environmental or compliance driver. The assigned worker is down "
         "and unresponsive."
     ),
-    zone="Zone-G",
+    zone="Boiler-Unit-B-03",
     sensors=(
         DemoSensorReading("SEN-WORKERCOLLAPSE-GAS", SensorType.GAS, 33.0, "ppm", SensorStatus.NORMAL),
         DemoSensorReading("SEN-WORKERCOLLAPSE-TEMP", SensorType.TEMPERATURE, 27.5, "C", SensorStatus.NORMAL),
@@ -373,8 +373,8 @@ WORKER_COLLAPSE = DemoScenario(
     ),
     workers=(
         DemoWorker(
-            employee_id="EMP-DEMO-WORKERCOLLAPSE",
-            worker_id="WRK-DEMO-WORKERCOLLAPSE",
+            employee_id="EMP-1160",
+            worker_id="WRK-1160",
             name="Isha Verma",
             department="Operations",
             role="Field Operator",
@@ -385,7 +385,7 @@ WORKER_COLLAPSE = DemoScenario(
     permits=(
         DemoPermit(
             permit_id="PTW-DEMO-WORKERCOLLAPSE",
-            permit_type=PermitType.ELECTRICAL,
+            permit_type=PermitType.ELECTRICAL_ISOLATION,
             issued_by="Safety Officer Reddy",
             assigned_team="Electrical Team Sigma",
             status=PermitStatus.ACTIVE,
@@ -400,7 +400,7 @@ WORKER_COLLAPSE = DemoScenario(
             incident_type=IncidentType.WORKER_COLLAPSE,
             description=(
                 "Field operator found collapsed and unresponsive near the "
-                "electrical panel in Zone-G during a routine round; no "
+                "electrical panel in Boiler-Unit-B-03 during a routine round; no "
                 "environmental hazard indicated by surrounding sensors."
             ),
             root_cause=(
@@ -416,13 +416,13 @@ CONFINED_SPACE = DemoScenario(
     name="confined_space",
     title="Confined Space Incident",
     narrative=(
-        "Confined-Space-1 (a configured restricted zone): a worker is "
+        "Confined-Space-CS-07 (a configured restricted zone): a worker is "
         "present with a critical gas reading and no valid confined-space "
         "entry permit (the existing permit expired before the worker "
         "entered) — a realistic unauthorized confined-space entry during a "
         "gas excursion."
     ),
-    zone="Confined-Space-1",
+    zone="Confined-Space-CS-07",
     sensors=(
         DemoSensorReading("SEN-CONFINEDSPACE-GAS", SensorType.GAS, 88.0, "ppm", SensorStatus.CRITICAL),
         DemoSensorReading("SEN-CONFINEDSPACE-HUMIDITY", SensorType.HUMIDITY, 74.0, "%", SensorStatus.CRITICAL),
@@ -430,8 +430,8 @@ CONFINED_SPACE = DemoScenario(
     ),
     workers=(
         DemoWorker(
-            employee_id="EMP-DEMO-CONFINEDSPACE",
-            worker_id="WRK-DEMO-CONFINEDSPACE",
+            employee_id="EMP-1172",
+            worker_id="WRK-1172",
             name="Dev Nair",
             department="Process",
             role="Shift Supervisor",
@@ -456,7 +456,7 @@ CONFINED_SPACE = DemoScenario(
             severity=SeverityLevel.CRITICAL,
             incident_type=IncidentType.GAS_LEAK,
             description=(
-                "Shift supervisor entered Confined-Space-1 after the "
+                "Shift supervisor entered Confined-Space-CS-07 after the "
                 "covering entry permit had already expired; gas and "
                 "humidity readings both reached critical levels shortly "
                 "after entry."

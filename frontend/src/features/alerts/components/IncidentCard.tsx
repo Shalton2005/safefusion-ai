@@ -31,9 +31,9 @@ export function IncidentCard({ incident, index }: IncidentCardProps) {
     realisticSeverity = 'high';
   }
 
-  const locationsGas = ['Tank Farm A-12', 'Scrubber Line S-02', 'Confined Space CS-07'];
+  const locationsGas = ['Tank Farm A A-12', 'Scrubber Line S-02', 'Confined Space CS-07'];
   const locationsThermal = ['Boiler Unit B-03', 'Control Room CR-01'];
-  const locationsGeneral = ['Tank Farm A-12', 'Boiler Unit B-03', 'Scrubber Line S-02', 'Pump House P-04', 'Control Room CR-01', 'Confined Space CS-07'];
+  const locationsGeneral = ['Tank Farm A A-12', 'Boiler Unit B-03', 'Scrubber Line S-02', 'Pump House P-04', 'Control Room CR-01', 'Confined Space CS-07'];
   
   let realisticLocation = locationsGeneral[seed % locationsGeneral.length];
   if (incident.incident_type === 'gas_leak') realisticLocation = locationsGas[seed % locationsGas.length];

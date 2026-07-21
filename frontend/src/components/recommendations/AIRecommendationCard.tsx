@@ -16,9 +16,9 @@
  *   recommendation={{
  *     id: 'r1',
  *     priority: 'high',
- *     title: 'Re-inspect Zone-A gas sensors',
+ *     title: 'Re-inspect Distillation-Unit gas sensors',
  *     description: 'Two sensors reported readings inconsistent with the zone average over the last hour.',
- *     affectedArea: 'Zone-A',
+ *     affectedArea: 'Distillation-Unit',
  *     confidence: 82,
  *     actionType: 'Inspection',
  *   }}

@@ -37,13 +37,13 @@ SHIFT_HOURS: dict[str, tuple[int, int]] = {
 
 ZONE_CATALOG: list[tuple[str, str, str, str, bool]] = [
     # (zone_id, name, building, hazard_category, is_restricted)
-    ("Tank-Farm", "Tank Farm", "Building 1", "flammable_liquids", True),
-    ("Boiler-Area", "Boiler Area", "Building 2", "high_pressure_steam", True),
-    ("Zone-A", "Process Unit A", "Building 3", "toxic_gas", False),
-    ("Zone-B", "Process Unit B", "Building 3", "electrical", False),
-    ("Zone-C", "Process Unit C", "Building 4", "confined_space", False),
-    ("Zone-D", "Utilities Yard", "Building 5", "general", False),
-    ("Confined-Space-1", "Vessel Entry Point 1", "Building 4", "confined_space", True),
+    ("Tank Farm-A", "Tank Farm A", "Building 1", "flammable_liquids", True),
+    ("Boiler House", "Boiler Area", "Building 2", "high_pressure_steam", True),
+    ("Distillation-Unit", "Distillation Unit", "Building 3", "toxic_gas", False),
+    ("Pump-House", "Pump House", "Building 3", "electrical", False),
+    ("Substation", "Substation", "Building 4", "confined_space", False),
+    ("Control-Room", "Control Room", "Building 5", "general", False),
+    ("Confined-Space-CS-07", "Confined Space CS-07", "Building 4", "confined_space", True),
 ]
 
 EQUIPMENT_CATEGORIES: list[str] = [

@@ -115,11 +115,11 @@ _FIRE_SMOKE_CLASS_NAME_MAP: dict[str, str] = {
 #: Restricted-zone polygons, keyed by scenario zone name. Each polygon is a
 #: sequence of (x, y) vertices in the same normalized 0-1 frame coordinates
 #: as every bounding box in this codebase. One hand-configured polygon for
-#: the demo's Zone-D, covering the work-area boundary visible in
+#: the demo's Control-Room, covering the work-area boundary visible in
 #: `factory_incident.mp4` — extend with more zones as more scenario videos
 #: are added.
 RESTRICTED_ZONES: dict[str, tuple[tuple[float, float], ...]] = {
-    "Zone-D": (
+    "Control-Room": (
         (0.30, 0.20),
         (0.70, 0.20),
         (0.70, 0.95),

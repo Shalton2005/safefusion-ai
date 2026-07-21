@@ -9,7 +9,7 @@ from src.schemas.base import AppBaseModel
 class RiskScoreSchema(AppBaseModel):
     """Canonical validation model for RiskAssessment (risk score) fields."""
 
-    zone: str = Field(..., min_length=2, max_length=50, examples=["Zone-A"])
+    zone: str = Field(..., min_length=2, max_length=50, examples=["Distillation-Unit"])
     risk_score: float = Field(..., ge=0.0, le=100.0, examples=[72.5])
     risk_level: RiskLevel = Field(..., examples=[RiskLevel.HIGH])
     contributing_factors: str | None = Field(

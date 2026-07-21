@@ -73,7 +73,7 @@ class MaintenanceMonitoringService:
 
                 {
                     "equipment_id": "EQ-TF-001",
-                    "equipment_name": "Tank Farm Vapor Recovery Unit",
+                    "equipment_name": "Tank Farm A Vapor Recovery Unit",
                     "total_logs": 4,
                     "corrective_logs": 2,
                     "corrective_ratio": 0.5,

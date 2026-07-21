@@ -105,7 +105,7 @@ def create_worker(
                         "employee_id": "EMP-0001",
                         "department": "Operations",
                         "role": "Process Technician",
-                        "current_zone": "Zone-A",
+                        "current_zone": "Distillation-Unit",
                         "ppe_status": True,
                         "shift": "Morning",
                         "status": "working",

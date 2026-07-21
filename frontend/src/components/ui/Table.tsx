@@ -23,6 +23,7 @@ interface TableProps<TRow = Record<string, unknown>> {
   caption?: string;
   stickyHeader?: boolean;
   maxHeight?: string | number;
+  rowClassName?: string | ((row: TRow) => string);
 }
 
 export function Table<TRow = Record<string, unknown>>({
@@ -36,6 +37,7 @@ export function Table<TRow = Record<string, unknown>>({
   caption,
   stickyHeader,
   maxHeight,
+  rowClassName,
 }: TableProps<TRow>) {
   const getCellValue = (row: TRow, col: TableColumn<TRow>): ReactNode => {
     if (col.render) {
@@ -127,6 +129,7 @@ export function Table<TRow = Record<string, unknown>>({
                   'transition-colors duration-100',
                   onRowClick && 'cursor-pointer',
                   onRowClick && 'focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-inset',
+                  typeof rowClassName === 'function' ? rowClassName(row) : rowClassName
                 )}
               >
                 {columns.map((col) => (

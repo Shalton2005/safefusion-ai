@@ -6,7 +6,7 @@ export type MentionCategory = 'Zone' | 'Worker' | 'Permit' | 'Sensor' | 'Camera'
 export interface MentionOption {
   id: string;
   category: MentionCategory;
-  /** Inserted into the message text after "@", e.g. "@Tank Farm A-12". */
+  /** Inserted into the message text after "@", e.g. "@Tank Farm A A-12". */
   label: string;
 }
 
@@ -25,7 +25,7 @@ export const MENTION_CATEGORY_ICON: Record<MentionCategory, LucideIcon> = {
  * "Worker", "Permit", "Sensor", "Camera" sections as the user types.
  */
 export const MENTION_OPTIONS: MentionOption[] = [
-  { id: 'zone-tank-farm-a12', category: 'Zone', label: 'Tank Farm A-12' },
+  { id: 'zone-tank-farm-a12', category: 'Zone', label: 'Tank Farm A A-12' },
   { id: 'zone-loading-bay-3', category: 'Zone', label: 'Loading Bay 3' },
   { id: 'zone-compressor-house', category: 'Zone', label: 'Compressor House' },
 
@@ -39,6 +39,6 @@ export const MENTION_OPTIONS: MentionOption[] = [
   { id: 'sensor-gas-12', category: 'Sensor', label: 'Gas Sensor GS-12' },
   { id: 'sensor-pressure-04', category: 'Sensor', label: 'Pressure Sensor P-04' },
 
-  { id: 'camera-cam-07', category: 'Camera', label: 'CAM-07 · Tank Farm' },
+  { id: 'camera-cam-07', category: 'Camera', label: 'CAM-07 · Tank Farm A' },
   { id: 'camera-cam-14', category: 'Camera', label: 'CAM-14 · Loading Bay' },
 ];

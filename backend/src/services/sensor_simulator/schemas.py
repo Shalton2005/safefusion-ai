@@ -128,7 +128,7 @@ class SimulatorConfig:
             waveform is already a pure function of elapsed time.
     """
 
-    zones: tuple[str, ...] = ("Zone-A",)
+    zones: tuple[str, ...] = ("Distillation-Unit",)
     kinds: tuple[SensorKind, ...] = tuple(SensorKind)
     mode: SimulationMode = SimulationMode.RANDOM
     interval_seconds: float = 5.0

@@ -13,7 +13,7 @@
  * @example
  * <SafetyTimeline
  *   events={[
- *     { id: '1', type: 'sensor_threshold_crossed', label: 'Sensor Threshold Crossed', description: 'Gas concentration exceeds safe threshold.', severity: 'critical', timestamp: '2026-07-10T10:15:00Z', zone: 'Zone-A' },
+ *     { id: '1', type: 'sensor_threshold_crossed', label: 'Sensor Threshold Crossed', description: 'Gas concentration exceeds safe threshold.', severity: 'critical', timestamp: '2026-07-10T10:15:00Z', zone: 'Distillation-Unit' },
  *   ]}
  * />
  */

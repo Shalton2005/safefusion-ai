@@ -31,7 +31,7 @@ export function AICopilotPanel({ onExecuteResponse, onNotifyTeam, onViewCctv }: 
         incidentType: 'Critical Compound Risk',
         confidence: 98.4,
         estimatedResponseTime: '2m 45s',
-        potentialOutcome: 'Flash fire in Tank Farm due to simultaneous gas accumulation and active spark source.',
+        potentialOutcome: 'Flash fire in Tank Farm A due to simultaneous gas accumulation and active spark source.',
         reasoning: [
           { type: 'gas', description: 'Gas Leak Detected' },
           { type: 'permit', description: 'Active Hot Work' },
@@ -40,7 +40,7 @@ export function AICopilotPanel({ onExecuteResponse, onNotifyTeam, onViewCctv }: 
         ],
         actions: [
           'Suspend Hot Work permit PTW-2026-014 immediately.',
-          'Evacuate Tank Farm personnel (2 workers).',
+          'Evacuate Tank Farm A personnel (2 workers).',
           'Notify on-duty Safety Officer.'
         ]
       });

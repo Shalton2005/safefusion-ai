@@ -11,7 +11,7 @@ class AnalyticsService:
         # In a fully populated production DB, these would query risk repositories, alert rules, and graph schemas.
         overlays = MapOverlays(
             facility_zones=[
-                FacilityZone(id="tank-farm", name="Tank Farm", x=50, y=50, width=350, height=250, color="var(--sf-surface-raised)"),
+                FacilityZone(id="tank-farm", name="Tank Farm A", x=50, y=50, width=350, height=250, color="var(--sf-surface-raised)"),
                 FacilityZone(id="boiler", name="Boiler Unit", x=450, y=50, width=300, height=200, color="var(--sf-surface-raised)"),
                 FacilityZone(id="cooling-tower", name="Cooling Tower", x=800, y=50, width=350, height=200, color="var(--sf-surface-raised)"),
                 FacilityZone(id="pump-house", name="Pump House", x=450, y=300, width=250, height=180, color="var(--sf-surface-raised)"),
@@ -21,7 +21,7 @@ class AnalyticsService:
                 FacilityZone(id="assembly", name="Emergency Assembly Point", x=750, y=600, width=400, height=150, color="var(--color-safe-500)", opacity=0.1),
             ],
             danger_zones=[
-                DangerZone(id="dz1", center=[225, 175], radius=120, color="#ef4444", zone="Tank Farm A-12", incidentCount=6, highestRisk="Critical", confidence="94%")
+                DangerZone(id="dz1", center=[225, 175], radius=120, color="#ef4444", zone="Tank Farm A A-12", incidentCount=6, highestRisk="Critical", confidence="94%")
             ],
             restricted_zones=[
                 RestrictedZone(id="rz1", center=[600, 150], radius=150, color="#f59e0b", zone="Boiler Unit B-03", incidentCount=4, highestRisk="High", confidence="89%")
@@ -50,7 +50,7 @@ class AnalyticsService:
                 MapGasSensor(id="gs2", pos=[600, 100], label="Gas Sensor G-08 (Normal)")
             ],
             incidents=[
-                MapIncident(id="inc1", x=230, y=180, severity="critical", zone="Tank Farm A-12", description="High gas concentration detected near tank T-02.", occurred_at="2026-07-21T10:15:00Z", incident_type="gas_leak"),
+                MapIncident(id="inc1", x=230, y=180, severity="critical", zone="Tank Farm A A-12", description="High gas concentration detected near tank T-02.", occurred_at="2026-07-21T10:15:00Z", incident_type="gas_leak"),
                 MapIncident(id="inc2", x=610, y=140, severity="high", zone="Boiler Unit B-03", description="Unauthorized access detected in restricted area.", occurred_at="2026-07-21T09:45:00Z", incident_type="security_breach"),
                 MapIncident(id="inc3", x=900, y=650, severity="low", zone="Assembly Point", description="Routine assembly drill completed.", occurred_at="2026-07-21T08:00:00Z", incident_type="drill")
             ]

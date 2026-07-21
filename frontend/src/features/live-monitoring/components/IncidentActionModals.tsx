@@ -16,12 +16,12 @@ import { ROUTES } from '@/constants/routes';
  */
 export const ACTIVE_INCIDENT = {
   id: 'INC-2026-0714',
-  zone: 'Tank Farm',
+  zone: 'Tank Farm A',
   severity: 'critical' as const,
   verdict: 'Compound Risk Detected',
   incidentType: 'Compound Risk — Gas Leak + Active Hot Work',
   confidence: 98.4,
-  description: 'Gas leak detected near Tank Farm while active Hot Work permit PTW-2026-014 remains open. Wind direction is carrying vapor toward the active spark source.',
+  description: 'Gas leak detected near Tank Farm A while active Hot Work permit PTW-2026-014 remains open. Wind direction is carrying vapor toward the active spark source.',
   factors: ['Gas Leak', 'Active Hot Work', 'PPE Non Compliance', 'Wind Direction'],
   escalation: { threat: 'Flash Fire', timeframe: 'within 4-7 minutes' },
   camera: 'CCTV-07',
@@ -239,7 +239,7 @@ export function ViewIncidentModal({ open, onClose }: { open: boolean; onClose: (
 
 const NOTIFY_RECIPIENTS = [
   { name: 'Safety Officer (On-Duty)', role: 'safety_officer' },
-  { name: 'Tank Farm Response Team', role: 'response_team' },
+  { name: 'Tank Farm A Response Team', role: 'response_team' },
   { name: 'Plant Shift Supervisor', role: 'supervisor' },
 ];
 
