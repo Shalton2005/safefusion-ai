@@ -147,13 +147,35 @@ export interface SensorReading {
 }
 
 // ─── Report ────────────────────────────────────────────────────────
+export type ReportType =
+  | 'Incident Report'
+  | 'Compliance Audit'
+  | 'PPE Violation'
+  | 'Permit Review'
+  | 'Safety Inspection'
+  | 'CCTV Investigation'
+  | 'AI Executive Summary';
+
+export type ReportStatus =
+  | 'Drafted by AI'
+  | 'Awaiting Officer Review'
+  | 'Approved'
+  | 'Flagged'
+  | 'Escalated'
+  | 'Closed';
+
 export interface Report {
   id: string;
   title: string;
-  type: string;
+  type: ReportType;
+  zone: string;
+  severity: SeverityLevel;
   generatedAt: string;
   generatedBy: string;
-  status: 'pending' | 'ready' | 'failed';
+  status: ReportStatus;
+  aiConfidence: number;
+  /** Raw id of the source incident/risk-score/compliance/permit record this report was derived from — used to link to its existing detail view. */
+  sourceId: string;
   downloadUrl?: string;
 }
 
