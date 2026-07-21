@@ -1,21 +1,18 @@
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
-import { MapContainer, TileLayer, Marker, Popup, Tooltip, Circle, Polyline } from 'react-leaflet';
-import MarkerClusterGroup from 'react-leaflet-cluster';
+import { useState } from 'react';
 import { Card, CardHeader, Badge, Skeleton, Alert } from '@/components/ui';
-import { useThemeStore } from '@/store/useThemeStore';
 import { cn } from '@/lib/cn';
 import { SEVERITY_BADGE_VARIANT } from '@/utils/severity';
 import { capitalise } from '@/utils/format';
 import type { SeverityLevel } from '@/constants';
-import { useIncidentMapData } from '../hooks/useIncidentMapData';
-import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from './zoneCoordinates';
+import type { MapOverlaysData } from '@/types';
+import { AlertTriangle, HardHat, FileText, Camera, Flame, Info } from 'lucide-react';
 
-// Map tile layers for light and dark modes
-const TILE_LAYERS = {
-  light: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-  dark:  'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-};
+export interface SafetyHeatmapContainerProps {
+  overlays?: MapOverlaysData;
+}
+
+const SVG_WIDTH = 1200;
+const SVG_HEIGHT = 800;
 
 const RISK_LEGEND: { level: SeverityLevel; label: string }[] = [
   { level: 'low',      label: 'Low' },
@@ -31,116 +28,21 @@ const riskDotClass: Record<SeverityLevel, string> = {
   critical: 'bg-danger-500',
 };
 
-// Component to dynamically switch tile layers based on theme without remounting the map
-function ThemeTileLayer() {
-  const { resolvedTheme } = useThemeStore();
-  const tileUrl = resolvedTheme === 'dark' ? TILE_LAYERS.dark : TILE_LAYERS.light;
+export function SafetyHeatmapContainer({ overlays }: SafetyHeatmapContainerProps) {
+  const [activeTooltip, setActiveTooltip] = useState<{ x: number, y: number, content: React.ReactNode } | null>(null);
+
+  // Group overlays that share positions or nearby (simplified logic, mainly rendering them directly)
   
   return (
-    <TileLayer
-      url={tileUrl}
-      attribution='&copy; <a href="https://carto.com/">CartoDB</a>'
-    />
-  );
-}
-
-// Function to create a custom HTML marker icon based on severity
-function createSeverityIcon(severity: SeverityLevel) {
-  const colorMap = {
-    low: '#10b981', // safe-500
-    medium: '#3b82f6', // primary-500
-    high: '#f59e0b', // caution-500
-    critical: '#ef4444' // danger-500
-  };
-  
-  const color = colorMap[severity] || colorMap.low;
-  
-  return L.divIcon({
-    className: 'custom-incident-marker',
-    html: `<div style="
-      background-color: ${color}; 
-      width: 14px; 
-      height: 14px; 
-      border-radius: 50%; 
-      border: 2px solid white;
-      box-shadow: 0 0 4px rgba(0,0,0,0.5);
-      position: relative;
-      z-index: 1000;
-    "></div>`,
-    iconSize: [14, 14],
-    iconAnchor: [7, 7]
-  });
-}
-
-// Custom overlay icons
-const workerIcon = L.divIcon({
-  className: 'worker-marker',
-  html: `<div style="background-color: #3b82f6; width: 10px; height: 10px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 4px rgba(0,0,0,0.5);"></div>`,
-  iconSize: [10, 10],
-  iconAnchor: [5, 5]
-});
-
-const permitIcon = L.divIcon({
-  className: 'permit-marker',
-  html: `<div style="background-color: #f59e0b; width: 10px; height: 10px; border-radius: 2px; border: 2px solid white; box-shadow: 0 0 4px rgba(0,0,0,0.5);"></div>`,
-  iconSize: [10, 10],
-  iconAnchor: [5, 5]
-});
-
-const cameraIcon = L.divIcon({
-  className: 'camera-marker',
-  html: `<div style="background-color: #8b5cf6; width: 10px; height: 10px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 4px rgba(0,0,0,0.5);"></div>`,
-  iconSize: [10, 10],
-  iconAnchor: [5, 5]
-});
-
-// Mock overlays to demonstrate backend integration readiness
-const DANGER_ZONES = [
-  { id: 'dz1', center: [29.7565, -95.3620] as [number, number], radius: 60, color: '#ef4444' },
-];
-
-const EVACUATION_PATH = [
-  [29.7565, -95.3620],
-  [29.7555, -95.3630],
-  [29.7540, -95.3645],
-  [29.7530, -95.3650], // Safe Assembly Point
-] as [number, number][];
-
-const WORKERS = [
-  { id: 'w1', pos: [29.7568, -95.3615] as [number, number], name: 'Aarav Sharma' },
-  { id: 'w2', pos: [29.7562, -95.3622] as [number, number], name: 'Priya Patel' },
-  { id: 'w3', pos: [29.7540, -95.3630] as [number, number], name: 'Marcus Reyes' },
-];
-
-const PERMITS = [
-  { id: 'p1', pos: [29.7565, -95.3628] as [number, number], label: 'Hot Work PTW-2026-014' },
-  { id: 'p2', pos: [29.7550, -95.3610] as [number, number], label: 'Confined Space CS-09' },
-];
-
-const CAMERAS = [
-  { id: 'c1', pos: [29.7570, -95.3610] as [number, number], label: 'CCTV-07' },
-  { id: 'c2', pos: [29.7555, -95.3630] as [number, number], label: 'CCTV-12' },
-  { id: 'c3', pos: [29.7525, -95.3625] as [number, number], label: 'CCTV-03' },
-];
-
-
-export function SafetyHeatmapContainer() {
-  const { incidents, loading, error } = useIncidentMapData();
-
-  return (
-    <Card padding="none" className="h-full flex flex-col border-[var(--sf-border-default)]">
+    <Card padding="none" className="h-full flex flex-col border-[var(--sf-border-default)] relative">
       <CardHeader
         title="Incident Intelligence Map"
-        description="Live incident cluster mapping across zones with active overlays."
+        description="Live industrial facility visualization with active telemetry."
         className="px-6 pt-5 pb-0 flex-shrink-0"
-        action={
-          <Badge variant="ghost" size="sm">
-            Live Map
-          </Badge>
-        }
+        action={<Badge variant="ghost" size="sm">Live SVG Map</Badge>}
       />
 
-      <div className="p-4 flex flex-col gap-4 flex-1 min-h-0">
+      <div className="p-4 flex flex-col gap-4 flex-1 min-h-[400px]">
         {/* Legends */}
         <div className="flex flex-col gap-2 px-2">
           <div className="flex flex-wrap items-center gap-4">
@@ -153,130 +55,295 @@ export function SafetyHeatmapContainer() {
           </div>
           <div className="flex flex-wrap items-center gap-4 mt-1">
             <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-blue-500" aria-hidden="true" />
+              <div className="w-4 h-4 rounded-full bg-blue-500/20 border-2 border-blue-500 flex items-center justify-center"><div className="w-1.5 h-1.5 bg-blue-500 rounded-full" /></div>
               <span className="text-xs text-[var(--sf-text-tertiary)]">Worker</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-sm bg-amber-500" aria-hidden="true" />
+              <div className="w-4 h-4 rounded-md bg-amber-500/20 border-2 border-amber-500 flex items-center justify-center" />
               <span className="text-xs text-[var(--sf-text-tertiary)]">Permit</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-purple-500" aria-hidden="true" />
+              <div className="w-4 h-4 rounded-full bg-purple-500/20 border-2 border-purple-500 flex items-center justify-center" />
               <span className="text-xs text-[var(--sf-text-tertiary)]">Camera</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-4 h-4 rounded-sm bg-emerald-500/20 border-2 border-emerald-500 flex items-center justify-center" />
+              <span className="text-xs text-[var(--sf-text-tertiary)]">Gas Sensor</span>
             </div>
             <div className="flex items-center gap-1.5">
               <span className="w-4 h-1 rounded-full bg-emerald-500" aria-hidden="true" />
               <span className="text-xs text-[var(--sf-text-tertiary)]">Evacuation Path</span>
             </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-full bg-danger-500/20 border border-danger-500" aria-hidden="true" />
-              <span className="text-xs text-[var(--sf-text-tertiary)]">Danger Radius</span>
-            </div>
           </div>
         </div>
 
-        {error && (
-          <Alert variant="danger" title="Failed to load map data">
-            {error}
-          </Alert>
-        )}
-
-        {/* Interactive Map */}
-        <div
-          className={cn(
-            'relative w-full flex-1 min-h-0 rounded-xl overflow-hidden',
-            'border-2 border-[var(--sf-border-default)]',
-            'bg-[var(--sf-surface-sunken)] z-0'
-          )}
-        >
-          {loading ? (
+        {!overlays ? (
             <Skeleton className="w-full h-full" />
           ) : (
-            <MapContainer 
-              center={DEFAULT_MAP_CENTER} 
-              zoom={DEFAULT_MAP_ZOOM} 
-              scrollWheelZoom={false}
-              style={{ height: '100%', width: '100%', zIndex: 0 }}
-            >
-              <ThemeTileLayer />
-
-              {/* Overlays */}
-              {DANGER_ZONES.map((zone) => (
-                <Circle 
-                  key={zone.id}
-                  center={zone.center}
-                  radius={zone.radius}
-                  pathOptions={{ color: zone.color, fillColor: zone.color, fillOpacity: 0.15, weight: 2 }}
-                />
-              ))}
-
-              <Polyline 
-                positions={EVACUATION_PATH} 
-                pathOptions={{ color: '#10b981', weight: 4, dashArray: '8, 8' }} 
-              />
-
-              {/* Workers */}
-              {WORKERS.map((w) => (
-                <Marker key={w.id} position={w.pos} icon={workerIcon}>
-                  <Tooltip direction="top" offset={[0, -5]} opacity={1}>
-                    <span className="font-medium text-xs">{w.name}</span>
-                  </Tooltip>
-                </Marker>
-              ))}
-
-              {/* Permits */}
-              {PERMITS.map((p) => (
-                <Marker key={p.id} position={p.pos} icon={permitIcon}>
-                  <Tooltip direction="top" offset={[0, -5]} opacity={1}>
-                    <span className="font-medium text-xs">{p.label}</span>
-                  </Tooltip>
-                </Marker>
-              ))}
-
-              {/* Cameras */}
-              {CAMERAS.map((c) => (
-                <Marker key={c.id} position={c.pos} icon={cameraIcon}>
-                  <Tooltip direction="top" offset={[0, -5]} opacity={1}>
-                    <span className="font-medium text-xs">{c.label}</span>
-                  </Tooltip>
-                </Marker>
-              ))}
-              
-              <MarkerClusterGroup
-                chunkedLoading
-                maxClusterRadius={40}
+            <>
+              <svg 
+                viewBox={`0 0 ${SVG_WIDTH} ${SVG_HEIGHT}`} 
+                className="w-full h-full object-contain"
+                onMouseLeave={() => setActiveTooltip(null)}
               >
-                {/* Dynamic backend incidents */}
-                {incidents.map((incident) => (
-                  <Marker 
-                    key={incident.id} 
-                    position={[incident.lat, incident.lng]}
-                    icon={createSeverityIcon(incident.severity)}
-                  >
-                    <Tooltip direction="top" offset={[0, -10]} opacity={1}>
-                      <span className="font-medium text-xs">{capitalise(incident.incident_type.replace('_', ' '))}</span>
-                    </Tooltip>
-                    <Popup className="incident-popup">
-                      <div className="flex flex-col gap-1 min-w-[200px]">
-                        <div className="flex items-center justify-between">
-                          <span className="font-bold text-sm text-[var(--sf-text-primary)]">{incident.zone}</span>
-                          <Badge variant={SEVERITY_BADGE_VARIANT[incident.severity]} size="sm">{capitalise(incident.severity)}</Badge>
-                        </div>
-                        <span className="text-xs text-[var(--sf-text-tertiary)] font-mono">
-                          {new Date(incident.occurred_at).toLocaleString()}
-                        </span>
-                        <p className="text-xs text-[var(--sf-text-secondary)] mt-1 break-words">
-                          {incident.description}
-                        </p>
-                      </div>
-                    </Popup>
-                  </Marker>
+                <defs>
+                  <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="var(--sf-border-default)" strokeWidth="0.5" strokeOpacity="0.5"/>
+                  </pattern>
+                  <filter id="glow">
+                    <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                    <feMerge>
+                      <feMergeNode in="coloredBlur"/>
+                      <feMergeNode in="SourceGraphic"/>
+                    </feMerge>
+                  </filter>
+                </defs>
+
+                <rect width="100%" height="100%" fill="url(#grid)" />
+
+                {/* Render Facility Zones */}
+                {overlays?.facility_zones?.map(zone => (
+                  <g key={zone.id}>
+                    <rect 
+                      x={zone.x} 
+                      y={zone.y} 
+                      width={zone.width} 
+                      height={zone.height} 
+                      fill={zone.color} 
+                      fillOpacity={zone.opacity || 1}
+                      stroke="var(--sf-border-strong)" 
+                      strokeWidth="2" 
+                      rx="8"
+                    />
+                    <text 
+                      x={zone.x + 16} 
+                      y={zone.y + 24} 
+                      fill="var(--sf-text-tertiary)" 
+                      className="text-xs font-semibold uppercase tracking-widest font-mono"
+                    >
+                      {zone.name}
+                    </text>
+                  </g>
                 ))}
-              </MarkerClusterGroup>
-            </MapContainer>
+
+                {/* Evacuation Path */}
+                {overlays?.evacuation_path && (
+                  <polyline 
+                    points={overlays.evacuation_path.map(p => `${p[0]},${p[1]}`).join(' ')}
+                    fill="none" 
+                    stroke="var(--color-safe-500)" 
+                    strokeWidth="4" 
+                    strokeDasharray="8 8" 
+                    className="animate-[dash_2s_linear_infinite]"
+                  />
+                )}
+
+                {/* Danger Zones */}
+                {overlays?.danger_zones?.map(zone => {
+                  const x = zone.center[0];
+                  const y = zone.center[1];
+                  const r = zone.radius;
+                  return (
+                    <g 
+                      key={zone.id} 
+                      onMouseEnter={() => setActiveTooltip({
+                        x, y: y - r - 10,
+                        content: (
+                          <div className="flex flex-col gap-1.5 text-xs">
+                            <span className="font-bold text-sm border-b border-slate-700 pb-1 mb-1">{zone.zone} (Danger Zone)</span>
+                            <span className="flex justify-between gap-4">Incidents: <strong className="text-danger-500">{zone.incidentCount}</strong></span>
+                            <span className="flex justify-between gap-4">Highest Risk: <strong className="text-danger-500">{zone.highestRisk}</strong></span>
+                            <span className="flex justify-between gap-4">AI Confidence: <strong>{zone.confidence}</strong></span>
+                          </div>
+                        )
+                      })}
+                      onMouseLeave={() => setActiveTooltip(null)}
+                      className="cursor-pointer"
+                    >
+                      <circle cx={x} cy={y} r={r} fill={zone.color} fillOpacity="0.2" className="animate-pulse" />
+                      <circle cx={x} cy={y} r={r} fill="none" stroke={zone.color} strokeWidth="2" strokeDasharray="6 4" />
+                    </g>
+                  );
+                })}
+
+                {/* Restricted Zones */}
+                {overlays?.restricted_zones?.map(zone => {
+                  const x = zone.center[0];
+                  const y = zone.center[1];
+                  const r = zone.radius;
+                  return (
+                    <g 
+                      key={zone.id} 
+                      onMouseEnter={() => setActiveTooltip({
+                        x, y: y - r - 10,
+                        content: (
+                          <div className="flex flex-col gap-1.5 text-xs">
+                            <span className="font-bold text-sm border-b border-slate-700 pb-1 mb-1">{zone.zone} (Restricted)</span>
+                            <span className="flex justify-between gap-4">Incidents: <strong className="text-caution-500">{zone.incidentCount}</strong></span>
+                            <span className="flex justify-between gap-4">Highest Risk: <strong className="text-caution-500">{zone.highestRisk}</strong></span>
+                            <span className="flex justify-between gap-4">AI Confidence: <strong>{zone.confidence}</strong></span>
+                          </div>
+                        )
+                      })}
+                      onMouseLeave={() => setActiveTooltip(null)}
+                      className="cursor-pointer"
+                    >
+                      <circle cx={x} cy={y} r={r} fill={zone.color} fillOpacity="0.15" />
+                      <circle cx={x} cy={y} r={r} fill="none" stroke={zone.color} strokeWidth="2" strokeDasharray="10 5" />
+                    </g>
+                  );
+                })}
+
+                {/* Permits */}
+                {overlays?.permits?.map(p => {
+                  const x = p.pos[0];
+                  const y = p.pos[1];
+                  return (
+                    <g 
+                      key={p.id}
+                      transform={`translate(${x - 12}, ${y - 12})`}
+                      onMouseEnter={() => setActiveTooltip({ x, y: y - 16, content: <div className="font-semibold">{p.label} (Permit)</div> })}
+                      onMouseLeave={() => setActiveTooltip(null)}
+                      className="cursor-pointer"
+                    >
+                      <rect width="24" height="24" rx="4" fill="var(--color-caution-500)" fillOpacity="0.2" stroke="var(--color-caution-500)" strokeWidth="2" />
+                      <foreignObject width="24" height="24">
+                        <div className="w-full h-full flex items-center justify-center text-[var(--color-caution-500)]">
+                          <FileText size={14} />
+                        </div>
+                      </foreignObject>
+                    </g>
+                  );
+                })}
+
+                {/* Cameras */}
+                {overlays?.cameras?.map(c => {
+                  const x = c.pos[0];
+                  const y = c.pos[1];
+                  return (
+                    <g 
+                      key={c.id}
+                      transform={`translate(${x - 12}, ${y - 12})`}
+                      onMouseEnter={() => setActiveTooltip({ x, y: y - 16, content: <div className="font-semibold">{c.label} (Active)</div> })}
+                      onMouseLeave={() => setActiveTooltip(null)}
+                      className="cursor-pointer"
+                    >
+                      <circle cx="12" cy="12" r="12" fill="#8b5cf6" fillOpacity="0.2" stroke="#8b5cf6" strokeWidth="2" />
+                      <foreignObject width="24" height="24">
+                        <div className="w-full h-full flex items-center justify-center text-[#8b5cf6]">
+                          <Camera size={12} />
+                        </div>
+                      </foreignObject>
+                    </g>
+                  );
+                })}
+
+                {/* Gas Sensors */}
+                {overlays?.gas_sensors?.map(g => {
+                  const x = g.pos[0];
+                  const y = g.pos[1];
+                  return (
+                    <g 
+                      key={g.id}
+                      transform={`translate(${x - 12}, ${y - 12})`}
+                      onMouseEnter={() => setActiveTooltip({ x, y: y - 16, content: <div className="font-semibold">{g.label} (Normal)</div> })}
+                      onMouseLeave={() => setActiveTooltip(null)}
+                      className="cursor-pointer"
+                    >
+                      <rect width="24" height="24" rx="2" fill="var(--color-safe-500)" fillOpacity="0.2" stroke="var(--color-safe-500)" strokeWidth="2" />
+                      <foreignObject width="24" height="24">
+                        <div className="w-full h-full flex items-center justify-center text-[var(--color-safe-500)]">
+                          <Flame size={12} />
+                        </div>
+                      </foreignObject>
+                    </g>
+                  );
+                })}
+
+                {/* Workers (Animated pulses) */}
+                {overlays?.workers?.map(w => {
+                  const x = w.pos[0];
+                  const y = w.pos[1];
+                  return (
+                    <g 
+                      key={w.id}
+                      transform={`translate(${x - 14}, ${y - 14})`}
+                      onMouseEnter={() => setActiveTooltip({ x, y: y - 18, content: <div className="font-semibold">{w.name} (Worker)</div> })}
+                      onMouseLeave={() => setActiveTooltip(null)}
+                      className="cursor-pointer"
+                    >
+                      <circle cx="14" cy="14" r="14" fill="var(--color-primary-500)" fillOpacity="0.2" className="animate-ping" />
+                      <circle cx="14" cy="14" r="12" fill="var(--color-primary-500)" fillOpacity="0.3" stroke="var(--color-primary-500)" strokeWidth="2" />
+                      <foreignObject width="28" height="28">
+                        <div className="w-full h-full flex items-center justify-center text-[var(--color-primary-500)]">
+                          <HardHat size={14} />
+                        </div>
+                      </foreignObject>
+                    </g>
+                  );
+                })}
+
+                {/* Incidents (Markers) */}
+                {overlays?.incidents?.map(inc => {
+                  const x = inc.x;
+                  const y = inc.y;
+                  const colorMap: Record<string, string> = {
+                    low: 'var(--color-safe-500)',
+                    medium: 'var(--color-primary-500)',
+                    high: 'var(--color-caution-500)',
+                    critical: 'var(--color-danger-500)'
+                  };
+                  const color = colorMap[inc.severity] || colorMap['low'];
+                  return (
+                    <g 
+                      key={inc.id}
+                      transform={`translate(${x - 12}, ${y - 24})`}
+                      onMouseEnter={() => setActiveTooltip({
+                        x, y: y - 28,
+                        content: (
+                          <div className="flex flex-col gap-1 min-w-[200px]">
+                            <div className="flex items-center justify-between">
+                              <span className="font-bold text-sm">{inc.zone}</span>
+                              <Badge variant={SEVERITY_BADGE_VARIANT[inc.severity as SeverityLevel]} size="sm">{capitalise(inc.severity)}</Badge>
+                            </div>
+                            <span className="text-xs text-slate-400 font-mono mb-1">{new Date(inc.occurred_at).toLocaleString()}</span>
+                            <p className="text-xs leading-relaxed text-slate-200">{inc.description}</p>
+                          </div>
+                        )
+                      })}
+                      onMouseLeave={() => setActiveTooltip(null)}
+                      className="cursor-pointer drop-shadow-md hover:drop-shadow-xl transition-all"
+                    >
+                      <path d="M12 0C7.58 0 4 3.58 4 8c0 5.25 8 16 8 16s8-10.75 8-16c0-4.42-3.58-8-8-8zm0 11.5c-1.93 0-3.5-1.57-3.5-3.5S10.07 4.5 12 4.5s3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z" fill={color} />
+                    </g>
+                  );
+                })}
+              </svg>
+
+              {/* Absolute positioned HTML Tooltip floating over the SVG */}
+              {activeTooltip && (
+                <div 
+                  className="absolute pointer-events-none z-50 transform -translate-x-1/2 -translate-y-full"
+                  style={{
+                    left: `${(activeTooltip.x / SVG_WIDTH) * 100}%`,
+                    top: `calc(${(activeTooltip.y / SVG_HEIGHT) * 100}% - 4px)`
+                  }}
+                >
+                  <div className="bg-slate-900/95 backdrop-blur-sm border border-slate-700 text-slate-100 rounded-lg p-3 shadow-2xl animate-in fade-in zoom-in-95 duration-200 whitespace-nowrap">
+                    {activeTooltip.content}
+                    {/* Tooltip arrow */}
+                    <div className="absolute left-1/2 bottom-0 transform -translate-x-1/2 translate-y-1/2 rotate-45 w-2.5 h-2.5 bg-slate-900 border-r border-b border-slate-700" />
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
-      </div>
+      <style>{`
+        @keyframes dash {
+          to { stroke-dashoffset: -16; }
+        }
+      `}</style>
     </Card>
   );
 }

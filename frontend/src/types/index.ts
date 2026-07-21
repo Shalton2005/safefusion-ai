@@ -160,17 +160,140 @@ export interface Report {
 // ─── Analytics ────────────────────────────────────────────────────
 export interface TimeSeriesPoint {
   timestamp: string;
-  value: number;
+  value?: number;
+  forecastValue?: number;
+  critical?: number;
+  resolved?: number;
+  confidence?: string;
+  isForecast?: boolean;
 }
 
-export interface AnalyticsSummary {
-  totalAlerts: number;
-  activeAlerts: number;
-  devicesOnline: number;
-  devicesTotal: number;
-  incidentRate: number;
-  safetyScore: number;
+export interface MetricData {
+  value: number | string;
+  change: string;
+  trendDir: 'up' | 'down';
+  positive: boolean;
+}
+
+export interface RiskZoneData {
+  zone: string;
+  riskPercentage: number;
+  activeIncidents: number;
+  criticalIncidents: number;
   trend: 'up' | 'down' | 'stable';
+}
+
+export interface TimelineEventData {
+  time: string;
+  title: string;
+  severity: string;
+  confidence: string;
+  reason: string;
+  action: string;
+}
+
+export interface AIRecommendationData {
+  priority: number;
+  title: string;
+  confidence: string;
+  impact: string;
+  eta: string;
+  status: string;
+}
+
+export interface AISummaryData {
+  increase_percentage: number;
+  primary_contributors: string[];
+  predicted_impact: string;
+  recommended_actions: string[];
+}
+
+export interface DangerZoneData {
+  id: string;
+  center: [number, number];
+  radius: number;
+  color: string;
+  zone: string;
+  incidentCount: number;
+  highestRisk: string;
+  confidence: string;
+}
+
+export interface RestrictedZoneData {
+  id: string;
+  center: [number, number];
+  radius: number;
+  color: string;
+  zone: string;
+  incidentCount: number;
+  highestRisk: string;
+  confidence: string;
+}
+
+export interface MapWorkerData {
+  id: string;
+  pos: [number, number];
+  name: string;
+}
+
+export interface MapPermitData {
+  id: string;
+  pos: [number, number];
+  label: string;
+}
+
+export interface MapCameraData {
+  id: string;
+  pos: [number, number];
+  label: string;
+}
+
+export interface MapGasSensorData {
+  id: string;
+  pos: [number, number];
+  label: string;
+}
+
+export interface FacilityZoneData {
+  id: string;
+  name: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  color: string;
+  opacity?: number;
+}
+
+export interface MapIncidentData {
+  id: string;
+  x: number;
+  y: number;
+  severity: string;
+  zone: string;
+  description: string;
+  occurred_at: string;
+  incident_type: string;
+}
+
+export interface MapOverlaysData {
+  danger_zones: DangerZoneData[];
+  restricted_zones: RestrictedZoneData[];
+  evacuation_path: [number, number][];
+  workers: MapWorkerData[];
+  permits: MapPermitData[];
+  cameras: MapCameraData[];
+  gas_sensors: MapGasSensorData[];
+  facility_zones: FacilityZoneData[];
+  incidents: MapIncidentData[];
+}
+
+export interface AnalyticsOverviewResponse {
+  plant_status: string;
+  mapOverlays: MapOverlaysData;
+  aiSummary: AISummaryData;
+  aiRecommendations: AIRecommendationData[];
+  predictiveTimeline: TimelineEventData[];
 }
 
 // ─── Risk Summary ──────────────────────────────────────────────────

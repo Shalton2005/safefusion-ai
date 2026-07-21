@@ -43,6 +43,7 @@ from src.routes import auth as auth_router
 from src.routes import compliance as compliance_router
 from src.routes import computer_vision as computer_vision_router
 from src.routes import dashboard as dashboard_router
+from src.routes import analytics as analytics_router
 from src.routes import demo as demo_router
 from src.routes import emergency as emergency_router
 from src.routes import emergency_response as emergency_response_router
@@ -218,6 +219,7 @@ def create_application() -> FastAPI:
 
     application.include_router(status_router.router, prefix=settings.API_PREFIX, dependencies=protected_dependencies)
     application.include_router(dashboard_router.router, prefix=settings.API_PREFIX, dependencies=protected_dependencies)
+    application.include_router(analytics_router.router, prefix=settings.API_PREFIX, dependencies=protected_dependencies)
     application.include_router(workers_router.router, prefix=settings.API_PREFIX, dependencies=protected_dependencies)
     application.include_router(sensors_router.router, prefix=settings.API_PREFIX, dependencies=protected_dependencies)
     application.include_router(sensor_simulator_router.router, prefix=settings.API_PREFIX, dependencies=protected_dependencies)
