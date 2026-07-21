@@ -34,10 +34,13 @@ export function AgentActivityList({ agents, className }: AgentActivityListProps)
   }
 
   return (
-    <div className={cn('flex flex-col gap-2', className)}>
-      {agents.map((agent) => (
-        <AgentSummary key={agent.id} agent={agent} />
-      ))}
+    <div className={cn('grid grid-cols-1 sm:grid-cols-2 gap-4', className)}>
+      {agents
+        .filter((a) => ['compound_risk', 'emergency_response', 'recommendation', 'compliance'].includes(a.id))
+        .slice(0, 4)
+        .map((agent) => (
+          <AgentSummary key={agent.id} agent={agent} />
+        ))}
     </div>
   );
 }
