@@ -108,7 +108,7 @@ export function DashboardPage() {
     if (isCriticalMode || isEmergencyMode) {
       return (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8">
-          <QuickLinkCard to="/emergency" icon={ShieldAlert} title="View Emergency Plan" description="Active incident response procedures" />
+          <QuickLinkCard to={ROUTES.ALERTS} icon={ShieldAlert} title="View Emergency Plan" description="Active incident response procedures" />
           <QuickLinkCard to={`/live-monitoring?zone=${encodeURIComponent(riskEngineData.explanation?.zone || '')}`} icon={MapPin} title="Affected Zone" description="Live CCTV and sensors" />
           <QuickLinkCard to={ROUTES.AI_SUPERVISOR} icon={BrainCircuit} title="AI Reasoning" description="Understand this risk score" />
         </div>
@@ -146,7 +146,7 @@ export function DashboardPage() {
         emergencyActions={emergencyData.actions}
         supervisorSnapshot={aiSupervisor.snapshot}
         lastUpdated={riskEngineData.lastUpdated}
-        onDispatchEmergency={() => navigate('/emergency')}
+        onDispatchEmergency={() => navigate(ROUTES.ALERTS)}
         onViewReasoning={() => navigate(ROUTES.AI_SUPERVISOR)}
         onOpenLiveMonitoring={() => navigate(ROUTES.LIVE_MONITORING)}
       />

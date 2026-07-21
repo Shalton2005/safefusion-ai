@@ -5,7 +5,8 @@ import { SEVERITY_BADGE_VARIANT } from '@/utils/severity';
 import { capitalise } from '@/utils/format';
 import type { SeverityLevel } from '@/constants';
 import type { MapOverlaysData } from '@/types';
-import { AlertTriangle, HardHat, FileText, Camera, Flame, Info } from 'lucide-react';
+import { AlertTriangle, HardHat, FileText, Camera, Flame, Info, ZoomIn, ZoomOut, Maximize } from 'lucide-react';
+import { Button } from '@/components/ui';
 
 export interface SafetyHeatmapContainerProps {
   overlays?: MapOverlaysData;
@@ -31,6 +32,53 @@ const riskDotClass: Record<SeverityLevel, string> = {
 export function SafetyHeatmapContainer({ overlays }: SafetyHeatmapContainerProps) {
   const [activeTooltip, setActiveTooltip] = useState<{ x: number, y: number, content: React.ReactNode } | null>(null);
 
+  // Zoom & Pan state
+  const [scale, setScale] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+
+  // Layer visibility state
+  const [layers, setLayers] = useState({
+    incidents: true,
+    workers: true,
+    permits: true,
+    cameras: true,
+    sensors: true,
+    evacuation: true,
+  });
+
+  const toggleLayer = (layer: keyof typeof layers) => {
+    setLayers(prev => ({ ...prev, [layer]: !prev[layer] }));
+  };
+
+  const handlePointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
+    setIsDragging(true);
+    setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<SVGSVGElement>) => {
+    if (!isDragging) return;
+    setPan({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
+  };
+
+  const handlePointerUp = (e: React.PointerEvent<SVGSVGElement>) => {
+    setIsDragging(false);
+    e.currentTarget.releasePointerCapture(e.pointerId);
+  };
+
+  const handleWheel = (e: React.WheelEvent<SVGSVGElement>) => {
+    // Zoom sensitivity
+    const delta = e.deltaY * -0.002;
+    const newScale = Math.min(Math.max(0.25, scale + delta), 4);
+    setScale(newScale);
+  };
+
+  const zoomIn = () => setScale(s => Math.min(s + 0.2, 4));
+  const zoomOut = () => setScale(s => Math.max(s - 0.2, 0.25));
+  const resetZoom = () => { setScale(1); setPan({ x: 0, y: 0 }); };
+
   // Group overlays that share positions or nearby (simplified logic, mainly rendering them directly)
   
   return (
@@ -43,37 +91,32 @@ export function SafetyHeatmapContainer({ overlays }: SafetyHeatmapContainerProps
       />
 
       <div className="p-4 flex flex-col gap-4 flex-1 min-h-[400px]">
-        {/* Legends */}
-        <div className="flex flex-col gap-2 px-2">
-          <div className="flex flex-wrap items-center gap-4">
-            {RISK_LEGEND.map((entry) => (
-              <div key={entry.level} className="flex items-center gap-1.5">
-                <span className={cn('w-2.5 h-2.5 rounded-full flex-shrink-0', riskDotClass[entry.level])} aria-hidden="true" />
-                <span className="text-xs text-[var(--sf-text-tertiary)]">{entry.label} Incident</span>
-              </div>
-            ))}
-          </div>
-          <div className="flex flex-wrap items-center gap-4 mt-1">
-            <div className="flex items-center gap-1.5">
-              <div className="w-4 h-4 rounded-full bg-blue-500/20 border-2 border-blue-500 flex items-center justify-center"><div className="w-1.5 h-1.5 bg-blue-500 rounded-full" /></div>
-              <span className="text-xs text-[var(--sf-text-tertiary)]">Worker</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <div className="w-4 h-4 rounded-md bg-amber-500/20 border-2 border-amber-500 flex items-center justify-center" />
-              <span className="text-xs text-[var(--sf-text-tertiary)]">Permit</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <div className="w-4 h-4 rounded-full bg-purple-500/20 border-2 border-purple-500 flex items-center justify-center" />
-              <span className="text-xs text-[var(--sf-text-tertiary)]">Camera</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <div className="w-4 h-4 rounded-sm bg-emerald-500/20 border-2 border-emerald-500 flex items-center justify-center" />
-              <span className="text-xs text-[var(--sf-text-tertiary)]">Gas Sensor</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-4 h-1 rounded-full bg-emerald-500" aria-hidden="true" />
-              <span className="text-xs text-[var(--sf-text-tertiary)]">Evacuation Path</span>
-            </div>
+        {/* Interactive Legends */}
+        <div className="flex flex-col gap-3 px-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant={layers.incidents ? 'secondary' : 'ghost'} size="sm" onClick={() => toggleLayer('incidents')} className="h-7 text-xs px-2">
+              <span className="w-2 h-2 rounded-full mr-1.5 bg-[var(--sf-danger)]" /> Incidents
+            </Button>
+            <Button variant={layers.workers ? 'secondary' : 'ghost'} size="sm" onClick={() => toggleLayer('workers')} className="h-7 text-xs px-2">
+              <div className="w-3 h-3 rounded-full bg-blue-500/20 border border-blue-500 flex items-center justify-center mr-1.5"><div className="w-1 h-1 bg-blue-500 rounded-full" /></div>
+              Workers
+            </Button>
+            <Button variant={layers.permits ? 'secondary' : 'ghost'} size="sm" onClick={() => toggleLayer('permits')} className="h-7 text-xs px-2">
+              <div className="w-3 h-3 rounded-md bg-amber-500/20 border border-amber-500 mr-1.5" />
+              Permits
+            </Button>
+            <Button variant={layers.cameras ? 'secondary' : 'ghost'} size="sm" onClick={() => toggleLayer('cameras')} className="h-7 text-xs px-2">
+              <div className="w-3 h-3 rounded-full bg-purple-500/20 border border-purple-500 mr-1.5" />
+              Cameras
+            </Button>
+            <Button variant={layers.sensors ? 'secondary' : 'ghost'} size="sm" onClick={() => toggleLayer('sensors')} className="h-7 text-xs px-2">
+              <div className="w-3 h-3 rounded-sm bg-emerald-500/20 border border-emerald-500 mr-1.5" />
+              Gas Sensors
+            </Button>
+            <Button variant={layers.evacuation ? 'secondary' : 'ghost'} size="sm" onClick={() => toggleLayer('evacuation')} className="h-7 text-xs px-2">
+              <span className="w-3 h-1 rounded-full bg-[var(--sf-safe)] mr-1.5" />
+              Evacuation Path
+            </Button>
           </div>
         </div>
 
@@ -81,9 +124,22 @@ export function SafetyHeatmapContainer({ overlays }: SafetyHeatmapContainerProps
             <Skeleton className="w-full h-full" />
           ) : (
             <>
+              <div className="relative w-full h-full overflow-hidden border border-[var(--sf-border-default)] rounded-xl bg-[var(--sf-surface-base)]">
+                {/* Map Controls */}
+                <div className="absolute top-4 right-4 z-10 flex flex-col gap-1 bg-[var(--sf-surface-card)] rounded-lg shadow-sm border border-[var(--sf-border-default)] p-1">
+                  <Button variant="ghost" size="sm" className="px-2" onClick={zoomIn} title="Zoom In"><ZoomIn className="w-4 h-4" /></Button>
+                  <Button variant="ghost" size="sm" className="px-2" onClick={zoomOut} title="Zoom Out"><ZoomOut className="w-4 h-4" /></Button>
+                  <Button variant="ghost" size="sm" className="px-2" onClick={resetZoom} title="Reset"><Maximize className="w-4 h-4" /></Button>
+                </div>
               <svg 
                 viewBox={`0 0 ${SVG_WIDTH} ${SVG_HEIGHT}`} 
-                className="w-full h-full object-contain"
+                className="w-full h-full object-contain cursor-grab active:cursor-grabbing"
+                style={{ touchAction: 'none' }}
+                onPointerDown={handlePointerDown}
+                onPointerMove={handlePointerMove}
+                onPointerUp={handlePointerUp}
+                onPointerLeave={handlePointerUp}
+                onWheel={handleWheel}
                 onMouseLeave={() => setActiveTooltip(null)}
               >
                 <defs>
@@ -98,8 +154,8 @@ export function SafetyHeatmapContainer({ overlays }: SafetyHeatmapContainerProps
                     </feMerge>
                   </filter>
                 </defs>
-
                 <rect width="100%" height="100%" fill="url(#grid)" />
+                <g style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${scale})`, transformOrigin: 'center', transition: isDragging ? 'none' : 'transform 0.1s ease-out' }}>
 
                 {/* Render Facility Zones */}
                 {overlays?.facility_zones?.map(zone => (
@@ -117,9 +173,9 @@ export function SafetyHeatmapContainer({ overlays }: SafetyHeatmapContainerProps
                     />
                     <text 
                       x={zone.x + 16} 
-                      y={zone.y + 24} 
-                      fill="var(--sf-text-tertiary)" 
-                      className="text-xs font-semibold uppercase tracking-widest font-mono"
+                      y={zone.y + 28} 
+                      fill="var(--sf-text-secondary)" 
+                      className="text-sm font-bold uppercase tracking-widest font-mono drop-shadow-sm"
                     >
                       {zone.name}
                     </text>
@@ -127,11 +183,11 @@ export function SafetyHeatmapContainer({ overlays }: SafetyHeatmapContainerProps
                 ))}
 
                 {/* Evacuation Path */}
-                {overlays?.evacuation_path && (
+                {layers.evacuation && overlays?.evacuation_path && (
                   <polyline 
                     points={overlays.evacuation_path.map(p => `${p[0]},${p[1]}`).join(' ')}
                     fill="none" 
-                    stroke="var(--color-safe-500)" 
+                    stroke="var(--sf-safe)" 
                     strokeWidth="4" 
                     strokeDasharray="8 8" 
                     className="animate-[dash_2s_linear_infinite]"
@@ -139,7 +195,7 @@ export function SafetyHeatmapContainer({ overlays }: SafetyHeatmapContainerProps
                 )}
 
                 {/* Danger Zones */}
-                {overlays?.danger_zones?.map(zone => {
+                {layers.incidents && overlays?.danger_zones?.map(zone => {
                   const x = zone.center[0];
                   const y = zone.center[1];
                   const r = zone.radius;
@@ -167,7 +223,7 @@ export function SafetyHeatmapContainer({ overlays }: SafetyHeatmapContainerProps
                 })}
 
                 {/* Restricted Zones */}
-                {overlays?.restricted_zones?.map(zone => {
+                {layers.incidents && overlays?.restricted_zones?.map(zone => {
                   const x = zone.center[0];
                   const y = zone.center[1];
                   const r = zone.radius;
@@ -195,7 +251,7 @@ export function SafetyHeatmapContainer({ overlays }: SafetyHeatmapContainerProps
                 })}
 
                 {/* Permits */}
-                {overlays?.permits?.map(p => {
+                {layers.permits && overlays?.permits?.map(p => {
                   const x = p.pos[0];
                   const y = p.pos[1];
                   return (
@@ -206,9 +262,9 @@ export function SafetyHeatmapContainer({ overlays }: SafetyHeatmapContainerProps
                       onMouseLeave={() => setActiveTooltip(null)}
                       className="cursor-pointer"
                     >
-                      <rect width="24" height="24" rx="4" fill="var(--color-caution-500)" fillOpacity="0.2" stroke="var(--color-caution-500)" strokeWidth="2" />
+                      <rect width="24" height="24" rx="4" fill="var(--sf-caution)" fillOpacity="0.2" stroke="var(--sf-caution)" strokeWidth="2" />
                       <foreignObject width="24" height="24">
-                        <div className="w-full h-full flex items-center justify-center text-[var(--color-caution-500)]">
+                        <div className="w-full h-full flex items-center justify-center text-[var(--sf-caution)]">
                           <FileText size={14} />
                         </div>
                       </foreignObject>
@@ -217,7 +273,7 @@ export function SafetyHeatmapContainer({ overlays }: SafetyHeatmapContainerProps
                 })}
 
                 {/* Cameras */}
-                {overlays?.cameras?.map(c => {
+                {layers.cameras && overlays?.cameras?.map(c => {
                   const x = c.pos[0];
                   const y = c.pos[1];
                   return (
@@ -250,9 +306,9 @@ export function SafetyHeatmapContainer({ overlays }: SafetyHeatmapContainerProps
                       onMouseLeave={() => setActiveTooltip(null)}
                       className="cursor-pointer"
                     >
-                      <rect width="24" height="24" rx="2" fill="var(--color-safe-500)" fillOpacity="0.2" stroke="var(--color-safe-500)" strokeWidth="2" />
+                      <rect width="24" height="24" rx="2" fill="var(--sf-safe)" fillOpacity="0.2" stroke="var(--sf-safe)" strokeWidth="2" />
                       <foreignObject width="24" height="24">
-                        <div className="w-full h-full flex items-center justify-center text-[var(--color-safe-500)]">
+                        <div className="w-full h-full flex items-center justify-center text-[var(--sf-safe)]">
                           <Flame size={12} />
                         </div>
                       </foreignObject>
@@ -272,10 +328,10 @@ export function SafetyHeatmapContainer({ overlays }: SafetyHeatmapContainerProps
                       onMouseLeave={() => setActiveTooltip(null)}
                       className="cursor-pointer"
                     >
-                      <circle cx="14" cy="14" r="14" fill="var(--color-primary-500)" fillOpacity="0.2" className="animate-ping" />
-                      <circle cx="14" cy="14" r="12" fill="var(--color-primary-500)" fillOpacity="0.3" stroke="var(--color-primary-500)" strokeWidth="2" />
+                      <circle cx="14" cy="14" r="14" fill="var(--sf-brand)" fillOpacity="0.2" className="animate-ping" />
+                      <circle cx="14" cy="14" r="12" fill="var(--sf-brand)" fillOpacity="0.3" stroke="var(--sf-brand)" strokeWidth="2" />
                       <foreignObject width="28" height="28">
-                        <div className="w-full h-full flex items-center justify-center text-[var(--color-primary-500)]">
+                        <div className="w-full h-full flex items-center justify-center text-[var(--sf-brand)]">
                           <HardHat size={14} />
                         </div>
                       </foreignObject>
@@ -288,10 +344,10 @@ export function SafetyHeatmapContainer({ overlays }: SafetyHeatmapContainerProps
                   const x = inc.x;
                   const y = inc.y;
                   const colorMap: Record<string, string> = {
-                    low: 'var(--color-safe-500)',
-                    medium: 'var(--color-primary-500)',
-                    high: 'var(--color-caution-500)',
-                    critical: 'var(--color-danger-500)'
+                    low: 'var(--sf-safe)',
+                    medium: 'var(--sf-brand)',
+                    high: 'var(--sf-caution)',
+                    critical: 'var(--sf-danger)'
                   };
                   const color = colorMap[inc.severity] || colorMap['low'];
                   return (
@@ -318,7 +374,9 @@ export function SafetyHeatmapContainer({ overlays }: SafetyHeatmapContainerProps
                     </g>
                   );
                 })}
+                </g>
               </svg>
+              </div>
 
               {/* Absolute positioned HTML Tooltip floating over the SVG */}
               {activeTooltip && (

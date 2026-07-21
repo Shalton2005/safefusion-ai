@@ -37,7 +37,7 @@ function groupByZone(readings: SensorReading[]): ZoneSensorGroup[] {
   return Array.from(zones.values()).sort((a, b) => a.zone.localeCompare(b.zone));
 }
 
-export function SensorMonitoringPanel() {
+export function SensorMonitoringPanel({ hideViewAll = false }: { hideViewAll?: boolean }) {
   const [groups, setGroups] = useState<ZoneSensorGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -81,7 +81,7 @@ export function SensorMonitoringPanel() {
                 {groups.length} zone{groups.length === 1 ? '' : 's'}
               </Badge>
             )}
-            <CardHeaderLink to={ROUTES.SENSORS} label="View all sensors" />
+            {!hideViewAll && <CardHeaderLink to={ROUTES.SENSORS} label="View all sensors" />}
           </div>
         }
       />

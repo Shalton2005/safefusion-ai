@@ -73,7 +73,7 @@ export const copilotApiService = {
   ask: async (request: CopilotAskRequest, options?: RequestOptions): Promise<CopilotAskResponse> => {
     const { data } = await aiService.chat(
       { message: request.question, history: request.history },
-      options,
+      { timeout: 300_000, ...options },
     );
     const generatedAt = new Date().toISOString();
 

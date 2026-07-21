@@ -167,7 +167,7 @@ export function AICommandCenter({
           
           <Button 
             variant={isFlashingRed ? 'danger' : 'outline'}
-            className={cn("w-full justify-center py-6", isCritical && "animate-pulse")}
+            className="w-full justify-center py-6"
             onClick={onDispatchEmergency}
           >
             <Siren className="w-4 h-4 mr-2" />

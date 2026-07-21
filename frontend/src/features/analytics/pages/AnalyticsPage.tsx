@@ -27,13 +27,13 @@ interface MetricCardProps {
 function MetricCard({ label, value, change, trendDir, positive = true, onClick }: MetricCardProps) {
   return (
     <Card 
-      className={onClick ? 'relative group cursor-pointer hover:border-[var(--color-primary-500)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:-translate-y-0.5 transition-all duration-300' : ''}
+      className={onClick ? 'relative group cursor-pointer hover:border-[var(--sf-brand)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:-translate-y-0.5 transition-all duration-300' : ''}
       onClick={onClick}
     >
       <div className="flex items-start justify-between">
         <p className="text-sm font-semibold text-[var(--sf-text-tertiary)] uppercase tracking-wider truncate" title={label}>{label}</p>
         {onClick && (
-          <div className="flex items-center gap-0.5 text-[var(--color-primary-500)] opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+          <div className="flex items-center gap-0.5 text-[var(--sf-brand)] opacity-0 group-hover:opacity-100 transition-opacity duration-300">
             <span className="text-[10px] uppercase font-bold tracking-wider">Details</span>
             <ChevronRight className="w-3.5 h-3.5" />
           </div>
@@ -60,13 +60,13 @@ const CustomTooltip = ({ active, payload, label }: any) => {
         {data.value !== undefined && (
           <div className="flex justify-between items-center mb-1">
             <span className="text-sm text-slate-400">Historical</span>
-            <span className="text-sm text-[var(--color-primary-500)] font-bold">{data.value}</span>
+            <span className="text-sm text-[var(--sf-brand)] font-bold">{data.value}</span>
           </div>
         )}
         {data.forecastValue !== undefined && data.isForecast && (
           <div className="flex justify-between items-center mb-1">
             <span className="text-sm text-slate-400">AI Forecast</span>
-            <span className="text-sm text-[var(--color-caution-500)] font-bold">{data.forecastValue}</span>
+            <span className="text-sm text-[var(--sf-caution)] font-bold">{data.forecastValue}</span>
           </div>
         )}
         
@@ -75,13 +75,13 @@ const CustomTooltip = ({ active, payload, label }: any) => {
             {data.critical !== undefined && (
               <div className="flex justify-between items-center">
                 <span className="text-xs text-slate-400">Critical</span>
-                <span className="text-xs font-bold text-[var(--color-danger-500)]">{data.critical}</span>
+                <span className="text-xs font-bold text-[var(--sf-danger)]">{data.critical}</span>
               </div>
             )}
             {data.resolved !== undefined && (
               <div className="flex justify-between items-center">
                 <span className="text-xs text-slate-400">Resolved</span>
-                <span className="text-xs font-bold text-[var(--color-safe-500)]">{data.resolved}</span>
+                <span className="text-xs font-bold text-[var(--sf-safe)]">{data.resolved}</span>
               </div>
             )}
           </div>
@@ -106,19 +106,19 @@ const DonutTooltip = ({ active, payload }: any) => {
         <div className="flex flex-col gap-2">
           <div className="flex justify-between items-center">
              <span className="text-sm text-slate-400">Risk Level</span>
-             <span className="text-sm font-bold text-[var(--color-danger-500)]">{data.riskPercentage}%</span>
+             <span className="text-sm font-bold text-[var(--sf-danger)]">{data.riskPercentage}%</span>
           </div>
           <div className="flex justify-between items-center">
              <span className="text-sm text-slate-400">Active</span>
-             <span className="text-sm font-bold text-[var(--color-primary-500)]">{data.activeIncidents}</span>
+             <span className="text-sm font-bold text-[var(--sf-brand)]">{data.activeIncidents}</span>
           </div>
           <div className="flex justify-between items-center">
              <span className="text-sm text-slate-400">Critical</span>
-             <span className="text-sm font-bold text-[var(--color-danger-500)]">{data.criticalIncidents}</span>
+             <span className="text-sm font-bold text-[var(--sf-danger)]">{data.criticalIncidents}</span>
           </div>
           <div className="flex justify-between items-center mt-1 pt-2 border-t border-slate-700/50">
              <span className="text-xs text-slate-400 uppercase tracking-wider font-semibold">Trend</span>
-             <span className={`flex items-center text-xs font-bold ${data.trend === 'up' ? 'text-[var(--color-danger-500)]' : data.trend === 'down' ? 'text-[var(--color-safe-500)]' : 'text-[var(--color-caution-500)]'}`}>
+             <span className={`flex items-center text-xs font-bold ${data.trend === 'up' ? 'text-[var(--sf-danger)]' : data.trend === 'down' ? 'text-[var(--sf-safe)]' : 'text-[var(--sf-caution)]'}`}>
                {data.trend === 'up' ? <><TrendingUp className="w-3 h-3 mr-1" /> Rising</> : data.trend === 'down' ? <><TrendingDown className="w-3 h-3 mr-1" /> Falling</> : <span className="text-slate-400">Stable</span>}
              </span>
           </div>
@@ -130,10 +130,10 @@ const DonutTooltip = ({ active, payload }: any) => {
 };
 
 const DONUT_COLORS = [
-  'var(--color-danger-500)', 
-  'var(--color-caution-500)', 
-  'var(--color-primary-500)', 
-  'var(--color-safe-500)', 
+  'var(--sf-danger)', 
+  'var(--sf-caution)', 
+  'var(--sf-brand)', 
+  'var(--sf-safe)', 
   'var(--sf-text-tertiary)'
 ];
 
@@ -196,24 +196,24 @@ export function AnalyticsPage() {
       {/* Toolbar */}
       <div className="flex items-center justify-between gap-4 mb-4 bg-[var(--sf-surface-card)] border border-[var(--sf-border-default)] p-3 rounded-lg shadow-sm overflow-x-auto whitespace-nowrap">
         <div className="flex items-center gap-3">
-          <select className="bg-transparent border border-[var(--sf-border-default)] rounded-md px-3 py-1.5 text-sm text-[var(--sf-text-primary)] focus:outline-none focus:ring-2 focus:border-[var(--sf-border-focus)] cursor-pointer">
+          <select className="bg-[var(--sf-surface-sunken)] border border-[var(--sf-border-default)] rounded-md px-3 py-1.5 text-sm text-[var(--sf-text-primary)] focus:outline-none focus:ring-2 focus:border-[var(--sf-border-focus)] cursor-pointer">
             <option>Today</option>
             <option>7 Days</option>
             <option>30 Days</option>
             <option>90 Days</option>
           </select>
 
-          <select className="bg-transparent border border-[var(--sf-border-default)] rounded-md px-3 py-1.5 text-sm text-[var(--sf-text-primary)] focus:outline-none focus:ring-2 focus:border-[var(--sf-border-focus)] cursor-pointer">
+          <select className="bg-[var(--sf-surface-sunken)] border border-[var(--sf-border-default)] rounded-md px-3 py-1.5 text-sm text-[var(--sf-text-primary)] focus:outline-none focus:ring-2 focus:border-[var(--sf-border-focus)] cursor-pointer">
             <option>Morning</option>
             <option>Evening</option>
             <option>Night</option>
           </select>
 
-          <select className="bg-transparent border border-[var(--sf-border-default)] rounded-md px-3 py-1.5 text-sm text-[var(--sf-text-primary)] focus:outline-none focus:ring-2 focus:border-[var(--sf-border-focus)] cursor-pointer">
+          <select className="bg-[var(--sf-surface-sunken)] border border-[var(--sf-border-default)] rounded-md px-3 py-1.5 text-sm text-[var(--sf-text-primary)] focus:outline-none focus:ring-2 focus:border-[var(--sf-border-focus)] cursor-pointer">
             <option>All Zones</option>
           </select>
 
-          <select className="bg-transparent border border-[var(--sf-border-default)] rounded-md px-3 py-1.5 text-sm text-[var(--sf-text-primary)] focus:outline-none focus:ring-2 focus:border-[var(--sf-border-focus)] cursor-pointer">
+          <select className="bg-[var(--sf-surface-sunken)] border border-[var(--sf-border-default)] rounded-md px-3 py-1.5 text-sm text-[var(--sf-text-primary)] focus:outline-none focus:ring-2 focus:border-[var(--sf-border-focus)] cursor-pointer">
             <option>All Facilities</option>
           </select>
         </div>
@@ -224,11 +224,11 @@ export function AnalyticsPage() {
             Last updated {lastUpdated ? lastUpdated.toLocaleTimeString() : '...'}
           </span>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" className="gap-2 bg-transparent text-[var(--sf-text-primary)] border-[var(--sf-border-default)] hover:bg-[var(--sf-surface-hover)]">
+            <Button variant="outline" size="sm" className="gap-2 bg-[var(--sf-surface-sunken)] text-[var(--sf-text-primary)] border-[var(--sf-border-default)] hover:bg-[var(--sf-surface-hover)]" onClick={() => window.print()}>
               <FileText className="w-4 h-4" />
               PDF
             </Button>
-            <Button variant="outline" size="sm" className="gap-2 bg-transparent text-[var(--sf-text-primary)] border-[var(--sf-border-default)] hover:bg-[var(--sf-surface-hover)]">
+            <Button variant="outline" size="sm" className="gap-2 bg-[var(--sf-surface-sunken)] text-[var(--sf-text-primary)] border-[var(--sf-border-default)] hover:bg-[var(--sf-surface-hover)]" onClick={() => alert('CSV export is being generated...')}>
               <Download className="w-4 h-4" />
               CSV
             </Button>
@@ -281,10 +281,10 @@ export function AnalyticsPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               <div className="bg-[var(--sf-surface-sunken)] p-4 rounded-xl border border-[var(--sf-border-default)]">
                 <h4 className="text-xs uppercase tracking-wider font-bold text-[var(--sf-text-primary)] mb-3 flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 bg-[var(--color-primary-500)] rounded-full"></span>
+                  <span className="w-1.5 h-1.5 bg-[var(--sf-brand)] rounded-full"></span>
                   Primary Contributors
                 </h4>
-                <ul className="list-disc pl-5 flex flex-col gap-2.5 text-[var(--sf-text-secondary)] marker:text-[var(--color-primary-500)]">
+                <ul className="list-disc pl-5 flex flex-col gap-2.5 text-[var(--sf-text-secondary)] marker:text-[var(--sf-brand)]">
                   {aiSummary.primary_contributors.map((contrib, idx) => (
                     <li key={idx} className="leading-snug">{contrib}</li>
                   ))}
@@ -303,7 +303,7 @@ export function AnalyticsPage() {
               
               <div className="bg-[var(--sf-surface-sunken)] p-4 rounded-xl border border-[var(--sf-border-default)]">
                 <h4 className="text-xs uppercase tracking-wider font-bold text-[var(--sf-text-primary)] mb-3 flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 bg-[var(--color-safe-500)] rounded-full"></span>
+                  <span className="w-1.5 h-1.5 bg-[var(--sf-safe)] rounded-full"></span>
                   Recommended Actions
                 </h4>
                 <ol className="list-decimal pl-5 flex flex-col gap-2.5 text-[var(--sf-text-secondary)] font-medium">
@@ -340,13 +340,13 @@ export function AnalyticsPage() {
                   height={36}
                   content={(props: any) => {
                     return (
-                      <ul className="flex flex-wrap items-center justify-center gap-6 text-xs text-[var(--sf-text-secondary)] mt-4 font-medium">
+                      <ul className="flex flex-wrap items-center justify-center gap-6 text-xs text-[var(--sf-text-secondary)] mt-2 font-medium">
                         <li className="flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--sf-surface-sunken)] border border-[var(--sf-border-default)]">
-                          <span className="w-3 h-3 bg-[var(--color-primary-500)] rounded-full shadow-[0_0_8px_var(--color-primary-500)]"></span>
+                          <span className="w-3 h-3 bg-[var(--sf-brand)] rounded-full shadow-[0_0_8px_var(--sf-brand)]"></span>
                           Historical
                         </li>
                         <li className="flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--sf-surface-sunken)] border border-[var(--sf-border-default)]">
-                          <span className="w-4 h-0 border-t-2 border-dashed border-[var(--color-caution-500)]"></span>
+                          <span className="w-4 h-0 border-t-2 border-dashed border-[var(--sf-caution)]"></span>
                           AI Forecast
                         </li>
                         <li className="flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--sf-surface-sunken)] border border-[var(--sf-border-default)]">
@@ -357,15 +357,15 @@ export function AnalyticsPage() {
                     );
                   }}
                 />
-                <ReferenceLine y={6} stroke="var(--color-danger-500)" strokeDasharray="4 4" strokeWidth={1.5} />
+                <ReferenceLine y={6} stroke="var(--sf-danger)" strokeDasharray="4 4" strokeWidth={1.5} />
                 <Line 
                   type="monotone" 
                   dataKey="value" 
                   name="Historical" 
-                  stroke="var(--color-primary-500)" 
+                  stroke="var(--sf-brand)" 
                   strokeWidth={3} 
-                  dot={{ r: 4, fill: 'var(--color-primary-500)', strokeWidth: 0 }} 
-                  activeDot={{ r: 6, fill: 'var(--color-primary-500)', strokeWidth: 0, filter: 'drop-shadow(0 0 6px var(--color-primary-500))' }} 
+                  dot={{ r: 4, fill: 'var(--sf-brand)', strokeWidth: 0 }} 
+                  activeDot={{ r: 6, fill: 'var(--sf-brand)', strokeWidth: 0, filter: 'drop-shadow(0 0 6px var(--sf-brand))' }} 
                   isAnimationActive={true}
                   animationDuration={1500}
                   animationEasing="ease-in-out"
@@ -374,11 +374,11 @@ export function AnalyticsPage() {
                   type="monotone" 
                   dataKey="forecastValue" 
                   name="AI Forecast" 
-                  stroke="var(--color-caution-500)" 
+                  stroke="var(--sf-caution)" 
                   strokeWidth={3} 
                   strokeDasharray="5 5"
-                  dot={{ r: 4, fill: 'var(--color-caution-500)', strokeWidth: 0 }} 
-                  activeDot={{ r: 6, fill: 'var(--color-caution-500)', strokeWidth: 0, filter: 'drop-shadow(0 0 6px var(--color-caution-500))' }} 
+                  dot={{ r: 4, fill: 'var(--sf-caution)', strokeWidth: 0 }} 
+                  activeDot={{ r: 6, fill: 'var(--sf-caution)', strokeWidth: 0, filter: 'drop-shadow(0 0 6px var(--sf-caution))' }} 
                   isAnimationActive={true}
                   animationDuration={1500}
                   animationEasing="ease-in-out"
@@ -444,7 +444,7 @@ export function AnalyticsPage() {
                     key={index} 
                     className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all duration-300 ${
                       hoveredZoneIndex === index 
-                        ? 'bg-[var(--sf-surface-sunken)] border-[var(--color-primary-500)] shadow-md -translate-y-[1px]' 
+                        ? 'bg-[var(--sf-surface-sunken)] border-[var(--sf-brand)] shadow-md -translate-y-[1px]' 
                         : 'border-[var(--sf-border-default)] hover:bg-[var(--sf-surface-hover)]'
                     }`}
                     onMouseEnter={() => setHoveredZoneIndex(index)}
@@ -521,9 +521,9 @@ export function AnalyticsPage() {
                     </p>
                     <p className="text-sm text-[var(--sf-text-primary)] leading-relaxed font-medium">{item.reason}</p>
                   </div>
-                  <div className="bg-[var(--sf-surface-sunken)] p-4 rounded-xl border border-[var(--sf-border-default)] hover:border-[var(--color-primary-500)] transition-colors shadow-sm">
-                    <p className="text-[10px] font-bold text-[var(--color-primary-500)] mb-2 uppercase tracking-wider flex items-center gap-1.5">
-                      <span className="w-1 h-1 rounded-full bg-[var(--color-primary-500)]"></span>
+                  <div className="bg-[var(--sf-surface-sunken)] p-4 rounded-xl border border-[var(--sf-border-default)] hover:border-[var(--sf-brand)] transition-colors shadow-sm">
+                    <p className="text-[10px] font-bold text-[var(--sf-brand)] mb-2 uppercase tracking-wider flex items-center gap-1.5">
+                      <span className="w-1 h-1 rounded-full bg-[var(--sf-brand)]"></span>
                       Recommended Action
                     </p>
                     <p className="text-sm text-[var(--sf-text-primary)] leading-relaxed font-medium">{item.action}</p>
@@ -546,13 +546,13 @@ export function AnalyticsPage() {
           />
           <div className="px-6 pb-6 pt-4 flex-1 flex flex-col gap-4">
             {aiRecommendations.map((action) => (
-              <div key={action.priority} className="bg-[var(--sf-surface-sunken)] p-5 rounded-xl border border-[var(--sf-border-default)] hover:border-[var(--color-primary-500)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:-translate-y-1 transition-all duration-300 cursor-pointer group relative overflow-hidden">
+              <div key={action.priority} className="bg-[var(--sf-surface-sunken)] p-5 rounded-xl border border-[var(--sf-border-default)] hover:border-[var(--sf-brand)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:-translate-y-1 transition-all duration-300 cursor-pointer group relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-1 h-full bg-danger-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-[10px] font-extrabold uppercase tracking-widest text-danger-500 bg-danger-500/10 px-2 py-1 rounded-md">Priority {action.priority}</span>
                   <Badge variant={action.status === 'In Progress' ? 'warning' : action.status === 'Action Required' ? 'danger' : 'secondary'} size="sm" className="shadow-sm">{action.status}</Badge>
                 </div>
-                <h4 className="text-base font-bold text-[var(--sf-text-primary)] mb-4 group-hover:text-[var(--color-primary-500)] transition-colors">{action.title}</h4>
+                <h4 className="text-base font-bold text-[var(--sf-text-primary)] mb-4 group-hover:text-[var(--sf-brand)] transition-colors">{action.title}</h4>
                 <div className="grid grid-cols-2 gap-y-3 gap-x-4 text-xs text-[var(--sf-text-secondary)] bg-[var(--sf-surface-card)] p-3 rounded-lg border border-[var(--sf-border-default)]">
                   <div className="flex flex-col gap-1">
                     <span className="text-[10px] uppercase tracking-wider font-semibold text-[var(--sf-text-tertiary)]">Confidence</span>

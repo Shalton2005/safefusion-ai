@@ -4,6 +4,7 @@ import { Card, CardHeader, Badge, EmptyState, QueryState, Button } from '@/compo
 import { LastUpdated } from '@/components/common/LastUpdated';
 import { EmergencyResponsePanel } from './EmergencyResponsePanel';
 import type { EmergencyActionItem } from '@/types';
+import { ROUTES } from '@/constants/routes';
 
 export interface EmergencyResponsePanelSectionViewProps {
   actions: EmergencyActionItem[];
@@ -75,7 +76,7 @@ export function EmergencyResponsePanelSectionView({
         {!error && (
           <div className="flex items-center justify-between pt-4 border-t border-[var(--sf-border-default)]">
             <LastUpdated timestamp={lastUpdated} className="px-1" />
-            <Link to="/emergency" className="block w-full sm:w-auto">
+            <Link to={ROUTES.ALERTS} className="block w-full sm:w-auto">
               <Button variant="outline" className="w-full group bg-[var(--sf-surface-card)] hover:bg-[var(--sf-surface-hover)]">
                 View Full Response Plan
                 <ArrowRight className="w-4 h-4 ml-2 text-[var(--sf-text-tertiary)] group-hover:text-[var(--sf-text-primary)] transition-colors" />

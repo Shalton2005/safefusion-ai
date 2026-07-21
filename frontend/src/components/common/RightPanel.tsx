@@ -2,7 +2,9 @@ import { useId } from 'react';
 import { PanelRightClose, X } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { useRightPanelStore } from '@/store';
+import { useState } from 'react';
 import { ActivityPanel } from '@/components/common/activity-panel';
+import { Button } from '@/components/ui';
 
 import { formatRelativeTime } from '@/utils/format';
 import { useRecentAlerts } from '@/features/alerts/hooks/useRecentAlerts';
@@ -15,14 +17,18 @@ export function RightPanel() {
 
   const alertsData = useRecentAlerts({ limit: 10 });
 
-  const alertsFeed = alertsData.alerts.map((a): ActivityFeedItem => ({
-    id: a.id,
-    title: a.alert_type,
-    description: a.message,
-    time: formatRelativeTime(a.generated_at),
-    badgeLabel: a.zone,
-    tone: a.severity === 'critical' ? 'danger' : a.severity === 'high' ? 'warning' : 'primary',
-  }));
+  const [clearedAt, setClearedAt] = useState<number>(0);
+  
+  const alertsFeed = alertsData.alerts
+    .filter(a => new Date(a.generated_at).getTime() > clearedAt || clearedAt === 0)
+    .map((a): ActivityFeedItem => ({
+      id: a.id,
+      title: a.alert_type,
+      description: a.message,
+      time: formatRelativeTime(a.generated_at),
+      badgeLabel: a.zone,
+      tone: a.severity === 'critical' ? 'danger' : a.severity === 'high' ? 'warning' : 'primary',
+    }));
 
   if (!open) return null;
 
@@ -36,13 +42,20 @@ export function RightPanel() {
     >
       <div className="flex items-center justify-between px-4 py-4 border-b border-[var(--sf-border-default)]">
         <h2 id={headingId} className="text-sm font-semibold text-[var(--sf-text-primary)]">Alerts &amp; Activity</h2>
-        <button
-          onClick={() => setOpen(false)}
-          aria-label="Close panel"
-          className="p-1.5 rounded-lg text-[var(--sf-text-tertiary)] hover:text-[var(--sf-text-primary)] hover:bg-[var(--sf-surface-raised)] transition-colors"
-        >
-          <PanelRightClose className="w-4 h-4" />
-        </button>
+        <div className="flex items-center gap-2">
+          {alertsFeed.length > 0 && (
+            <Button variant="ghost" size="sm" className="text-xs text-[var(--sf-text-tertiary)] hover:text-[var(--sf-text-primary)]" onClick={() => setClearedAt(Date.now())}>
+              Clear All
+            </Button>
+          )}
+          <button
+            onClick={() => setOpen(false)}
+            aria-label="Close panel"
+            className="p-1.5 rounded-lg text-[var(--sf-text-tertiary)] hover:text-[var(--sf-text-primary)] hover:bg-[var(--sf-surface-raised)] transition-colors"
+          >
+            <PanelRightClose className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       <ActivityPanel alerts={alertsFeed} className="flex-1" maxHeight="none" />

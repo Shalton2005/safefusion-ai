@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { FileCheck2 } from 'lucide-react';
-import { Card, CardHeader, Badge, Table, EmptyState, QueryState } from '@/components/ui';
+import { Card, CardHeader, Badge, Table, EmptyState, QueryState, Button } from '@/components/ui';
 import type { TableColumn } from '@/components/ui';
 import { permitsService } from '@/services';
 import { ApiError } from '@/api/errors';
@@ -72,6 +72,8 @@ export function PermitDashboardPanel() {
   const [permits, setPermits] = useState<Permit[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
 
   const fetchPermits = async (signal?: AbortSignal) => {
     setLoading(true);
@@ -139,16 +141,57 @@ export function PermitDashboardPanel() {
             />
           }
         >
-          {(data) => (
-            <Table<Permit>
-              columns={columns}
-              data={data}
-              loading={false}
-              keyExtractor={(r) => r.id}
-              caption="Permit-to-Work records by zone, team, and status"
-              emptyMessage="No permits found."
-            />
-          )}
+          {(data) => {
+            const currentData = data.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+            return (
+              <>
+                <Table<Permit>
+                  columns={columns}
+                  data={currentData}
+                  loading={false}
+                  keyExtractor={(r) => r.id}
+                  caption="Permit-to-Work records by zone, team, and status"
+                  emptyMessage="No permits found."
+                />
+                {data.length > 0 && (
+                  <div className="mt-4 flex flex-col items-center gap-3">
+                    <div className="text-sm text-[var(--sf-text-secondary)]">
+                      Showing {Math.min((currentPage - 1) * itemsPerPage + 1, data.length)}–{Math.min(currentPage * itemsPerPage, data.length)} of {data.length} permits
+                    </div>
+                    <div className="flex items-center justify-center gap-1">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        disabled={currentPage === 1}
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      >
+                        Previous
+                      </Button>
+                      {Array.from({ length: Math.ceil(data.length / itemsPerPage) }, (_, i) => i + 1).map((page) => (
+                        <Button
+                          key={page}
+                          variant={page === currentPage ? 'primary' : 'secondary'}
+                          size="sm"
+                          onClick={() => setCurrentPage(page)}
+                          className={page === currentPage ? 'pointer-events-none' : ''}
+                        >
+                          {page}
+                        </Button>
+                      ))}
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        disabled={currentPage === Math.ceil(data.length / itemsPerPage)}
+                        onClick={() => setCurrentPage(p => Math.min(Math.ceil(data.length / itemsPerPage), p + 1))}
+                      >
+                        Next
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </>
+            );
+          }}
         </QueryState>
       </div>
     </Card>

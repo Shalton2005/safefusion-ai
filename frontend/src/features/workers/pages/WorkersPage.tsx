@@ -194,6 +194,25 @@ export function WorkersPage() {
         </Card>
       </div>
 
+      <div className="p-4 border border-[var(--sf-border-default)] rounded-xl bg-[var(--sf-surface-sunken)]">
+        <div className="flex items-center gap-2 mb-2">
+          <Activity className="w-4 h-4 text-primary-500" />
+          <h4 className="text-sm font-semibold text-[var(--sf-text-primary)]">AI Monitoring Summary</h4>
+        </div>
+        <p className="text-sm text-[var(--sf-text-secondary)] leading-relaxed">
+          AI is currently monitoring {workers.length} workers.
+          <br />
+          {emergencyCount > 0 ? (
+            <span className="text-danger-500 font-medium">{emergencyCount} require immediate attention. </span>
+          ) : (
+            "0 require immediate attention. "
+          )}
+          {violationCount} PPE {violationCount === 1 ? 'violation' : 'violations'} detected.
+          <br />
+          {restrictedZoneCount} worker{restrictedZoneCount === 1 ? '' : 's'} remain inside restricted zones.
+        </p>
+      </div>
+
       <Card padding="none">
         <CardHeader title="Live Risk Assessment" className="px-6 pt-5 pb-0" />
         <div className="p-4">
@@ -211,25 +230,6 @@ export function WorkersPage() {
             emptyMessage="No workers found."
             onRowClick={(row) => setSelectedWorker(row)}
           />
-          
-          <div className="mt-4 p-4 border border-[var(--sf-border-default)] rounded-xl bg-[var(--sf-surface-sunken)]">
-            <div className="flex items-center gap-2 mb-2">
-              <Activity className="w-4 h-4 text-primary-500" />
-              <h4 className="text-sm font-semibold text-[var(--sf-text-primary)]">AI Monitoring Summary</h4>
-            </div>
-            <p className="text-sm text-[var(--sf-text-secondary)] leading-relaxed">
-              AI is currently monitoring {workers.length} workers.
-              <br />
-              {emergencyCount > 0 ? (
-                <span className="text-danger-500 font-medium">{emergencyCount} require immediate attention. </span>
-              ) : (
-                "0 require immediate attention. "
-              )}
-              {violationCount} PPE {violationCount === 1 ? 'violation' : 'violations'} detected.
-              <br />
-              {restrictedZoneCount} worker{restrictedZoneCount === 1 ? '' : 's'} remain inside restricted zones.
-            </p>
-          </div>
         </div>
       </Card>
 

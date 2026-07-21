@@ -1,5 +1,5 @@
 import { Radio, Wifi, WifiOff, AlertTriangle, Brain, Zap, Search, CheckCircle2 } from 'lucide-react';
-import { Card, CardHeader, Badge, PageHeader, Table, Skeleton, Alert } from '@/components/ui';
+import { Card, CardHeader, Badge, PageHeader, Table, Skeleton, Alert, Modal, Button } from '@/components/ui';
 import type { TableColumn } from '@/components/ui';
 import type { Device, DeviceStatus, SensorReading } from '@/types';
 import { SensorMonitoringPanel } from '@/features/sensors/components/SensorMonitoringPanel';
@@ -123,6 +123,7 @@ export function SensorsPage() {
   const { status: plantStatus } = usePlantStatus();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('All');
+  const [selectedSensor, setSelectedSensor] = useState<EnrichedDevice | null>(null);
 
   // Map backend SensorReading format to the Device UI format expected by the table
   const mappedDevices: EnrichedDevice[] = useMemo(() => {
@@ -301,7 +302,7 @@ export function SensorsPage() {
         </div>
       </div>
 
-      <SensorMonitoringPanel />
+      <SensorMonitoringPanel hideViewAll />
 
       <Card padding="none">
         <CardHeader title="Sensor Inventory" className="px-6 pt-5 pb-4" />
@@ -347,10 +348,70 @@ export function SensorsPage() {
             keyExtractor={(r) => r.id}
             caption="List of monitored sensor hardware"
             emptyMessage={searchQuery ? "No sensors match the current search query." : "No sensors found matching the active filters."}
-            className="border-0 rounded-none border-b-0"
+            className="border-0 rounded-none border-b-0 cursor-pointer"
+            onRowClick={(row) => setSelectedSensor(row)}
           />
         </div>
       </Card>
+
+      <Modal
+        open={!!selectedSensor}
+        onClose={() => setSelectedSensor(null)}
+        title="Sensor Details"
+        description={selectedSensor ? `${selectedSensor.name} - ${selectedSensor.location}` : ''}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setSelectedSensor(null)}>Close</Button>
+            {selectedSensor?.status === 'critical' && (
+              <Button variant="danger" onClick={() => setSelectedSensor(null)}>Acknowledge Alert</Button>
+            )}
+            {selectedSensor?.status === 'warning' && (
+              <Button variant="warning" onClick={() => setSelectedSensor(null)}>Run Diagnostics</Button>
+            )}
+          </>
+        }
+      >
+        {selectedSensor && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4 bg-[var(--sf-surface-sunken)] p-4 rounded-lg">
+              <div>
+                <div className="text-xs text-[var(--sf-text-tertiary)] mb-1">Type</div>
+                <div className="font-medium capitalize text-[var(--sf-text-primary)]">{selectedSensor.type}</div>
+              </div>
+              <div>
+                <div className="text-xs text-[var(--sf-text-tertiary)] mb-1">Status</div>
+                <Badge variant={selectedSensor.status === 'critical' ? 'danger' : selectedSensor.status === 'warning' ? 'warning' : selectedSensor.status === 'online' ? 'success' : 'default'} dot size="sm">
+                  {selectedSensor.status.charAt(0).toUpperCase() + selectedSensor.status.slice(1)}
+                </Badge>
+              </div>
+              <div>
+                <div className="text-xs text-[var(--sf-text-tertiary)] mb-1">Current Value</div>
+                <div className="text-2xl font-bold text-[var(--sf-text-primary)]">
+                  {selectedSensor.metrics?.value || 'N/A'}
+                  <span className="text-sm font-normal text-[var(--sf-text-tertiary)] ml-1">
+                    {selectedSensor.type.toLowerCase() === 'gas' ? 'ppm' : 
+                     selectedSensor.type.toLowerCase() === 'temperature' ? '°C' : 
+                     selectedSensor.type.toLowerCase() === 'pressure' ? 'bar' : 
+                     selectedSensor.type.toLowerCase() === 'humidity' ? '% RH' : ''}
+                  </span>
+                </div>
+              </div>
+              <div>
+                <div className="text-xs text-[var(--sf-text-tertiary)] mb-1">Last Reading</div>
+                <div className="font-medium text-[var(--sf-text-primary)]">{selectedSensor.lastSeen}</div>
+              </div>
+            </div>
+            
+            <div className="border border-[var(--sf-border-default)] rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Brain className="w-4 h-4 text-primary-500" />
+                <h4 className="font-medium text-sm text-[var(--sf-text-primary)]">AI Forecast</h4>
+              </div>
+              <p className="text-sm text-[var(--sf-text-secondary)]">{selectedSensor.forecast}</p>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

@@ -79,6 +79,13 @@ export function AIDecisionTimeline() {
 
   const { refresh } = usePolling(fetchSteps, 15000); // 15s refresh for live timeline
 
+  const rowVirtualizer = useVirtualizer({
+    count: steps.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 70,
+    overscan: 3,
+  });
+
   return (
     <Card padding="none" className="h-full flex flex-col border-[var(--sf-border-default)]">
       <CardHeader
@@ -124,12 +131,6 @@ export function AIDecisionTimeline() {
           }
         >
           {(data) => {
-            const rowVirtualizer = useVirtualizer({
-              count: data.length,
-              getScrollElement: () => parentRef.current,
-              estimateSize: () => 70,
-              overscan: 3,
-            });
 
             return (
               <ol 

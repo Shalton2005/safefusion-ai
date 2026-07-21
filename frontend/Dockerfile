@@ -5,8 +5,8 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm install
+# Install dependencies, ignoring the host's package-lock.json to force linux-musl resolution
+RUN rm -f package-lock.json && npm install
 
 # Copy source code
 COPY . .

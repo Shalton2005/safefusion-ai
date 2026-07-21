@@ -210,7 +210,15 @@ export function PermitsPage() {
                 </p>
               </div>
             </div>
-            <Button variant="danger" size="sm" className="whitespace-nowrap shrink-0">
+            <Button 
+              variant="danger" 
+              size="sm" 
+              className="whitespace-nowrap shrink-0"
+              onClick={() => {
+                setFilterStatuses(['AI Review Required', 'suspended']);
+                setCurrentPage(1);
+              }}
+            >
               Review AI Recommendations
             </Button>
           </div>
