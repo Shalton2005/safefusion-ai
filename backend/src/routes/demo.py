@@ -40,7 +40,12 @@ class ScenarioListResponse(AppBaseModel):
 
 
 class VideoDetectionResponse(AppBaseModel):
-    """One bounding-box object detection (or scripted CV overlay event) for a single video frame."""
+    """One industrial-safety detection (or scripted CV overlay event) for a single video frame.
+
+    ``label`` is always one of ``video_detection.SAFETY_DETECTION_LABELS`` —
+    generic object classes (car, chair, bottle, ...) are filtered out before
+    this response is built and never appear here.
+    """
 
     label: str
     confidence: float
@@ -154,14 +159,18 @@ async def stop_scenario() -> ScenarioStatusResponse:
 
 @router.get(
     "/video-detections",
-    summary="Run generic object detection on one frame of the scenario's CCTV clip",
+    summary="Run industrial-safety object detection on one frame of the scenario's CCTV clip",
     description=(
         "Extracts the video frame at the given timestamp and runs it through a stock, "
-        "pretrained (COCO) YOLO model — purely illustrative bounding boxes for the UI. "
-        "COCO has no PPE-specific classes (helmet/vest), so this is intentionally "
-        "separate from the real PPE Compliance Engine (`/cameras/frames`): detections "
-        "here are never persisted, never published to the event bus, and never "
-        "influence risk, compliance, or alerts."
+        "pretrained (COCO) YOLO model, filtered to the industrial-safety detection "
+        "vocabulary (person, helmet worn/not worn, safety vest/no vest, smoke, fire, "
+        "restricted zone entry) — generic COCO classes (car, chair, bottle, ...) are "
+        "dropped before this response is built. Restricted-zone entry is computed "
+        "geometrically (a detected person's centroid inside the zone's configured "
+        "polygon), not a model class. Purely illustrative bounding boxes for the UI: "
+        "detections here are never persisted, never published to the event bus, and "
+        "never influence risk, compliance, or alerts — that continues to come "
+        "entirely from the real PPE Compliance Engine (`/cameras/frames`)."
     ),
     response_model=VideoDetectionsResponse,
 )
@@ -170,7 +179,9 @@ def get_video_detections(
     t: Annotated[float, Query(ge=0, description="Timestamp in seconds to extract and detect.")],
 ) -> VideoDetectionsResponse:
     service = get_video_object_detection_service()
-    detections = service.detect(video_filename=video, timestamp_seconds=t)
+    state = get_scenario_playback_runner().status()
+    zone = state.zone if state is not None else None
+    detections = service.detect(video_filename=video, timestamp_seconds=t, zone=zone)
     return VideoDetectionsResponse(
         detections=[
             VideoDetectionResponse(

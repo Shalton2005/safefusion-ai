@@ -74,6 +74,21 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "SafeFusion AI"
     PROJECT_VERSION: str = "1.0.0"
 
+    # ── Computer Vision model checkpoints ────────────────────────────────────
+    # Local .pt weight paths for the Demo Scenario Playback CCTV overlay's
+    # dual-model detection (see
+    # src.services.scenario_playback.video_detection). Both are loaded once
+    # at first use and held for the process lifetime. A path pointing at a
+    # missing file falls back to the stock COCO model (person-only, no
+    # PPE/hazard classes) rather than failing to boot — see
+    # video_detection._load_yolo_model.
+    #   - PPE_MODEL_PATH: Hexmon/vyra-yolo-ppe-detection (person, helmet,
+    #     no-helmet, safety vest, no-safety-vest, plus other PPE classes
+    #     this project ignores).
+    #   - FIRE_SMOKE_MODEL_PATH: rabahdev/fire-smoke-yolov8n (smoke, fire).
+    PPE_MODEL_PATH: str = "models/ppe_detection.pt"
+    FIRE_SMOKE_MODEL_PATH: str = "models/fire_smoke_detection.pt"
+
     # ── Demo Scenario Playback ───────────────────────────────────────────────
     #: Scenario name (see backend/demo_scenarios/*.json) to auto-start on
     #: server boot, looping indefinitely until POST /demo/stop is called.
@@ -177,6 +192,13 @@ class Settings(BaseSettings):
     EMERGENCY_THRESHOLD_ISOLATE_EQUIPMENT: float = 70.0
     EMERGENCY_THRESHOLD_EVACUATE_AREA: float = 70.0
     EMERGENCY_THRESHOLD_GENERATE_INCIDENT: float = 70.0
+    #: Minimum time between auto-generated incidents for the same zone —
+    #: while a zone's risk score stays above EMERGENCY_THRESHOLD_GENERATE_INCIDENT
+    #: across many consecutive evaluations (e.g. every ~1s scenario tick,
+    #: or every poll of the real /monitoring route), only the first
+    #: creates an Incident row; later evaluations within this window are
+    #: suppressed. See EmergencyResponseService._generate_incident.
+    EMERGENCY_GENERATE_INCIDENT_COOLDOWN_SECONDS: float = 300.0
 
     # ── Conversation memory (AI Copilot) ─────────────────────────────────────
     # How many of the most recent conversation turns

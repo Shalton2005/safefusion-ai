@@ -12,7 +12,7 @@ import { useRef, useState } from 'react';
 import { emergencyResponseService } from '@/services';
 import { ApiError } from '@/api/errors';
 import { usePolling } from '@/hooks/usePolling';
-import { DASHBOARD_REFRESH_INTERVAL } from '@/constants';
+import { FAST_REFRESH_INTERVAL } from '@/constants';
 import type { EmergencyActionItem } from '@/types';
 
 export interface UseEmergencyResponseResult {
@@ -48,7 +48,7 @@ export function useEmergencyResponse(): UseEmergencyResponseResult {
     }
   };
 
-  const { lastUpdated, refresh } = usePolling(fetchActions, DASHBOARD_REFRESH_INTERVAL);
+  const { lastUpdated, refresh } = usePolling(fetchActions, FAST_REFRESH_INTERVAL);
 
   return { actions, loading, error, lastUpdated, refresh };
 }

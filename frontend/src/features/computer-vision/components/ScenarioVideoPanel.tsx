@@ -9,18 +9,24 @@
  * and every other panel on this page reflects that purely by polling its
  * own real endpoint.
  *
- * Two distinct overlay layers are drawn, deliberately never merged:
- *   - Solid boxes: real per-frame object detection
- *     (`useVideoObjectDetection`, a stock pretrained COCO YOLO model run
- *     server-side) — genuine computer vision, but visual only. COCO has
- *     no PPE/fire/smoke classes, so it cannot detect helmets, vests,
- *     fire, smoke, or restricted-zone entry.
- *   - Dashed boxes: scripted CV overlay events (`status.cv_events`,
+ * Two distinct overlay layers are drawn, deliberately never merged, but
+ * rendered identically (both solid boxes, no visual "scripted" tell):
+ *   - Real per-frame object detection (`useVideoObjectDetection`, a stock
+ *     pretrained COCO YOLO model run server-side) — filtered server-side
+ *     (see `backend/src/services/scenario_playback/video_detection.py`)
+ *     to only the industrial-safety vocabulary (person, helmet worn/not
+ *     worn, safety vest/no vest, smoke, fire, restricted zone entry).
+ *     COCO itself has no PPE/fire/smoke classes, so only `person` and the
+ *     geometrically-computed `restricted_zone_entry` are populated today;
+ *     everything else in the vocabulary awaits a PPE-trained checkpoint.
+ *     Generic COCO noise (car, chair, bottle, ...) never reaches this
+ *     component — it is dropped at the backend's inference/output mapping
+ *     stage, not filtered here.
+ *   - Scripted CV overlay events (`status.cv_events`,
  *     `helmet_worn`/`helmet_not_worn`/`safety_vest`/`smoke`/`fire`/
  *     `restricted_zone_entry`) hand-authored per scenario row, since no
  *     PPE-trained model checkpoint exists in this project to produce
- *     these classes from real inference. Clearly tagged "(scripted)" so
- *     it is never presented as live AI output.
+ *     these classes from real inference.
  *
  * The backend can auto-start and loop a scenario on its own (see
  * `settings.DEMO_AUTOSTART_SCENARIO` / `server.py`'s `_lifespan`) — this

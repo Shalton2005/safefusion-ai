@@ -18,7 +18,7 @@ import { AIExplainabilityCard } from '@/features/dashboard/components/AIExplaina
 import { useAISupervisor } from '@/features/ai-supervisor/hooks/useAISupervisor';
 import { usePlantStatusStore, useDashboardStore } from '@/store';
 import { usePolling } from '@/hooks/usePolling';
-import { DASHBOARD_REFRESH_INTERVAL } from '@/constants';
+import { FAST_REFRESH_INTERVAL } from '@/constants';
 import { safetyTimelineService } from '@/services';
 import { cn } from '@/lib/cn';
 
@@ -31,7 +31,7 @@ export function DashboardPage() {
 
   // Unified Dashboard State
   const store = useDashboardStore();
-  const { refresh } = usePolling(store.syncTick, DASHBOARD_REFRESH_INTERVAL);
+  const { refresh } = usePolling(store.syncTick, FAST_REFRESH_INTERVAL);
 
   // Map unified state to existing component prop shapes
   const dashboardSummaryData = { summary: store.summary, loading: store.loading, error: store.error, lastUpdated: store.lastUpdated, refresh };

@@ -6,7 +6,7 @@ import { LastUpdated } from '@/components/common/LastUpdated';
 import { sensorsService } from '@/services';
 import { ApiError } from '@/api/errors';
 import { usePolling } from '@/hooks/usePolling';
-import { DASHBOARD_REFRESH_INTERVAL } from '@/constants';
+import { FAST_REFRESH_INTERVAL } from '@/constants';
 import type { SensorReading, SensorStatus, SensorType } from '@/types';
 import { SensorStatusIndicator } from '@/features/sensors/components/SensorStatusIndicator';
 import { cn } from '@/lib/cn';
@@ -131,7 +131,7 @@ export function SensorStatusSection() {
     }
   };
 
-  const { lastUpdated, refresh } = usePolling(fetchSensors, DASHBOARD_REFRESH_INTERVAL);
+  const { lastUpdated, refresh } = usePolling(fetchSensors, FAST_REFRESH_INTERVAL);
 
   const zones = useMemo(() => {
     const map = new Map<string, ZoneHealth>();

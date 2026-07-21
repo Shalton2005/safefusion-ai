@@ -11,7 +11,7 @@ import { useRef, useState } from 'react';
 import { sensorsService } from '@/services/sensors.service';
 import { ApiError } from '@/api/errors';
 import { usePolling } from '@/hooks/usePolling';
-import { DASHBOARD_REFRESH_INTERVAL } from '@/constants';
+import { FAST_REFRESH_INTERVAL } from '@/constants';
 import type { SensorReading } from '@/types';
 
 export interface UseRecentSensorsOptions {
@@ -51,7 +51,7 @@ export function useRecentSensors({ limit = 20 }: UseRecentSensorsOptions = {}): 
     }
   };
 
-  const { lastUpdated, refresh } = usePolling(fetchSensors, DASHBOARD_REFRESH_INTERVAL);
+  const { lastUpdated, refresh } = usePolling(fetchSensors, FAST_REFRESH_INTERVAL);
 
   return { sensors, loading, error, lastUpdated, refresh };
 }

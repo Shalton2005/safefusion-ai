@@ -12,9 +12,10 @@ Incident APIs. This module has no direct SQL or HTTP concerns of its own.
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Protocol
 
+from src.config.settings import settings
 from src.models.enums import EmergencyActionType, IncidentType, SeverityLevel
 from src.models.incident import Incident
 from src.services.compound_risk.schemas import ZoneCompoundRiskResult
@@ -43,6 +44,8 @@ class IncidentRepositoryPort(Protocol):
     """Minimal repository contract required to persist a generated incident."""
 
     def create(self, data: dict) -> Incident: ...
+
+    def exists_since(self, zone: str, incident_type: IncidentType, since: datetime) -> bool: ...
 
 
 class EmergencyResponseService:
@@ -127,6 +130,20 @@ class EmergencyResponseService:
                 "incident repository is configured; skipping persistence.",
                 result.zone,
             )
+            return None
+
+        cooldown_start = datetime.now(UTC) - timedelta(
+            seconds=settings.EMERGENCY_GENERATE_INCIDENT_COOLDOWN_SECONDS
+        )
+        if self._incident_repository.exists_since(
+            zone=result.zone, incident_type=IncidentType.EMERGENCY_RESPONSE, since=cooldown_start
+        ):
+            # A zone whose risk score stays above threshold across many
+            # consecutive evaluations (every ~1s scenario tick, or every
+            # poll of the real /monitoring route) would otherwise get a
+            # brand-new Incident row every single time — suppress repeats
+            # within the cooldown window, same as a real alerting system
+            # not re-paging on an already-open incident.
             return None
 
         severity = _RISK_LEVEL_TO_INCIDENT_SEVERITY.get(result.risk_level.value, SeverityLevel.HIGH)

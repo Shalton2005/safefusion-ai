@@ -46,7 +46,18 @@ class CVModelPort(Protocol):
 #: dataset (e.g. Roboflow's common "Hard Hat Workers"/PPE datasets) is
 #: expected to use names close to these; extend this table rather than
 #: widening ``DetectionLabel`` itself when swapping in a different
-#: checkpoint with different class names.
+#: checkpoint with different class names. Keys are matched
+#: case-insensitively (see ``UltralyticsYoloAdapter.detect``), so casing
+#: here is cosmetic — included as each model's own ``model.names`` spells
+#: it, for readability when cross-referencing a checkpoint's card.
+#:
+#: Covers two checkpoints as of the multi-model PPE + fire/smoke
+#: integration (see ``src.services.scenario_playback.video_detection``):
+#:   - Hexmon/vyra-yolo-ppe-detection (14 classes; only the 5 below map to
+#:     ``DetectionLabel`` — Fall-Detected/Gloves/Goggles/Ladder/Mask/
+#:     NO-Gloves/NO-Goggles/NO-Mask/Safety Cone are intentionally absent
+#:     and therefore dropped at inference time, same as any COCO class).
+#:   - rabahdev/fire-smoke-yolov8n (2 classes: smoke, fire).
 DEFAULT_CLASS_NAME_MAP: dict[str, DetectionLabel] = {
     "person": DetectionLabel.PERSON,
     "helmet": DetectionLabel.HELMET,
@@ -58,9 +69,11 @@ DEFAULT_CLASS_NAME_MAP: dict[str, DetectionLabel] = {
     "vest": DetectionLabel.SAFETY_VEST,
     "safety_vest": DetectionLabel.SAFETY_VEST,
     "safety-vest": DetectionLabel.SAFETY_VEST,
+    "safety vest": DetectionLabel.SAFETY_VEST,
     "no_vest": DetectionLabel.NO_SAFETY_VEST,
     "no_safety_vest": DetectionLabel.NO_SAFETY_VEST,
     "no-safety vest": DetectionLabel.NO_SAFETY_VEST,
+    "no-safety_vest": DetectionLabel.NO_SAFETY_VEST,
     "forklift": DetectionLabel.FORKLIFT,
     "smoke": DetectionLabel.SMOKE,
     "fire": DetectionLabel.SMOKE,

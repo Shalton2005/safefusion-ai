@@ -20,14 +20,35 @@ from __future__ import annotations
 import asyncio
 
 from src.database.session import db_session
+from src.services.computer_vision.camera_monitoring import get_default_camera_monitoring_service
+from src.services.computer_vision.compliance_engine import (
+    MissingHelmetRule,
+    MissingSafetyVestRule,
+    PPEComplianceEngine,
+    SmokeDetectedRule,
+)
 from src.services.event_bus.bus import get_default_dispatcher
+from src.services.scenario_playback.camera_bridge import (
+    CAMERA_DETECTION_INTERVAL_SECONDS,
+    run_camera_detection_tick,
+)
 from src.services.scenario_playback.engine import ScenarioPlaybackEngine, ScenarioPlaybackState
 from src.services.scenario_playback.schemas import load_scenario_by_name
+from src.services.scenario_playback.video_detection import get_video_object_detection_service
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
 _TICK_SECONDS: float = 1.0
+
+#: Same PPE Compliance Engine rule set the real `/cameras/frames` route
+#: builds (see `src.routes.computer_vision._build_ppe_compliance_engine`),
+#: minus `PersonNearForkliftRule` — scenario playback's video detection
+#: never produces a `forklift` label (no forklift-trained checkpoint), so
+#: that rule could never fire here.
+_camera_compliance_engine = PPEComplianceEngine(
+    rules=[MissingHelmetRule(), MissingSafetyVestRule(), SmokeDetectedRule()]
+)
 
 
 class ScenarioPlaybackRunner:
@@ -39,6 +60,15 @@ class ScenarioPlaybackRunner:
         self._last_state: ScenarioPlaybackState | None = None
         self._loop: bool = False
         self._scenario_name: str | None = None
+        #: Seconds of playback elapsed since the last real camera-detection
+        #: pass (see ``_maybe_run_camera_detection``) — independent of
+        #: ``self._engine.elapsed_seconds`` so it survives a scenario loop
+        #: restart without needing a reset.
+        self._seconds_since_camera_detection: float = CAMERA_DETECTION_INTERVAL_SECONDS
+        #: The in-flight background camera-detection task, if any — tracked
+        #: so a slow detection pass (~1.7s) is never started twice
+        #: concurrently and so ``stop()`` can cancel it cleanly.
+        self._camera_detection_task: asyncio.Task | None = None
 
     @property
     def is_running(self) -> bool:
@@ -86,6 +116,9 @@ class ScenarioPlaybackRunner:
     async def stop(self) -> None:
         """Cancel the running playback task, if any, and wait for it to finish."""
         self._loop = False
+        if self._camera_detection_task is not None:
+            self._camera_detection_task.cancel()
+            self._camera_detection_task = None
         if self._task is None:
             return
         self._task.cancel()
@@ -97,6 +130,53 @@ class ScenarioPlaybackRunner:
         self._engine = None
         logger.info("Scenario playback stopped.")
 
+    def _maybe_run_camera_detection(self) -> None:
+        """Launch a real dual-model detection pass in the background if it's due.
+
+        Throttled to ``CAMERA_DETECTION_INTERVAL_SECONDS`` (independent of
+        the 1-second scenario tick — see ``camera_bridge``'s module
+        docstring for why) and run as a fire-and-forget background task via
+        ``asyncio.to_thread`` so the ~1.7s of synchronous, CPU-bound YOLO
+        inference never blocks this loop's ``asyncio.sleep`` cadence or any
+        concurrent request. Skipped entirely if the previous pass is still
+        running (slower than its own interval) or the scenario has no
+        associated video.
+        """
+        assert self._engine is not None
+        self._seconds_since_camera_detection += _TICK_SECONDS
+        if self._seconds_since_camera_detection < CAMERA_DETECTION_INTERVAL_SECONDS:
+            return
+        if self._camera_detection_task is not None and not self._camera_detection_task.done():
+            return  # Previous pass still running — skip this cycle rather than pile up.
+
+        timeline = self._engine.timeline
+        if not timeline.video_filename:
+            return
+
+        self._seconds_since_camera_detection = 0.0
+        video_filename = timeline.video_filename
+        zone = timeline.zone
+        timestamp_seconds = self._engine.elapsed_seconds
+        frame_index = self._engine.current_row_index
+
+        async def _run() -> None:
+            try:
+                await asyncio.to_thread(
+                    run_camera_detection_tick,
+                    get_video_object_detection_service(),
+                    _camera_compliance_engine,
+                    get_default_camera_monitoring_service(),
+                    video_filename,
+                    timestamp_seconds,
+                    f"CCTV-{zone}",
+                    zone,
+                    frame_index,
+                )
+            except Exception:
+                logger.exception("Scenario camera detection pass failed; continuing.")
+
+        self._camera_detection_task = asyncio.create_task(_run(), name="scenario-camera-detection")
+
     async def _run_loop(self) -> None:
         assert self._engine is not None
         try:
@@ -106,6 +186,7 @@ class ScenarioPlaybackRunner:
                     try:
                         with db_session() as db:
                             self._last_state = self._engine.tick(db, tick_seconds=_TICK_SECONDS)
+                        self._maybe_run_camera_detection()
                     except Exception:
                         logger.exception("Scenario playback tick failed; continuing to next tick.")
                 logger.info("Scenario playback finished: %s", self._engine.timeline.name)

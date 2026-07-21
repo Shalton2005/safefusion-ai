@@ -45,15 +45,18 @@ from src.services.compliance.rules import IncidentAttributeComplianceRule
 from src.services.compound_risk.compound_risk_service import CompoundRiskService
 from src.services.compound_risk.engine import CompoundRiskEngine
 from src.services.compound_risk.rules import (
+    CameraCriticalDetectionWithoutActivePermitRule,
     CriticalSensorNearDegradedEquipmentRule,
     CriticalSensorWithoutActivePermitRule,
     CriticalSensorWithWorkerPresentRule,
     DegradedEquipmentWithWorkerPresentRule,
     ExpiredPermitWithWorkerPresentRule,
     MultipleWarningSensorsRule,
+    PPEViolationWithWorkerPresentRule,
     RestrictedZoneWithoutActivePermitRule,
 )
 from src.services.compound_risk.schemas import CompoundRiskLevelBands, ZoneCompoundRiskResult
+from src.services.computer_vision.camera_monitoring import get_default_camera_monitoring_service
 from src.services.emergency_response.emergency_response_service import EmergencyResponseService
 from src.services.emergency_response.engine import EmergencyResponseEngine
 from src.services.emergency_response.rules import ThresholdEmergencyResponseRule
@@ -129,6 +132,13 @@ def _build_compound_risk_engine() -> CompoundRiskEngine:
         CriticalSensorNearDegradedEquipmentRule(
             points=rules["critical_sensor_near_degraded_equipment"].points, equipment_zone_map=zone_map
         ),
+        CameraCriticalDetectionWithoutActivePermitRule(
+            points=rules["camera_critical_detection_without_active_permit"].points,
+        ),
+        PPEViolationWithWorkerPresentRule(
+            points=rules["ppe_violation_with_worker_present"].points,
+            minimum_severity_rank=rules["ppe_violation_with_worker_present"].params["minimum_severity_rank"],
+        ),
     ]
     return CompoundRiskEngine(
         rules=engine_rules, level_bands=CompoundRiskLevelBands(**COMPOUND_RISK_LEVEL_BANDS)
@@ -168,6 +178,10 @@ class ScenarioPlaybackState:
     current_row_index: int
     current_row_label: str | None
     video_filename: str | None = None
+    #: The scenario's zone name (e.g. "Zone-D") — used to look up a
+    #: restricted-zone polygon for the real-time video detection overlay
+    #: (see ``src.services.scenario_playback.video_detection.RESTRICTED_ZONES``).
+    zone: str | None = None
     last_tick_at: datetime | None = None
     compound_risk_results: list[ZoneCompoundRiskResult] = field(default_factory=list)
     emergency_response_results: list[ZoneEmergencyResponseResult] = field(default_factory=list)
@@ -259,6 +273,7 @@ class ScenarioPlaybackEngine:
             current_row_index=self._current_row_index,
             current_row_label=current_row.label if current_row else None,
             video_filename=self._timeline.video_filename,
+            zone=self._timeline.zone,
             last_tick_at=datetime.now(UTC),
             compound_risk_results=self.last_compound_risk_results,
             emergency_response_results=self.last_emergency_response_results,
@@ -421,6 +436,7 @@ class ScenarioPlaybackEngine:
         compound_risk_service = CompoundRiskService(
             engine=_build_compound_risk_engine(),
             sensor_monitoring=sensor_monitoring,
+            camera_monitoring=get_default_camera_monitoring_service(),
             worker_monitoring=worker_monitoring,
             permit_validation=_PermitSummaryAdapter(),
         )

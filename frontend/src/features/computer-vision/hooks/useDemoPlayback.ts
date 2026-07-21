@@ -3,7 +3,7 @@
  *
  * Polls the Demo Scenario Playback Engine's status
  * (`GET /demo/status`, see `backend/src/routes/demo.py`) once per second
- * — matching `DASHBOARD_REFRESH_INTERVAL` — and exposes it alongside
+ * — matching `FAST_REFRESH_INTERVAL` — and exposes it alongside
  * `start`/`stop` actions. This is the only hook that talks to the demo
  * engine; every other dashboard panel reflects its effect indirectly by
  * polling its own real endpoint.
@@ -13,7 +13,7 @@ import { useCallback, useState } from 'react';
 import { demoService } from '@/services';
 import type { DemoScenarioStatus } from '@/services/demo.service';
 import { usePolling } from '@/hooks/usePolling';
-import { DASHBOARD_REFRESH_INTERVAL } from '@/constants';
+import { FAST_REFRESH_INTERVAL } from '@/constants';
 import { ApiError } from '@/api/errors';
 
 export interface UseDemoPlaybackResult {
@@ -51,7 +51,7 @@ export function useDemoPlayback(): UseDemoPlaybackResult {
     }
   }, []);
 
-  usePolling(fetchStatus, DASHBOARD_REFRESH_INTERVAL);
+  usePolling(fetchStatus, FAST_REFRESH_INTERVAL);
 
   const start = useCallback(async (scenario: string, loop = false) => {
     setStarting(true);

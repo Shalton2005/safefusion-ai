@@ -15,7 +15,7 @@ import { useRef, useState } from 'react';
 import { compoundRiskService } from '@/services';
 import { ApiError } from '@/api/errors';
 import { usePolling } from '@/hooks/usePolling';
-import { DASHBOARD_REFRESH_INTERVAL } from '@/constants';
+import { FAST_REFRESH_INTERVAL } from '@/constants';
 import type { CompoundRiskAssessment, RiskExplanation } from '@/types';
 
 export interface UseCompoundRiskEngineResult {
@@ -54,7 +54,7 @@ export function useCompoundRiskEngine(): UseCompoundRiskEngineResult {
     }
   };
 
-  const { lastUpdated, refresh } = usePolling(fetchEngineResult, DASHBOARD_REFRESH_INTERVAL);
+  const { lastUpdated, refresh } = usePolling(fetchEngineResult, FAST_REFRESH_INTERVAL);
 
   return { assessment, explanation, loading, error, lastUpdated, refresh };
 }

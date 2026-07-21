@@ -2,6 +2,8 @@
 Incident repository for SafeFusion AI.
 """
 
+from datetime import datetime
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -49,3 +51,26 @@ class IncidentRepository(BaseRepository[Incident]):
         return self._db.execute(
             select(Incident).order_by(Incident.occurred_at.desc()).limit(1)
         ).scalar_one_or_none()
+
+    def exists_since(self, zone: str, incident_type: IncidentType, since: datetime) -> bool:
+        """Return whether a matching incident was recorded in ``zone`` at or after ``since``.
+
+        Used to suppress duplicate auto-generated incidents (see
+        ``EmergencyResponseService._generate_incident``): a zone whose risk
+        score stays above the ``generate_incident`` threshold across many
+        consecutive ticks/polls should not get a brand-new Incident row
+        every single time — only once per cooldown window, mirroring how a
+        real alerting system avoids re-paging on an already-open incident.
+        """
+        return (
+            self._db.execute(
+                select(Incident.id)
+                .where(
+                    Incident.zone == zone,
+                    Incident.incident_type == incident_type,
+                    Incident.occurred_at >= since,
+                )
+                .limit(1)
+            ).scalar_one_or_none()
+            is not None
+        )
