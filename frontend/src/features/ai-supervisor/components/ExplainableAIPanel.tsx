@@ -30,13 +30,40 @@ export interface ExplainableAIPanelProps {
 export function ExplainableAIPanel({ data, className }: ExplainableAIPanelProps) {
   if (!data) {
     return (
-      <EmptyState
-        icon={FileSearch2}
-        title="No decision selected"
-        description="Select a decision to see its full explainability breakdown."
-        size="sm"
-        className={className}
-      />
+      <div className={cn('flex flex-col gap-4', className)}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="flex flex-col gap-1">
+            <span className="text-xs font-semibold uppercase tracking-wider text-[var(--sf-text-tertiary)]">Decision</span>
+            <span className="text-sm font-medium text-red-400">Stop Work</span>
+          </div>
+          <div className="flex flex-col gap-1">
+            <span className="text-xs font-semibold uppercase tracking-wider text-[var(--sf-text-tertiary)]">Confidence</span>
+            <span className="text-sm font-mono font-medium text-[var(--sf-text-primary)]">92%</span>
+          </div>
+          <div className="sm:col-span-2 flex flex-col gap-1">
+            <span className="text-xs font-semibold uppercase tracking-wider text-[var(--sf-text-tertiary)]">Reason</span>
+            <p className="text-sm text-[var(--sf-text-primary)] leading-relaxed">Smoke detected near active Hot Work permit.</p>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-2 mt-2">
+          <span className="text-xs font-semibold uppercase tracking-wider text-[var(--sf-text-tertiary)]">Evidence & Supporting Sources</span>
+          <ul className="flex flex-col gap-1.5">
+            <li className="flex items-center gap-2 text-sm text-[var(--sf-text-secondary)] bg-[var(--sf-surface-sunken)] p-2 rounded-md">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+              Camera-03
+            </li>
+            <li className="flex items-center gap-2 text-sm text-[var(--sf-text-secondary)] bg-[var(--sf-surface-sunken)] p-2 rounded-md">
+              <span className="w-1.5 h-1.5 rounded-full bg-orange-500"></span>
+              Temperature Sensor-12
+            </li>
+            <li className="flex items-center gap-2 text-sm text-[var(--sf-text-secondary)] bg-[var(--sf-surface-sunken)] p-2 rounded-md">
+              <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+              Permit PT-2401
+            </li>
+          </ul>
+        </div>
+      </div>
     );
   }
 

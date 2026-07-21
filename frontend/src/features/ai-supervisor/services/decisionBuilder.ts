@@ -7,7 +7,7 @@
  * own module.
  */
 
-import { AGENT_LABEL, AGENT_STATUS_CONFIDENCE } from './agentBuilder';
+import { AGENT_LABEL, getAgentConfidence } from './agentBuilder';
 import type {
   AgentEngineInput,
   AIAgentStatus,
@@ -53,7 +53,7 @@ export function compoundRiskDecisions(engine: AgentEngineInput<CompoundRiskAsses
       explanation: `Highest zone risk score reached ${engine.data.risk_score}/100.`,
       timestamp,
       isTimeApproximate: true,
-      confidence: AGENT_STATUS_CONFIDENCE[agentStatus],
+      confidence: getAgentConfidence('compound_risk', agentStatus),
       executionStatus: DECISION_TYPE_EXECUTION_STATUS[AGENT_DECISION_TYPE.compound_risk],
     },
   ];
@@ -72,7 +72,7 @@ export function emergencyResponseDecisions(engine: AgentEngineInput<EmergencyAct
     explanation: item.explanation,
     timestamp,
     isTimeApproximate: true,
-    confidence: AGENT_STATUS_CONFIDENCE[agentStatus],
+    confidence: getAgentConfidence('emergency_response', agentStatus),
     executionStatus: DECISION_TYPE_EXECUTION_STATUS[AGENT_DECISION_TYPE.emergency_response],
   }));
 }
@@ -94,7 +94,7 @@ export function recommendationDecisions(engine: AgentEngineInput<Recommendation[
     explanation: rec.reason,
     timestamp,
     isTimeApproximate: true,
-    confidence: AGENT_STATUS_CONFIDENCE[agentStatus],
+    confidence: getAgentConfidence('recommendation', agentStatus),
     executionStatus: DECISION_TYPE_EXECUTION_STATUS[AGENT_DECISION_TYPE.recommendation],
   }));
 }
@@ -117,7 +117,7 @@ export function complianceDecisions(engine: AgentEngineInput<ComplianceStatusSna
       explanation: `Frameworks violated: ${engine.data.violated_frameworks.join(', ') || 'none reported'}.`,
       timestamp,
       isTimeApproximate: true,
-      confidence: AGENT_STATUS_CONFIDENCE[agentStatus],
+      confidence: getAgentConfidence('compliance', agentStatus),
       executionStatus: DECISION_TYPE_EXECUTION_STATUS[AGENT_DECISION_TYPE.compliance],
     },
   ];

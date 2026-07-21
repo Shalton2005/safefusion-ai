@@ -29,7 +29,7 @@
 import { useMemo } from 'react';
 import { useKnowledgeGraph } from '@/features/knowledge-graph/hooks/useKnowledgeGraph';
 import { useAgentExecutionTiming } from './useAgentExecutionTiming';
-import { buildAgent, AGENT_STATUS_CONFIDENCE } from '../services/agentBuilder';
+import { buildAgent, getAgentConfidence } from '../services/agentBuilder';
 import type { AIAgentSummary } from '../types';
 import type { UseCompoundRiskEngineResult } from '@/features/risk/hooks/useCompoundRiskEngine';
 import type { UseEmergencyResponseResult } from '@/features/emergency/hooks/useEmergencyResponse';
@@ -121,7 +121,7 @@ export function useAgentStatusBoard({
         findingCount: supervisor.snapshot.decisions.length,
         lastUpdated: supervisor.snapshot.lastDecisionTime,
         error: supervisor.error,
-        confidence: supervisor.snapshot.overallConfidence || AGENT_STATUS_CONFIDENCE[supervisorStatus],
+        confidence: supervisor.snapshot.overallConfidence || getAgentConfidence('supervisor', supervisorStatus),
         // The Supervisor performs no network call of its own — it
         // synthesises the results the other five agents already
         // fetched — so it has no execution time to measure.

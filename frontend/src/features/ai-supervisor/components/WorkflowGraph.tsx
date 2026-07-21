@@ -21,6 +21,7 @@ import {
   Background,
   BackgroundVariant,
   ReactFlowProvider,
+  Controls,
   type Node,
   type Edge,
 } from '@xyflow/react';
@@ -100,16 +101,17 @@ export function WorkflowGraph({ agents, processingState, className }: WorkflowGr
           edges={edges}
           fitView
           panOnDrag
-          zoomOnScroll={false}
-          zoomOnPinch={false}
-          nodesDraggable={false}
+          zoomOnScroll={true}
+          zoomOnPinch={true}
+          nodesDraggable={true}
           nodesConnectable={false}
-          elementsSelectable={false}
-          minZoom={0.5}
-          maxZoom={1.5}
+          elementsSelectable={true}
+          minZoom={0.2}
+          maxZoom={2.0}
           proOptions={{ hideAttribution: true }}
         >
           <Background variant={BackgroundVariant.Dots} gap={16} size={1} />
+          <Controls showInteractive={false} />
         </ReactFlow>
       </ReactFlowProvider>
     </div>

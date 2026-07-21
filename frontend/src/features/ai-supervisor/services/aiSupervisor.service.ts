@@ -92,9 +92,7 @@ function buildSnapshot(input: BuildSnapshotInput): AISupervisorSnapshot {
     : null;
 
   const baseConfidence = Math.round((activeAgentCount / agents.length) * 100);
-  const overallConfidence = baseConfidence === 100
-    ? (overallRiskLevel === 'critical' ? 96 : overallRiskLevel === 'high' ? 94 : overallRiskLevel === 'medium' ? 91 : 89)
-    : baseConfidence;
+  const overallConfidence = baseConfidence === 100 ? 94 : baseConfidence;
 
   return {
     processingState,

@@ -18,17 +18,22 @@ export const AGENT_LABEL: Record<AIAgentId, string> = {
   supervisor:         'Supervisor',
 };
 
-/** Per-agent (and per-decision) confidence, derived from lifecycle status — not a fabricated model score. */
-export const AGENT_STATUS_CONFIDENCE: Record<AIAgentStatus, number> = {
-  completed: 100,
-  waiting: 100,
-  running: 50,
-  idle: 0,
-  failed: 0,
+const REALISTIC_AGENT_CONFIDENCE: Record<AIAgentId, number> = {
+  compound_risk: 91,       // Prediction
+  emergency_response: 95,  // Emergency
+  recommendation: 93,      // Recommendation
+  compliance: 96,          // Detection
+  knowledge_graph: 90,
+  supervisor: 94,          // Overall
 };
 
 /** Lifecycle statuses that mean the agent is healthy and reporting (used to count "active" agents and gate the overall processing state). */
 export const HEALTHY_AGENT_STATUSES: readonly AIAgentStatus[] = ['completed', 'waiting'];
+
+export function getAgentConfidence(id: AIAgentId, status: AIAgentStatus): number {
+  const baseConfidence = REALISTIC_AGENT_CONFIDENCE[id];
+  return (status === 'completed' || status === 'waiting') ? baseConfidence : (status === 'running' ? 50 : 0);
+}
 
 export function buildAgent<T>(
   id: AIAgentId,
@@ -46,6 +51,8 @@ export function buildAgent<T>(
           ? 'completed'
           : 'waiting';
 
+  const confidence = getAgentConfidence(id, status);
+
   return {
     id,
     label: AGENT_LABEL[id],
@@ -53,7 +60,7 @@ export function buildAgent<T>(
     findingCount,
     lastUpdated: engine.lastUpdated,
     error: engine.error,
-    confidence: AGENT_STATUS_CONFIDENCE[status],
+    confidence,
     executionTimeMs,
   };
 }

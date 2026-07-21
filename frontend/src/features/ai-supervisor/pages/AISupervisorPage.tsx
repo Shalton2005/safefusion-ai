@@ -8,7 +8,7 @@
  */
 
 import { useState } from 'react';
-import { PageHeader, Card, CardHeader, CardContent, Alert, Button } from '@/components/ui';
+import { PageHeader, Card, CardHeader, CardContent, Alert, Button, Collapsible } from '@/components/ui';
 import { RotateCw } from 'lucide-react';
 import { AIRecommendationCardGrid } from '@/components/recommendations';
 import { useCompoundRiskEngine } from '@/features/risk/hooks/useCompoundRiskEngine';
@@ -74,50 +74,10 @@ export function AISupervisorPage() {
 
       <AISupervisorCard snapshot={snapshot} />
 
-      <Card>
-        <CardHeader
-          title="Agent Status"
-          description="Current status, execution time, confidence, and last run for every backend agent"
-        />
-        <CardContent>
-          <AIAgentStatusBoard agents={agentStatusBoard.agents} loading={agentStatusBoard.loading} />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader title="Confidence" description="Detection, recommendation, prediction, and emergency confidence" />
-        <CardContent>
-          <ConfidenceOverview agents={snapshot.agents} />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader title="Data Pipeline" description="How data flows from the field into the AI Supervisor" />
-        <CardContent>
-          <PipelineWorkflow />
-        </CardContent>
-      </Card>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card>
-          <CardHeader title="Agent Activity" description="Live status of every supervised engine" />
-          <CardContent>
-            <AgentActivityList agents={snapshot.agents} />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader title="Agent Workflow" description="How each agent feeds the AI Supervisor" />
-          <CardContent>
-            <WorkflowGraph agents={snapshot.agents} processingState={snapshot.processingState} />
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card>
-          <CardHeader title="Decision Timeline" description="Most recent decisions across all agents" />
-          <CardContent>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-4">
+        <Card className="flex flex-col lg:col-span-1">
+          <CardHeader title="What did the AI decide?" description="Chronological log of AI judgements and executed actions" />
+          <CardContent className="flex-1 overflow-hidden">
             <DecisionTimeline
               decisions={snapshot.decisions}
               loading={loading && snapshot.decisions.length === 0}
@@ -129,9 +89,9 @@ export function AISupervisorPage() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader title="Explainable AI" description="Full breakdown of why the AI Supervisor made this call" />
-          <CardContent>
+        <Card className="flex flex-col lg:col-span-2">
+          <CardHeader title="Why? & What evidence supports it?" description="Full breakdown of why the AI Supervisor made this call" />
+          <CardContent className="flex-1 overflow-hidden">
             <ExplainableAIPanel
               data={selectedDecision ? aiSupervisorService.toExplainableAIData(selectedDecision) : null}
             />
@@ -139,19 +99,9 @@ export function AISupervisorPage() {
         </Card>
       </div>
 
-      <Card>
+      <Card className="mt-4">
         <CardHeader
-          title="AI Reasoning (Live)"
-          description="Backend reasoning for the selected decision via POST /ai/explain"
-        />
-        <CardContent>
-          <AIReasoningPanel data={aiExplain.data} loading={aiExplain.loading} error={aiExplain.error} />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader
-          title="AI Recommendations"
+          title="What actions were taken?"
           description="AI-surfaced recommendations via POST /ai/recommend"
           action={
             <Button size="sm" variant="outline" onClick={aiRecommend.refresh} leftIcon={<RotateCw className="w-3.5 h-3.5" />}>
@@ -167,6 +117,64 @@ export function AISupervisorPage() {
           />
         </CardContent>
       </Card>
+
+      <div className="mt-6">
+        <Collapsible title="Advanced Diagnostics" description="Technical details, raw AI reasoning, and data pipelines" defaultOpen={false}>
+          <div className="flex flex-col gap-4 mt-2">
+            <Card>
+              <CardHeader
+                title="Agent Status"
+                description="Current status, execution time, confidence, and last run for every backend agent"
+              />
+              <CardContent>
+                <AIAgentStatusBoard agents={agentStatusBoard.agents} loading={agentStatusBoard.loading} />
+              </CardContent>
+            </Card>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <Card>
+                <CardHeader title="Agent Activity" description="Live status of every supervised engine" />
+                <CardContent>
+                  <AgentActivityList agents={snapshot.agents} />
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader title="Confidence" description="Detection, recommendation, prediction, and emergency confidence" />
+                <CardContent>
+                  <ConfidenceOverview agents={snapshot.agents} />
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <Card>
+                <CardHeader title="Data Pipeline" description="How data flows from the field into the AI Supervisor" />
+                <CardContent>
+                  <PipelineWorkflow />
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader title="Agent Workflow" description="How each agent feeds the AI Supervisor" />
+                <CardContent>
+                  <WorkflowGraph agents={snapshot.agents} processingState={snapshot.processingState} />
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card>
+              <CardHeader
+                title="Raw AI Reasoning"
+                description="Backend reasoning for the selected decision via POST /ai/explain"
+              />
+              <CardContent>
+                <AIReasoningPanel data={aiExplain.data} loading={aiExplain.loading} error={aiExplain.error} />
+              </CardContent>
+            </Card>
+          </div>
+        </Collapsible>
+      </div>
     </div>
   );
 }

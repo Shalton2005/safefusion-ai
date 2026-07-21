@@ -35,22 +35,38 @@ export function useAIRecommend(zone?: string): UseAIRecommendResult {
       setLoading(true);
       setError(null);
       try {
-        const { data } = await aiService.recommend({ text: 'recommend', params: { zone } }, { signal });
-        const mapped: AIRecommendation[] = data.recommendations.map((r, i) => ({
-          id: `rec-${i}`,
-          title: 'Recommendation',
-          description: r.text,
-          priority: 'medium',
-          affectedArea: r.zone ?? 'Plant-wide',
-          confidence: 100,
-          actionType: r.source_agent
-        }));
-        setRecommendations(mapped);
+        // Mock data since the backend endpoint doesn't exist for the hackathon
+        const mockData: AIRecommendation[] = [
+          {
+            id: 'rec-1',
+            title: 'Halt Hot Work Operations',
+            description: 'Suspend all active hot work permits in the Boiler House until the smoke alarm is cleared and investigated.',
+            priority: 'high',
+            affectedArea: 'Boiler House',
+            confidence: 94,
+            actionType: 'Safety Intervention',
+          },
+          {
+            id: 'rec-2',
+            title: 'Dispatch Safety Officer',
+            description: 'Deploy on-site safety personnel to physically inspect Camera-03 blind spots.',
+            priority: 'medium',
+            affectedArea: 'Boiler House',
+            confidence: 88,
+            actionType: 'Field Verification',
+          }
+        ];
+        
+        // Simulate network delay
+        await new Promise((resolve) => setTimeout(resolve, 800));
+        
+        if (!signal?.aborted) {
+          setRecommendations(mockData);
+        }
       } catch (err) {
-        const apiError = ApiError.from(err);
-        if (!apiError.isCancelledError) {
+        if (!signal?.aborted) {
           setRecommendations([]);
-          setError(apiError.toUserMessage());
+          setError('Failed to load recommendations.');
         }
       } finally {
         if (!signal?.aborted) {
