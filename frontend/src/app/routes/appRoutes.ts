@@ -153,22 +153,7 @@ export const appRouteDefinitions: AppRouteDefinition[] = [
     ),
   },
 
-  // ── Emergency ────────────────────────────────────────────────────
-  {
-    id:          'emergency',
-    path:        '/emergency',
-    label:       'Emergency',
-    description: 'Manage active emergency response procedures.',
-    icon:        AlertTriangle,
-    showInNav:   true,
-    isProtected: true,
-    section:     'Monitoring',
-    component: lazy(() =>
-      import('@/features/alerts/pages/AlertsPage').then((m) => ({
-        default: m.AlertsPage,
-      })),
-    ),
-  },
+
 
   // ── Analytics ─────────────────────────────────────────────────
   {

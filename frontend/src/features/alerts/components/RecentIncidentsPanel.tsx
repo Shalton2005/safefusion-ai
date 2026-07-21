@@ -84,8 +84,8 @@ export function RecentIncidentsPanel() {
         >
           {(data) => (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {data.map((incident) => (
-                <IncidentCard key={incident.id} incident={incident} />
+              {data.map((incident, index) => (
+                <IncidentCard key={incident.id} incident={incident} index={index} />
               ))}
             </div>
           )}

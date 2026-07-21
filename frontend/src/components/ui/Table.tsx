@@ -21,6 +21,8 @@ interface TableProps<TRow = Record<string, unknown>> {
   onRowClick?: (row: TRow) => void;
   className?: string;
   caption?: string;
+  stickyHeader?: boolean;
+  maxHeight?: string | number;
 }
 
 export function Table<TRow = Record<string, unknown>>({
@@ -32,6 +34,8 @@ export function Table<TRow = Record<string, unknown>>({
   onRowClick,
   className,
   caption,
+  stickyHeader,
+  maxHeight,
 }: TableProps<TRow>) {
   const getCellValue = (row: TRow, col: TableColumn<TRow>): ReactNode => {
     if (col.render) {
@@ -53,7 +57,7 @@ export function Table<TRow = Record<string, unknown>>({
   return (
     <div
       className={cn('overflow-x-auto rounded-xl border border-[var(--sf-border-default)]', className)}
-      style={{ WebkitOverflowScrolling: 'touch' }}
+      style={{ WebkitOverflowScrolling: 'touch', maxHeight, overflowY: maxHeight ? 'auto' : undefined }}
     >
       <table className="w-full text-sm border-collapse">
         {caption && (
@@ -61,7 +65,7 @@ export function Table<TRow = Record<string, unknown>>({
         )}
 
         {/* Head */}
-        <thead>
+        <thead className={cn(stickyHeader && 'sticky top-0 z-10 shadow-sm outline outline-1 outline-[var(--sf-border-default)]')}>
           <tr className="bg-[var(--sf-surface-sunken)] border-b border-[var(--sf-border-default)]">
             {columns.map((col) => (
               <th
@@ -73,6 +77,7 @@ export function Table<TRow = Record<string, unknown>>({
                   col.align === 'center' && 'text-center',
                   col.align === 'right'  && 'text-right',
                   !col.align             && 'text-left',
+                  stickyHeader && 'bg-[var(--sf-surface-sunken)] backdrop-blur-md'
                 )}
               >
                 {col.header}
@@ -118,7 +123,7 @@ export function Table<TRow = Record<string, unknown>>({
                 }
                 className={cn(
                   'border-b border-[var(--sf-border-default)] last:border-0',
-                  'bg-[var(--sf-surface-card)] hover:bg-[var(--sf-surface-raised)]',
+                  'bg-[var(--sf-surface-card)] hover:bg-[var(--sf-surface-raised)] hover:brightness-105',
                   'transition-colors duration-100',
                   onRowClick && 'cursor-pointer',
                   onRowClick && 'focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-inset',
