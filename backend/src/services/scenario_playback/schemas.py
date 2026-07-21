@@ -39,6 +39,50 @@ class ScenarioSensorReading:
     unit: str
 
 
+#: Fixed vocabulary of scripted CV overlay classes a scenario row may declare.
+#: Deliberately small and closed — exactly the six classes required for the
+#: demo (see ``ScenarioCvEvent``'s docstring for why these are authored,
+#: not inferred).
+CV_EVENT_LABELS: frozenset[str] = frozenset(
+    {
+        "helmet_worn",
+        "helmet_not_worn",
+        "safety_vest",
+        "smoke",
+        "fire",
+        "restricted_zone_entry",
+    }
+)
+
+
+@dataclass(frozen=True)
+class ScenarioCvEvent:
+    """One scripted, hand-authored computer-vision overlay box for a scenario row.
+
+    Distinct from ``video_detection.py``'s real (but generic-COCO, PPE-blind)
+    YOLO inference: a stock COCO checkpoint has no helmet/vest/fire/smoke/
+    restricted-zone classes, so there is no honest way to make a real model
+    produce these labels without a PPE-trained checkpoint (not present in
+    this project). These boxes are instead authored by the scenario itself,
+    exactly like its sensor readings and incidents — the frontend renders
+    them as an overlay layer clearly labelled as scenario-driven, never
+    presented as live model inference. Coordinates are normalised 0-1,
+    matching every other bounding box in this codebase (see
+    ``src.services.computer_vision.schemas.BoundingBox``).
+    """
+
+    label: str
+    confidence: float
+    x_min: float
+    y_min: float
+    x_max: float
+    y_max: float
+
+    def __post_init__(self) -> None:
+        if self.label not in CV_EVENT_LABELS:
+            raise ValueError(f"Unknown CV event label {self.label!r}; must be one of {sorted(CV_EVENT_LABELS)}")
+
+
 @dataclass(frozen=True)
 class ScenarioIncident:
     """An incident to create when this row plays, in the scenario's zone."""
@@ -88,6 +132,13 @@ class ScenarioRow:
     ppe_status: bool | None = None
     permit_status: PermitStatus | None = None
     incident: ScenarioIncident | None = None
+    #: Scripted CV overlay boxes active from this row onward, replacing
+    #: whatever the previous row declared (not additive) — a row with an
+    #: empty tuple explicitly clears the overlay (e.g. "Incident resolved"
+    #: clearing a lingering "fire" box), while a row that omits this field
+    #: entirely leaves the previous row's overlay untouched, consistent
+    #: with every other sparse-patch field on this dataclass.
+    cv_events: tuple[ScenarioCvEvent, ...] | None = None
 
 
 @dataclass(frozen=True)
@@ -121,6 +172,17 @@ def _parse_sensor(raw: dict) -> ScenarioSensorReading:
     )
 
 
+def _parse_cv_event(raw: dict) -> ScenarioCvEvent:
+    return ScenarioCvEvent(
+        label=raw["label"],
+        confidence=float(raw.get("confidence", 0.9)),
+        x_min=float(raw["x_min"]),
+        y_min=float(raw["y_min"]),
+        x_max=float(raw["x_max"]),
+        y_max=float(raw["y_max"]),
+    )
+
+
 def _parse_incident(raw: dict) -> ScenarioIncident:
     return ScenarioIncident(
         severity=SeverityLevel(raw["severity"]),
@@ -140,6 +202,9 @@ def _parse_row(raw: dict) -> ScenarioRow:
         ppe_status=raw.get("ppe_status"),
         permit_status=PermitStatus(raw["permit_status"]) if "permit_status" in raw else None,
         incident=_parse_incident(raw["incident"]) if "incident" in raw else None,
+        cv_events=(
+            tuple(_parse_cv_event(item) for item in raw["cv_events"]) if "cv_events" in raw else None
+        ),
     )
 
 

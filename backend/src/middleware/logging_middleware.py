@@ -32,6 +32,17 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
         Returns:
             The :class:`~starlette.responses.Response` produced by the handler.
         """
+        # `BaseHTTPMiddleware.dispatch` (this class's base) fully buffers the
+        # downstream response into memory to hand it back here, which silently
+        # discards Starlette `StaticFiles`/`FileResponse`'s native HTTP Range
+        # support — a request for `Range: bytes=X-Y` comes back as a full 200
+        # instead of a partial 206. Large media (e.g. the demo CCTV clip under
+        # `/media/`) then can't be seeked/buffered properly by the browser,
+        # which manifests as stalling partway through playback. Route media
+        # requests around this middleware entirely rather than through it.
+        if request.url.path.startswith("/media/"):
+            return await call_next(request)
+
         start: float = time.perf_counter()
         request_id = request.headers.get("X-Request-ID") or str(uuid.uuid4())
         token = set_request_id(request_id)

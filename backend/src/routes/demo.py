@@ -28,12 +28,32 @@ class ScenarioStartRequest(AppBaseModel):
     """Request body for ``POST /demo/start``."""
 
     scenario: str
+    #: When true, the scenario automatically restarts from its first row
+    #: the instant it finishes, indefinitely, until ``POST /demo/stop``.
+    loop: bool = False
 
 
 class ScenarioListResponse(AppBaseModel):
     """Response schema for ``GET /demo/scenarios``."""
 
     scenarios: list[str]
+
+
+class VideoDetectionResponse(AppBaseModel):
+    """One bounding-box object detection (or scripted CV overlay event) for a single video frame."""
+
+    label: str
+    confidence: float
+    x_min: float
+    y_min: float
+    x_max: float
+    y_max: float
+
+
+class VideoDetectionsResponse(AppBaseModel):
+    """Response schema for ``GET /demo/video-detections``."""
+
+    detections: list[VideoDetectionResponse]
 
 
 class ScenarioStatusResponse(AppBaseModel):
@@ -52,6 +72,7 @@ class ScenarioStatusResponse(AppBaseModel):
     video_url: str | None = None
     compound_risk: list[ZoneCompoundRiskResultResponse] = []
     emergency_response: list[ZoneEmergencyResponseResultResponse] = []
+    cv_events: list[VideoDetectionResponse] = []
 
 
 def _to_status_response(running: bool) -> ScenarioStatusResponse:
@@ -74,6 +95,17 @@ def _to_status_response(running: bool) -> ScenarioStatusResponse:
             ZoneEmergencyResponseResultResponse.model_validate(result, from_attributes=True)
             for result in state.emergency_response_results
         ],
+        cv_events=[
+            VideoDetectionResponse(
+                label=event.label,
+                confidence=event.confidence,
+                x_min=event.x_min,
+                y_min=event.y_min,
+                x_max=event.x_max,
+                y_max=event.y_max,
+            )
+            for event in state.cv_events
+        ],
     )
 
 
@@ -94,14 +126,15 @@ def list_scenarios() -> ScenarioListResponse:
         "Loads the named scenario timeline and begins replaying it into the database, "
         "one row per second of elapsed playback time, driving the production Compound "
         "Risk / Emergency Response / Compliance / Alert Generation rule chain on every "
-        "tick. Stops any scenario already playing first."
+        "tick. Stops any scenario already playing first. Pass loop=true to automatically "
+        "restart the same scenario from its first row the instant it finishes."
     ),
     response_model=ScenarioStatusResponse,
 )
 async def start_scenario(payload: ScenarioStartRequest) -> ScenarioStatusResponse:
     runner = get_scenario_playback_runner()
     try:
-        await runner.start(payload.scenario)
+        await runner.start(payload.scenario, loop=payload.loop)
     except FileNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     return _to_status_response(running=True)
@@ -117,23 +150,6 @@ async def stop_scenario() -> ScenarioStatusResponse:
     runner = get_scenario_playback_runner()
     await runner.stop()
     return _to_status_response(running=False)
-
-
-class VideoDetectionResponse(AppBaseModel):
-    """One bounding-box object detection from a single video frame."""
-
-    label: str
-    confidence: float
-    x_min: float
-    y_min: float
-    x_max: float
-    y_max: float
-
-
-class VideoDetectionsResponse(AppBaseModel):
-    """Response schema for ``GET /demo/video-detections``."""
-
-    detections: list[VideoDetectionResponse]
 
 
 @router.get(

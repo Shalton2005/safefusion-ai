@@ -14,6 +14,16 @@ import type { RequestOptions } from '@/api/types';
 
 const base = createService<unknown>('/demo');
 
+/** One scripted or real bounding-box detection — shape shared by `cv_events` and `/demo/video-detections`. */
+export interface DemoDetection {
+  label: string;
+  confidence: number;
+  x_min: number;
+  y_min: number;
+  x_max: number;
+  y_max: number;
+}
+
 export interface DemoScenarioStatus {
   running: boolean;
   scenario: string | null;
@@ -22,6 +32,8 @@ export interface DemoScenarioStatus {
   current_row_index: number;
   current_row_label: string | null;
   video_url: string | null;
+  /** Scripted CV overlay boxes for the current row (helmet/vest/smoke/fire/restricted-zone) — see `backend/demo_scenarios/*.json`'s `cv_events`. Hand-authored, not live model inference. */
+  cv_events: DemoDetection[];
 }
 
 export const demoService = {
@@ -37,9 +49,9 @@ export const demoService = {
     return data;
   },
 
-  /** POST /demo/start — load and begin replaying the named scenario. */
-  start: async (scenario: string, options?: RequestOptions): Promise<DemoScenarioStatus> => {
-    const { data } = await base.post<DemoScenarioStatus>('start', { scenario }, options);
+  /** POST /demo/start — load and begin replaying the named scenario, optionally looping indefinitely. */
+  start: async (scenario: string, loop = false, options?: RequestOptions): Promise<DemoScenarioStatus> => {
+    const { data } = await base.post<DemoScenarioStatus>('start', { scenario, loop }, options);
     return data;
   },
 

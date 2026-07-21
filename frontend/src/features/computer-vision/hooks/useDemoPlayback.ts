@@ -20,7 +20,7 @@ export interface UseDemoPlaybackResult {
   status: DemoScenarioStatus | null;
   error: string | null;
   starting: boolean;
-  start: (scenario: string) => Promise<void>;
+  start: (scenario: string, loop?: boolean) => Promise<void>;
   stop: () => Promise<void>;
 }
 
@@ -32,6 +32,7 @@ const IDLE_STATUS: DemoScenarioStatus = {
   current_row_index: -1,
   current_row_label: null,
   video_url: null,
+  cv_events: [],
 };
 
 export function useDemoPlayback(): UseDemoPlaybackResult {
@@ -52,10 +53,10 @@ export function useDemoPlayback(): UseDemoPlaybackResult {
 
   usePolling(fetchStatus, DASHBOARD_REFRESH_INTERVAL);
 
-  const start = useCallback(async (scenario: string) => {
+  const start = useCallback(async (scenario: string, loop = false) => {
     setStarting(true);
     try {
-      const data = await demoService.start(scenario);
+      const data = await demoService.start(scenario, loop);
       setStatus(data);
       setError(null);
     } catch (err) {

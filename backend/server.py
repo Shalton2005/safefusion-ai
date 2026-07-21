@@ -23,13 +23,11 @@ Once running, the interactive API documentation is available at:
 """
 
 from contextlib import asynccontextmanager
-from pathlib import Path
 from typing import AsyncIterator
 
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 
 from fastapi import Depends
 
@@ -54,6 +52,7 @@ from src.routes import incident as incident_router
 from src.routes import incident_reports as incident_reports_router
 from src.routes import incidents as incidents_router
 from src.routes import maintenance as maintenance_router
+from src.routes import media as media_router
 from src.routes import monitoring as monitoring_router
 from src.routes import permits as permits_router
 from src.routes import rag as rag_router
@@ -126,9 +125,24 @@ async def _lifespan(_application: FastAPI) -> AsyncIterator[None]:
     so every event published anywhere on the bus for the lifetime of this
     process is recorded, without any producer needing to know the
     timeline exists.
+
+    If ``settings.DEMO_AUTOSTART_SCENARIO`` names a scenario, starts it
+    looping immediately so the dashboard, CCTV video, and AI Supervisor
+    are all already animating on first page load — no manual "Play
+    Scenario" click required. Non-fatal if the named scenario file can't
+    be found (e.g. a bad env var value); the app still starts, just
+    without the demo running.
     """
     ensure_constraints()
     register_timeline_subscriber(get_default_dispatcher())
+    if settings.DEMO_AUTOSTART_SCENARIO:
+        try:
+            await get_scenario_playback_runner().start(settings.DEMO_AUTOSTART_SCENARIO, loop=True)
+        except FileNotFoundError:
+            logger.warning(
+                "DEMO_AUTOSTART_SCENARIO=%r does not match any scenario file; demo not autostarted.",
+                settings.DEMO_AUTOSTART_SCENARIO,
+            )
     yield
     await get_scenario_playback_runner().stop()
     close_driver()
@@ -186,21 +200,15 @@ def create_application() -> FastAPI:
     # ── Global exception handler ──────────────────────────────────────────────
     register_exception_handlers(application)
 
-    # ── Static media ─────────────────────────────────────────────────────────
-    # Public, unauthenticated — an HTML <video> tag cannot attach an
-    # Authorization header, so demo scenario video files are served openly
-    # from this one known-safe directory rather than through a protected
-    # route. Contains only operator-supplied demo clips (see
-    # backend/data/cctv/.gitignore), never user-uploaded or sensitive content.
-    cctv_media_dir = Path(__file__).resolve().parent / "data" / "cctv"
-    cctv_media_dir.mkdir(parents=True, exist_ok=True)
-    application.mount("/media/cctv", StaticFiles(directory=str(cctv_media_dir)), name="cctv-media")
-
     # ── Routers ───────────────────────────────────────────────────────────────
     # Public — no authentication required.
     application.include_router(root_router.router)
     application.include_router(health_router.router)
     application.include_router(auth_router.router, prefix=settings.API_PREFIX)
+    # Range-aware CCTV media serving (see src/routes/media.py's docstring for
+    # why this is a hand-rolled route rather than StaticFiles).
+    media_router.CCTV_MEDIA_DIR.mkdir(parents=True, exist_ok=True)
+    application.include_router(media_router.router)
 
     # Protected — every route below requires a valid JWT access token.
     # `get_current_user` runs once per request and is shared with every

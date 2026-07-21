@@ -37,6 +37,8 @@ class ScenarioPlaybackRunner:
         self._task: asyncio.Task | None = None
         self._engine: ScenarioPlaybackEngine | None = None
         self._last_state: ScenarioPlaybackState | None = None
+        self._loop: bool = False
+        self._scenario_name: str | None = None
 
     @property
     def is_running(self) -> bool:
@@ -46,19 +48,36 @@ class ScenarioPlaybackRunner:
         """Return the most recent tick's state, or ``None`` if nothing has ever run."""
         return self._last_state
 
-    async def start(self, scenario_name: str) -> ScenarioPlaybackState:
+    async def start(self, scenario_name: str, loop: bool = False) -> ScenarioPlaybackState:
         """Load ``scenario_name`` and begin ticking it once per second.
 
         Stops any currently running playback first, so starting a new
         scenario always replaces the previous one rather than running two
         concurrently.
+
+        Args:
+            loop: When ``True``, automatically restarts the same scenario
+                from its first row the instant it finishes, indefinitely,
+                until :meth:`stop` is called — used for the always-on demo
+                mode (see ``server.py``'s ``_lifespan``). Every restart
+                constructs a *fresh* ``ScenarioPlaybackEngine`` (not just a
+                reset elapsed-time counter) so the worker/permit UUIDs it
+                tracks in memory don't leak from one run into the next —
+                each loop iteration creates its own new Worker/Permit rows,
+                exactly like a brand-new ``start()`` call would.
         """
         await self.stop()
 
-        timeline = load_scenario_by_name(scenario_name)
-        self._engine = ScenarioPlaybackEngine(timeline=timeline, dispatcher=get_default_dispatcher())
+        self._loop = loop
+        self._scenario_name = scenario_name
+        self._engine = ScenarioPlaybackEngine(
+            timeline=load_scenario_by_name(scenario_name), dispatcher=get_default_dispatcher()
+        )
         self._task = asyncio.create_task(self._run_loop(), name=f"scenario-playback-{scenario_name}")
-        logger.info("Scenario playback started: %s (%d rows, %.0fs)", scenario_name, len(timeline.rows), timeline.duration_seconds)
+        logger.info(
+            "Scenario playback started: %s (%d rows, %.0fs, loop=%s)",
+            scenario_name, len(self._engine.timeline.rows), self._engine.timeline.duration_seconds, loop,
+        )
 
         with db_session() as db:
             self._last_state = self._engine.tick(db, tick_seconds=0.0)
@@ -66,6 +85,7 @@ class ScenarioPlaybackRunner:
 
     async def stop(self) -> None:
         """Cancel the running playback task, if any, and wait for it to finish."""
+        self._loop = False
         if self._task is None:
             return
         self._task.cancel()
@@ -80,14 +100,26 @@ class ScenarioPlaybackRunner:
     async def _run_loop(self) -> None:
         assert self._engine is not None
         try:
-            while not self._engine.is_finished:
-                await asyncio.sleep(_TICK_SECONDS)
-                try:
-                    with db_session() as db:
-                        self._last_state = self._engine.tick(db, tick_seconds=_TICK_SECONDS)
-                except Exception:
-                    logger.exception("Scenario playback tick failed; continuing to next tick.")
-            logger.info("Scenario playback finished: %s", self._engine.timeline.name)
+            while True:
+                while not self._engine.is_finished:
+                    await asyncio.sleep(_TICK_SECONDS)
+                    try:
+                        with db_session() as db:
+                            self._last_state = self._engine.tick(db, tick_seconds=_TICK_SECONDS)
+                    except Exception:
+                        logger.exception("Scenario playback tick failed; continuing to next tick.")
+                logger.info("Scenario playback finished: %s", self._engine.timeline.name)
+
+                if not self._loop:
+                    break
+
+                assert self._scenario_name is not None
+                logger.info("Scenario playback looping: restarting %s", self._scenario_name)
+                self._engine = ScenarioPlaybackEngine(
+                    timeline=load_scenario_by_name(self._scenario_name), dispatcher=get_default_dispatcher()
+                )
+                with db_session() as db:
+                    self._last_state = self._engine.tick(db, tick_seconds=0.0)
         except asyncio.CancelledError:
             raise
 

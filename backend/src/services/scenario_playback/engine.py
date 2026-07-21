@@ -63,7 +63,7 @@ from src.services.event_bus.payloads import PermitEventPayload, SensorEventPaylo
 from src.services.event_bus.publisher import EventPublisher
 from src.services.event_bus.schemas import EventSource, EventType
 from src.services.permit_validation import PermitValidationRules, PermitValidationService
-from src.services.scenario_playback.schemas import ScenarioRow, ScenarioTimeline
+from src.services.scenario_playback.schemas import ScenarioCvEvent, ScenarioRow, ScenarioTimeline
 from src.services.sensor_monitoring import SensorMonitoringService, SensorThresholdBand, ThresholdSensorClassifier
 from src.services.worker_monitoring import WorkerMonitoringService
 from src.utils.logger import get_logger
@@ -171,6 +171,11 @@ class ScenarioPlaybackState:
     last_tick_at: datetime | None = None
     compound_risk_results: list[ZoneCompoundRiskResult] = field(default_factory=list)
     emergency_response_results: list[ZoneEmergencyResponseResult] = field(default_factory=list)
+    #: Currently active scripted CV overlay boxes (see
+    #: ``schemas.ScenarioCvEvent``) — the most recent row's ``cv_events``,
+    #: carried forward under the same sparse-patch rule as every other row
+    #: field until a later row replaces or clears them.
+    cv_events: tuple[ScenarioCvEvent, ...] = ()
 
 
 class ScenarioPlaybackEngine:
@@ -197,6 +202,7 @@ class ScenarioPlaybackEngine:
         self._last_worker_status = None
         self._last_ppe_status: bool | None = None
         self._last_permit_status = None
+        self._cv_events: tuple[ScenarioCvEvent, ...] = ()
         self.last_compound_risk_results: list[ZoneCompoundRiskResult] = []
         self.last_emergency_response_results: list[ZoneEmergencyResponseResult] = []
 
@@ -256,6 +262,7 @@ class ScenarioPlaybackEngine:
             last_tick_at=datetime.now(UTC),
             compound_risk_results=self.last_compound_risk_results,
             emergency_response_results=self.last_emergency_response_results,
+            cv_events=self._cv_events,
         )
 
     # ── Row application ──────────────────────────────────────────────────
@@ -264,6 +271,9 @@ class ScenarioPlaybackEngine:
         logger.info(
             "Scenario %r row t=%.0fs due: %s", self._timeline.name, row.t, row.label or "(unlabeled)"
         )
+
+        if row.cv_events is not None:
+            self._cv_events = row.cv_events
 
         sensor_repo = SensorRepository(db)
         worker_repo = WorkerRepository(db)

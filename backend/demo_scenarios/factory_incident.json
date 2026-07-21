@@ -31,14 +31,21 @@
       ],
       "worker_status": "working",
       "ppe_status": true,
-      "permit_status": "active"
+      "permit_status": "active",
+      "cv_events": [
+        { "label": "helmet_worn", "confidence": 0.93, "x_min": 0.42, "y_min": 0.30, "x_max": 0.58, "y_max": 0.62 }
+      ]
     },
     {
       "t": 6,
       "label": "Worker enters restricted zone",
       "narration": "Worker moves into the restricted zone boundary while continuing hot work.",
       "worker_status": "working",
-      "ppe_status": true
+      "ppe_status": true,
+      "cv_events": [
+        { "label": "helmet_worn", "confidence": 0.91, "x_min": 0.40, "y_min": 0.30, "x_max": 0.56, "y_max": 0.62 },
+        { "label": "restricted_zone_entry", "confidence": 0.88, "x_min": 0.30, "y_min": 0.20, "x_max": 0.70, "y_max": 0.95 }
+      ]
     },
     {
       "t": 12,
@@ -51,7 +58,11 @@
         "incident_type": "ppe_violation",
         "description": "Field operator observed without required helmet while performing hot work in a restricted zone.",
         "root_cause": "PPE compliance check was not enforced before task start."
-      }
+      },
+      "cv_events": [
+        { "label": "helmet_not_worn", "confidence": 0.90, "x_min": 0.40, "y_min": 0.30, "x_max": 0.56, "y_max": 0.62 },
+        { "label": "safety_vest", "confidence": 0.87, "x_min": 0.38, "y_min": 0.45, "x_max": 0.58, "y_max": 0.80 }
+      ]
     },
     {
       "t": 18,
@@ -66,7 +77,11 @@
         "incident_type": "gas_leak",
         "description": "Hydrocarbon vapor concentration spiked to 92 ppm near the Zone-D work area during active hot work.",
         "root_cause": "Suspected valve seal failure on the nearby process line."
-      }
+      },
+      "cv_events": [
+        { "label": "helmet_not_worn", "confidence": 0.89, "x_min": 0.40, "y_min": 0.30, "x_max": 0.56, "y_max": 0.62 },
+        { "label": "smoke", "confidence": 0.72, "x_min": 0.55, "y_min": 0.10, "x_max": 0.90, "y_max": 0.45 }
+      ]
     },
     {
       "t": 24,
@@ -75,7 +90,10 @@
       "sensors": [
         { "sensor_id": "SEN-FACTORY-GAS", "sensor_type": "gas", "value": 99.0, "unit": "ppm" }
       ],
-      "worker_status": "emergency"
+      "worker_status": "emergency",
+      "cv_events": [
+        { "label": "smoke", "confidence": 0.81, "x_min": 0.50, "y_min": 0.08, "x_max": 0.95, "y_max": 0.50 }
+      ]
     },
     {
       "t": 30,
@@ -92,7 +110,11 @@
         "incident_type": "fire",
         "description": "Small fire detected near the Zone-D work area, coinciding with an active gas leak and critical temperature/smoke readings.",
         "root_cause": "Ignition source suspected from ongoing hot work in proximity to the gas leak."
-      }
+      },
+      "cv_events": [
+        { "label": "fire", "confidence": 0.85, "x_min": 0.58, "y_min": 0.35, "x_max": 0.82, "y_max": 0.70 },
+        { "label": "smoke", "confidence": 0.88, "x_min": 0.50, "y_min": 0.05, "x_max": 0.95, "y_max": 0.40 }
+      ]
     },
     {
       "t": 36,
@@ -104,7 +126,11 @@
         { "sensor_id": "SEN-FACTORY-SMOKE", "sensor_type": "smoke", "value": 6.0, "unit": "ppm" }
       ],
       "worker_status": "emergency",
-      "permit_status": "suspended"
+      "permit_status": "suspended",
+      "cv_events": [
+        { "label": "fire", "confidence": 0.60, "x_min": 0.60, "y_min": 0.40, "x_max": 0.78, "y_max": 0.65 },
+        { "label": "restricted_zone_entry", "confidence": 0.82, "x_min": 0.15, "y_min": 0.15, "x_max": 0.85, "y_max": 0.95 }
+      ]
     },
     {
       "t": 42,
@@ -117,7 +143,10 @@
       ],
       "worker_status": "idle",
       "ppe_status": true,
-      "permit_status": "closed"
+      "permit_status": "closed",
+      "cv_events": [
+        { "label": "helmet_worn", "confidence": 0.94, "x_min": 0.42, "y_min": 0.30, "x_max": 0.58, "y_max": 0.62 }
+      ]
     }
   ]
 }

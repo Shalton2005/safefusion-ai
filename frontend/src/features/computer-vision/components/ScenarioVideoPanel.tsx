@@ -9,25 +9,45 @@
  * and every other panel on this page reflects that purely by polling its
  * own real endpoint.
  *
- * The bounding boxes drawn over the video ARE real object detections
- * (`useVideoObjectDetection`, a stock pretrained COCO YOLO model run
- * per-frame server-side) — genuine computer vision, but visual only: a
- * COCO checkpoint has no PPE classes, so it cannot feed the real PPE
- * Compliance Engine and intentionally doesn't.
+ * Two distinct overlay layers are drawn, deliberately never merged:
+ *   - Solid boxes: real per-frame object detection
+ *     (`useVideoObjectDetection`, a stock pretrained COCO YOLO model run
+ *     server-side) — genuine computer vision, but visual only. COCO has
+ *     no PPE/fire/smoke classes, so it cannot detect helmets, vests,
+ *     fire, smoke, or restricted-zone entry.
+ *   - Dashed boxes: scripted CV overlay events (`status.cv_events`,
+ *     `helmet_worn`/`helmet_not_worn`/`safety_vest`/`smoke`/`fire`/
+ *     `restricted_zone_entry`) hand-authored per scenario row, since no
+ *     PPE-trained model checkpoint exists in this project to produce
+ *     these classes from real inference. Clearly tagged "(scripted)" so
+ *     it is never presented as live AI output.
+ *
+ * The backend can auto-start and loop a scenario on its own (see
+ * `settings.DEMO_AUTOSTART_SCENARIO` / `server.py`'s `_lifespan`) — this
+ * panel reflects whatever is currently running via `/demo/status` rather
+ * than requiring a manual "Play" click; the button here is for manual
+ * override (stop, or restart a specific scenario) only.
+ *
+ * Video restart is driven by the *scenario* looping back to its first row
+ * (detected from `elapsed_seconds` resetting to near zero between polls),
+ * not the `<video>` element's native `ended` event — the clip's real
+ * duration and the scenario's scripted duration are never guaranteed to
+ * match exactly, and syncing off two independent clocks is what caused
+ * the earlier "restarts a few seconds early / stutters near the end" bug.
  *
  * `<video>` cannot send an Authorization header, so `video_url` is served
- * from the public, unauthenticated `/media/cctv` static mount (see
- * `server.py`) — never through `apiClient`.
+ * from the public, unauthenticated `/media/cctv` route (see
+ * `src/routes/media.py`) — never through `apiClient`.
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Play, Square, Video } from 'lucide-react';
+import { Play, RotateCw, Square, Video } from 'lucide-react';
 import { Badge, Button, Card, CardHeader } from '@/components/ui';
 import { useDemoPlayback, useVideoObjectDetection } from '../hooks';
 import { VideoObjectOverlay } from './VideoObjectOverlay';
 import env from '@/config/env';
 
-/** `env.apiBaseUrl` is `.../api/v1`; the media mount lives one level up, at the API host root. */
+/** `env.apiBaseUrl` is `.../api/v1`; the media route lives one level up, at the API host root. */
 function toAbsoluteMediaUrl(path: string): string {
   const apiRoot = new URL(env.apiBaseUrl);
   return `${apiRoot.origin}${path}`;
@@ -39,6 +59,7 @@ export function ScenarioVideoPanel() {
   const { status, error, starting, start, stop } = useDemoPlayback();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [videoSrc, setVideoSrc] = useState<string | null>(null);
+  const prevElapsedRef = useRef(0);
 
   const isRunning = status?.running ?? false;
   const videoUrl = status?.video_url ? toAbsoluteMediaUrl(status.video_url) : null;
@@ -50,12 +71,28 @@ export function ScenarioVideoPanel() {
     if (!isRunning) setVideoSrc(null);
   }, [videoUrl, isRunning, videoSrc]);
 
+  // Detect the *scenario* looping (elapsed_seconds drops back near zero
+  // between two consecutive 1s polls, which only happens when the backend
+  // restarted the timeline — see ScenarioPlaybackRunner._run_loop) and
+  // restart the video in lockstep. This is the single source of truth for
+  // "when does playback restart" — never the video's own `ended` event —
+  // so the video and the scenario's backend state always resync exactly
+  // together, per row, rather than drifting apart on two independent
+  // clocks (see module docstring).
+  useEffect(() => {
+    if (!status) return;
+    const looped = status.elapsed_seconds < prevElapsedRef.current - 1;
+    prevElapsedRef.current = status.elapsed_seconds;
+    if (looped && videoRef.current) {
+      videoRef.current.currentTime = 0;
+      void videoRef.current.play().catch(() => {});
+    }
+  }, [status]);
+
   // Correct only large drift (e.g. the tab was backgrounded and the
   // browser throttled/paused the video), not every 1s poll tick — forcing
   // `currentTime` every second fights the browser's own buffering on a
-  // ~95MB file and previously caused visible stutter/looping near
-  // whatever had actually downloaded so far. A few seconds of drift from
-  // normal network/decode variance is left alone.
+  // large file.
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !status || !isRunning) return;
@@ -69,13 +106,14 @@ export function ScenarioVideoPanel() {
 
   const getCurrentTime = useCallback(() => videoRef.current?.currentTime ?? null, []);
   const videoFilename = status?.video_url ? status.video_url.split('/').pop() ?? null : null;
-  const detections = useVideoObjectDetection(videoFilename, getCurrentTime, isRunning && Boolean(videoSrc));
+  const modelDetections = useVideoObjectDetection(videoFilename, getCurrentTime, isRunning && Boolean(videoSrc));
+  const scriptedEvents = status?.cv_events ?? [];
 
   return (
     <Card padding="none">
       <CardHeader
         title="Scenario Playback"
-        description="Replays a scripted incident timeline into the live system, driving real risk/emergency/compliance/alert data once per second."
+        description="Replays a scripted incident timeline into the live system, driving real risk/emergency/compliance/alert data once per second. Loops automatically."
         className="px-6 pt-5 pb-0"
         action={
           <div className="flex items-center gap-2">
@@ -84,8 +122,9 @@ export function ScenarioVideoPanel() {
                 <Square className="w-3.5 h-3.5 mr-1.5" /> Stop
               </Button>
             ) : (
-              <Button size="sm" onClick={() => void start(DEFAULT_SCENARIO)} disabled={starting}>
-                <Play className="w-3.5 h-3.5 mr-1.5" /> {starting ? 'Starting…' : 'Play Scenario'}
+              <Button size="sm" onClick={() => void start(DEFAULT_SCENARIO, true)} disabled={starting}>
+                {starting ? <RotateCw className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Play className="w-3.5 h-3.5 mr-1.5" />}
+                {starting ? 'Starting…' : 'Play Scenario'}
               </Button>
             )}
           </div>
@@ -100,7 +139,6 @@ export function ScenarioVideoPanel() {
               src={videoSrc}
               autoPlay
               muted
-              loop
               className="w-full h-full object-cover"
             />
           ) : (
@@ -116,7 +154,8 @@ export function ScenarioVideoPanel() {
             </Badge>
           )}
 
-          {videoSrc && <VideoObjectOverlay detections={detections} />}
+          {videoSrc && <VideoObjectOverlay detections={modelDetections} variant="model" />}
+          {videoSrc && <VideoObjectOverlay detections={scriptedEvents} variant="scripted" />}
         </div>
 
         {isRunning && status && (

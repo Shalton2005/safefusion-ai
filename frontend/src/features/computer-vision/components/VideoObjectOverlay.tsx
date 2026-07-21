@@ -18,6 +18,15 @@ import type { VideoDetection } from '../hooks/useVideoObjectDetection';
 export interface VideoObjectOverlayProps {
   detections: VideoDetection[];
   className?: string;
+  /**
+   * `'model'` (default) — real per-frame YOLO inference, solid border.
+   * `'scripted'` — hand-authored scenario overlay events (helmet/vest/
+   * smoke/fire/restricted-zone; see `backend/demo_scenarios/*.json`'s
+   * `cv_events`), dashed border + a "Scripted" tag so it's never
+   * mistaken for live model output — no PPE-trained checkpoint exists in
+   * this project (see `ScenarioVideoPanel`'s docstring).
+   */
+  variant?: 'model' | 'scripted';
 }
 
 /** Stable colour per label so a given class reads consistently across frames. */
@@ -28,8 +37,13 @@ function colorForLabel(label: string): string {
   return palette[hash % palette.length];
 }
 
-export function VideoObjectOverlay({ detections, className }: VideoObjectOverlayProps) {
+function formatLabel(label: string): string {
+  return label.replace(/_/g, ' ');
+}
+
+export function VideoObjectOverlay({ detections, className, variant = 'model' }: VideoObjectOverlayProps) {
   if (detections.length === 0) return null;
+  const isScripted = variant === 'scripted';
 
   return (
     <div className={cn('absolute inset-0 pointer-events-none', className)} aria-hidden="true">
@@ -38,7 +52,10 @@ export function VideoObjectOverlay({ detections, className }: VideoObjectOverlay
         return (
           <div
             key={`${detection.label}-${index}`}
-            className="absolute border-2 rounded-sm motion-safe:animate-fade-in"
+            className={cn(
+              'absolute rounded-sm motion-safe:animate-fade-in',
+              isScripted ? 'border-2 border-dashed' : 'border-2',
+            )}
             style={{
               left: `${detection.x_min * 100}%`,
               top: `${detection.y_min * 100}%`,
@@ -51,7 +68,8 @@ export function VideoObjectOverlay({ detections, className }: VideoObjectOverlay
               className="absolute -top-5 left-0 whitespace-nowrap px-1.5 py-0.5 text-2xs font-medium leading-none rounded-t-sm text-white capitalize"
               style={{ backgroundColor: color }}
             >
-              {detection.label} · {Math.round(detection.confidence * 100)}%
+              {formatLabel(detection.label)} · {Math.round(detection.confidence * 100)}%
+              {isScripted && <span className="ml-1 opacity-75 lowercase">(scripted)</span>}
             </span>
           </div>
         );

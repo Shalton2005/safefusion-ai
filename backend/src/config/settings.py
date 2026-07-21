@@ -74,6 +74,13 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "SafeFusion AI"
     PROJECT_VERSION: str = "1.0.0"
 
+    # ── Demo Scenario Playback ───────────────────────────────────────────────
+    #: Scenario name (see backend/demo_scenarios/*.json) to auto-start on
+    #: server boot, looping indefinitely until POST /demo/stop is called.
+    #: Empty string disables autostart — the demo then only ever runs when
+    #: explicitly started via the API, same as before this setting existed.
+    DEMO_AUTOSTART_SCENARIO: str = "factory_incident"
+
     # ── Sensor monitoring thresholds (rule-based baseline) ──────────────────
     SENSOR_GAS_WARNING_MAX: float = 60.0
     SENSOR_GAS_CRITICAL_MAX: float = 80.0
