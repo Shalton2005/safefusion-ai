@@ -2,6 +2,7 @@
 Alert repository for SafeFusion AI.
 """
 
+from datetime import datetime
 from uuid import UUID
 
 from sqlalchemy import func, or_, select
@@ -56,6 +57,29 @@ class AlertRepository(BaseRepository[Alert]):
                 ),
             )
         ).scalar_one()
+
+    def exists_since(self, zone: str, alert_type: AlertType, since: datetime) -> bool:
+        """Return whether a matching alert was recorded in ``zone`` at or after ``since``.
+
+        Used to suppress duplicate alerts (see ``AlertGenerationService``):
+        a zone whose condition stays matched across many consecutive rule
+        evaluations (every ~1s scenario tick, or every poll of the real
+        monitoring routes) should not get a brand-new Alert row every
+        single time — only once per cooldown window, mirroring
+        ``IncidentRepository.exists_since``.
+        """
+        return (
+            self._db.execute(
+                select(Alert.id)
+                .where(
+                    Alert.zone == zone,
+                    Alert.alert_type == alert_type,
+                    Alert.generated_at >= since,
+                )
+                .limit(1)
+            ).scalar_one_or_none()
+            is not None
+        )
 
     def acknowledge(self, alert_id: UUID) -> Alert | None:
         """Transition the given alert to ``acknowledged`` status.

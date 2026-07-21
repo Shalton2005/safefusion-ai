@@ -8,9 +8,12 @@ persistence goes through an injected repository port.
 
 from __future__ import annotations
 
+from datetime import UTC, datetime, timedelta
 from typing import Protocol
 
+from src.config.settings import settings
 from src.models.alert import Alert
+from src.models.enums import AlertType
 from src.services.alert_rules import AlertRuleEngine
 
 
@@ -18,6 +21,8 @@ class AlertGenerationRepositoryPort(Protocol):
     """Repository contract required by ``AlertGenerationService``."""
 
     def create(self, data: dict) -> Alert: ...
+
+    def exists_since(self, zone: str, alert_type: AlertType, since: datetime) -> bool: ...
 
 
 class SensorMonitoringPort(Protocol):
@@ -56,7 +61,16 @@ class AlertGenerationService:
         self._worker_monitoring = worker_monitoring
 
     def generate_and_persist_alerts(self) -> list[Alert]:
-        """Pull latest monitoring outputs, evaluate rules, and persist resulting alerts."""
+        """Pull latest monitoring outputs, evaluate rules, and persist resulting alerts.
+
+        Suppresses a candidate whose (zone, alert_type) pair already has a
+        recent alert within ``ALERT_GENERATION_COOLDOWN_SECONDS`` — without
+        this, a zone whose condition stays matched across many consecutive
+        evaluations (every ~1s scenario tick, or every poll of the real
+        monitoring routes) gets a brand-new Alert row every single time,
+        the same unbounded-growth bug fixed for auto-generated Incidents in
+        ``EmergencyResponseService._generate_incident``.
+        """
         sensor_summary = (
             self._sensor_monitoring.get_monitoring_summary() if self._sensor_monitoring else None
         )
@@ -73,4 +87,12 @@ class AlertGenerationService:
             worker_summary=worker_summary,
         )
 
-        return [self._repository.create(candidate.as_dict()) for candidate in candidates]
+        cooldown_start = datetime.now(UTC) - timedelta(seconds=settings.ALERT_GENERATION_COOLDOWN_SECONDS)
+        created: list[Alert] = []
+        for candidate in candidates:
+            if self._repository.exists_since(
+                zone=candidate.zone, alert_type=candidate.alert_type, since=cooldown_start
+            ):
+                continue
+            created.append(self._repository.create(candidate.as_dict()))
+        return created

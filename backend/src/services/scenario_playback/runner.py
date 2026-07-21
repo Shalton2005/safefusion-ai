@@ -19,7 +19,12 @@ from __future__ import annotations
 
 import asyncio
 
+from src.config.risk_rules import RISK_SCORE_LEVEL_BANDS, RISK_SCORE_RULES
 from src.database.session import db_session
+from src.repositories.permit import PermitRepository
+from src.repositories.risk_score import RiskScoreRepository
+from src.repositories.sensor import SensorRepository
+from src.repositories.worker import WorkerRepository
 from src.services.computer_vision.camera_monitoring import get_default_camera_monitoring_service
 from src.services.computer_vision.compliance_engine import (
     MissingHelmetRule,
@@ -28,18 +33,51 @@ from src.services.computer_vision.compliance_engine import (
     SmokeDetectedRule,
 )
 from src.services.event_bus.bus import get_default_dispatcher
+from src.services.permit_validation import PermitValidationService
+from src.services.risk_score_calculation import RiskScoreCalculationService
+from src.services.risk_scoring import (
+    CriticalSensorFactor,
+    ExpiredPermitFactor,
+    RestrictedZoneWorkerFactor,
+    RiskLevelBands,
+    RiskScoreEngine,
+    WarningSensorFactor,
+)
 from src.services.scenario_playback.camera_bridge import (
     CAMERA_DETECTION_INTERVAL_SECONDS,
     run_camera_detection_tick,
 )
-from src.services.scenario_playback.engine import ScenarioPlaybackEngine, ScenarioPlaybackState
+# Reuses `engine.py`'s own sensor-threshold/permit-validation-rule builders
+# rather than a fourth copy of them (they're already duplicated once, in
+# `src.routes.monitoring`, following this codebase's existing
+# `_build_compound_risk_engine`-per-consumer precedent) — reasonable to
+# reach into a sibling module within the same `scenario_playback` package,
+# unlike reaching into an unrelated route module.
+from src.services.scenario_playback.engine import (
+    ScenarioPlaybackEngine,
+    ScenarioPlaybackState,
+    _permit_validation_rules,
+    _sensor_thresholds_from_settings,
+)
 from src.services.scenario_playback.schemas import load_scenario_by_name
 from src.services.scenario_playback.video_detection import get_video_object_detection_service
+from src.services.sensor_monitoring import SensorMonitoringService
+from src.services.worker_monitoring import WorkerMonitoringService
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
 _TICK_SECONDS: float = 1.0
+
+#: How often (seconds of playback) the scenario persists a risk-score
+#: snapshot. Independent of the 1-second tick and of however many browser
+#: tabs happen to be polling `GET /monitoring/compound-risk` (which never
+#: persists) — this is now the only thing that writes to `risk_scores`
+#: during scenario playback, replacing the old behavior where every
+#: dashboard poll of `POST /risk-scores/calculate` (persist=true by
+#: default) wrote a new row, growing the table by thousands of rows/hour
+#: with no read ever using most of them.
+_RISK_SCORE_PERSIST_INTERVAL_SECONDS: float = 30.0
 
 #: Same PPE Compliance Engine rule set the real `/cameras/frames` route
 #: builds (see `src.routes.computer_vision._build_ppe_compliance_engine`),
@@ -49,6 +87,22 @@ _TICK_SECONDS: float = 1.0
 _camera_compliance_engine = PPEComplianceEngine(
     rules=[MissingHelmetRule(), MissingSafetyVestRule(), SmokeDetectedRule()]
 )
+
+
+class _RunnerPermitSummaryAdapter:
+    """Adapts ``PermitRepository``+``_permit_validation_rules()`` to the
+    ``PermitValidationPort`` shape ``RiskScoreCalculationService`` expects —
+    same small inline-adapter pattern ``engine.py``'s own
+    ``_PermitSummaryAdapter`` uses for the same purpose.
+    """
+
+    def __init__(self, db) -> None:
+        self._repository = PermitRepository(db)
+        self._service = PermitValidationService(rules=_permit_validation_rules())
+
+    def get_validation_summary(self) -> dict:
+        permits = self._repository.get_all(skip=0, limit=10_000)
+        return self._service.build_validation_summary(permits)
 
 
 class ScenarioPlaybackRunner:
@@ -69,6 +123,9 @@ class ScenarioPlaybackRunner:
         #: so a slow detection pass (~1.7s) is never started twice
         #: concurrently and so ``stop()`` can cancel it cleanly.
         self._camera_detection_task: asyncio.Task | None = None
+        #: Seconds of playback elapsed since the last risk-score snapshot
+        #: was persisted (see ``_maybe_persist_risk_score``).
+        self._seconds_since_risk_score_persist: float = _RISK_SCORE_PERSIST_INTERVAL_SECONDS
 
     @property
     def is_running(self) -> bool:
@@ -177,6 +234,47 @@ class ScenarioPlaybackRunner:
 
         self._camera_detection_task = asyncio.create_task(_run(), name="scenario-camera-detection")
 
+    def _maybe_persist_risk_score(self, db) -> None:
+        """Persist one risk-score snapshot per zone if it's due.
+
+        Throttled to ``_RISK_SCORE_PERSIST_INTERVAL_SECONDS`` (30s), on the
+        same DB session the tick already opened. This is now the only
+        source of ``risk_scores`` writes during scenario playback —
+        `GET /monitoring/compound-risk` (what dashboard panels actually
+        poll for the live value) never persists, and `POST
+        /risk-scores/calculate` defaults to `persist=false` — so history
+        grows at a bounded, server-controlled rate instead of once per
+        browser poll.
+        """
+        self._seconds_since_risk_score_persist += _TICK_SECONDS
+        if self._seconds_since_risk_score_persist < _RISK_SCORE_PERSIST_INTERVAL_SECONDS:
+            return
+        self._seconds_since_risk_score_persist = 0.0
+
+        service = RiskScoreCalculationService(
+            repository=RiskScoreRepository(db),
+            risk_engine=RiskScoreEngine(
+                factors=[
+                    CriticalSensorFactor(weight=RISK_SCORE_RULES["critical_sensors"].points),
+                    WarningSensorFactor(weight=RISK_SCORE_RULES["warning_sensors"].points),
+                    ExpiredPermitFactor(weight=RISK_SCORE_RULES["expired_permits"].points),
+                    RestrictedZoneWorkerFactor(
+                        weight=RISK_SCORE_RULES["restricted_zone_workers"].points,
+                        restricted_zones=RISK_SCORE_RULES["restricted_zone_workers"].params["restricted_zones"],
+                    ),
+                ],
+                level_bands=RiskLevelBands(**RISK_SCORE_LEVEL_BANDS),
+            ),
+            sensor_monitoring=SensorMonitoringService(
+                repository=SensorRepository(db), thresholds=_sensor_thresholds_from_settings()
+            ),
+            permit_validation=_RunnerPermitSummaryAdapter(db),
+            worker_monitoring=WorkerMonitoringService(
+                worker_repository=WorkerRepository(db), permit_repository=PermitRepository(db)
+            ),
+        )
+        service.calculate_and_persist_risk_scores()
+
     async def _run_loop(self) -> None:
         assert self._engine is not None
         try:
@@ -186,6 +284,7 @@ class ScenarioPlaybackRunner:
                     try:
                         with db_session() as db:
                             self._last_state = self._engine.tick(db, tick_seconds=_TICK_SECONDS)
+                            self._maybe_persist_risk_score(db)
                         self._maybe_run_camera_detection()
                     except Exception:
                         logger.exception("Scenario playback tick failed; continuing to next tick.")

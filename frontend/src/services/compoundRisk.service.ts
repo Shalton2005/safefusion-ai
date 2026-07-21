@@ -1,5 +1,13 @@
+import apiClient from '@/api/client';
 import { createService } from './base.service';
-import type { CompoundRiskAssessment, RiskExplanation, RiskScoreCalculationResult, RiskScoreRecord, RiskStatus, ZoneRiskResult } from '@/types';
+import type {
+  CompoundRiskAssessment,
+  RiskExplanation,
+  RiskScoreCalculationResult,
+  RiskScoreRecord,
+  RiskStatus,
+  ZoneRiskResult,
+} from '@/types';
 import type { SeverityLevel } from '@/constants';
 import type { RequestOptions } from '@/api/types';
 
@@ -12,6 +20,62 @@ const STATUS_BY_LEVEL: Record<SeverityLevel, RiskStatus> = {
   high:     'warning',
   critical: 'critical',
 };
+
+/** One zone's result from `GET /monitoring/compound-risk` — the real, camera-aware Compound Risk Engine (9 rules, including PPE/fire/smoke), distinct from the v1 weighted risk scorer (`calculate`/`getAssessment` below) that has no camera signal at all. */
+interface CompoundRiskRuleTrigger {
+  rule_name: string;
+  points: number;
+  explanation: string;
+  confidence: number;
+}
+interface CompoundRiskZoneResult {
+  zone: string;
+  risk_score: number;
+  risk_level: SeverityLevel;
+  triggered_rules: CompoundRiskRuleTrigger[];
+  explanation: string;
+}
+interface CompoundRiskDetectionResult {
+  zone_count: number;
+  results: CompoundRiskZoneResult[];
+}
+
+function worstCompoundRiskZone(result: CompoundRiskDetectionResult): CompoundRiskZoneResult | undefined {
+  return result.results.reduce<CompoundRiskZoneResult | undefined>(
+    (acc, zone) => (!acc || RISK_LEVEL_ORDER[zone.risk_level] > RISK_LEVEL_ORDER[acc.risk_level] ? zone : acc),
+    undefined,
+  );
+}
+
+/** Reduces the real Compound Risk Engine's per-zone output into the same card-friendly `CompoundRiskAssessment` shape `toCompoundRiskAssessment` produces for the v1 engine, so `AICommandCenter` doesn't need a different prop shape. */
+function toRealCompoundRiskAssessment(result: CompoundRiskDetectionResult): CompoundRiskAssessment {
+  const worst = worstCompoundRiskZone(result);
+  return {
+    risk_score: worst?.risk_score ?? 0,
+    risk_level: worst?.risk_level ?? 'low',
+    triggered_rules_count: result.results.reduce((sum, zone) => sum + zone.triggered_rules.length, 0),
+    status: STATUS_BY_LEVEL[worst?.risk_level ?? 'low'],
+  };
+}
+
+/** Same as `toRiskExplanation`, but from the real Compound Risk Engine's output and using its own backend-authored `explanation` text — no client-side placeholder text. */
+function toRealRiskExplanation(result: CompoundRiskDetectionResult): RiskExplanation | null {
+  const worst = worstCompoundRiskZone(result);
+  if (!worst) return null;
+
+  return {
+    zone: worst.zone,
+    risk_level: worst.risk_level,
+    triggered_rules: worst.triggered_rules.map((rule) => ({ name: rule.rule_name, detail: rule.explanation })),
+    explanation: worst.explanation,
+    contributing_factors: worst.triggered_rules.map((rule) => ({
+      name: rule.rule_name,
+      points: rule.points,
+      weight: rule.points,
+      detail: rule.explanation,
+    })),
+  };
+}
 
 /** Picks the highest-risk zone out of an engine run — used to key both the card and the explanation panel to the same zone. */
 function worstZone(result: RiskScoreCalculationResult): ZoneRiskResult | undefined {
@@ -99,4 +163,37 @@ export const compoundRiskService = {
   /** Pure reducers, exported so a shared fetch (e.g. `useCompoundRiskEngine`) can derive both shapes from one `calculate()` call. */
   toAssessment: toCompoundRiskAssessment,
   toExplanation: toRiskExplanation,
+
+  /**
+   * Runs the *real* Compound Risk Engine (`GET /monitoring/compound-risk`)
+   * — 9 rules including camera/PPE/fire-aware ones, unlike `calculate()`
+   * above which only ever sees sensor/permit/worker signal. Read-only, no
+   * persistence side effect (unlike `calculate()`'s default
+   * `persist=true`), so polling this doesn't write a new row every call.
+   * Use for anything that should reflect real-time CCTV/PPE/hazard state
+   * (e.g. `AICommandCenter`'s "AI Verdict"), not the legacy v1 score.
+   */
+  calculateReal: async (options?: RequestOptions): Promise<CompoundRiskDetectionResult> => {
+    // Unwrapped response (no `ApiResponse` envelope) — same as
+    // `calculate()`/`base.post` above: `CompoundRiskDetectionResultResponse`
+    // is returned directly by `GET /monitoring/compound-risk`, confirmed
+    // against the live response shape, not assumed.
+    const { data } = await apiClient.get<CompoundRiskDetectionResult>('/monitoring/compound-risk', options);
+    return data;
+  },
+
+  /** Runs the real Compound Risk Engine and reduces it to the same card-friendly assessment shape as `getAssessment`. */
+  getRealAssessment: async (options?: RequestOptions): Promise<CompoundRiskAssessment> => {
+    const result = await compoundRiskService.calculateReal(options);
+    return toRealCompoundRiskAssessment(result);
+  },
+
+  /** Runs the real Compound Risk Engine and returns the highest-risk zone's triggered rules with the engine's own explanation text. */
+  getRealExplanation: async (options?: RequestOptions): Promise<RiskExplanation | null> => {
+    const result = await compoundRiskService.calculateReal(options);
+    return toRealRiskExplanation(result);
+  },
+
+  toRealAssessment: toRealCompoundRiskAssessment,
+  toRealExplanation: toRealRiskExplanation,
 };

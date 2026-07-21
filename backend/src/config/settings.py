@@ -199,6 +199,13 @@ class Settings(BaseSettings):
     #: creates an Incident row; later evaluations within this window are
     #: suppressed. See EmergencyResponseService._generate_incident.
     EMERGENCY_GENERATE_INCIDENT_COOLDOWN_SECONDS: float = 300.0
+    #: Same cooldown pattern, for rule-generated Alerts — see
+    #: AlertGenerationService.generate_and_persist_alerts. Alerts fire more
+    #: often than incidents (every rule match, not just generate_incident),
+    #: so this is shorter: still long enough to stop 1/tick spam, short
+    #: enough that a genuinely new alert for the same zone+type doesn't
+    #: feel suppressed for minutes.
+    ALERT_GENERATION_COOLDOWN_SECONDS: float = 60.0
 
     # ── Conversation memory (AI Copilot) ─────────────────────────────────────
     # How many of the most recent conversation turns

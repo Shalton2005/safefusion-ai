@@ -34,12 +34,17 @@
  * than requiring a manual "Play" click; the button here is for manual
  * override (stop, or restart a specific scenario) only.
  *
- * Video restart is driven by the *scenario* looping back to its first row
- * (detected from `elapsed_seconds` resetting to near zero between polls),
- * not the `<video>` element's native `ended` event — the clip's real
- * duration and the scenario's scripted duration are never guaranteed to
- * match exactly, and syncing off two independent clocks is what caused
- * the earlier "restarts a few seconds early / stutters near the end" bug.
+ * The `<video>` element has native `loop` set: the clip (41.13s) is a few
+ * seconds shorter than the scenario timeline (42s), so without `loop` the
+ * video hits its own end and freezes on its last frame for the remainder
+ * of every cycle — a visible ~1-3s "pause" right before the scenario
+ * restarts. Native looping removes that freeze entirely (the browser
+ * restarts playback immediately, no gap). On top of that, the *scenario*
+ * looping back to its first row (detected from `elapsed_seconds` resetting
+ * to near zero between polls) still force-resyncs `currentTime` to 0, so
+ * the video's own loop point (which drifts a few seconds ahead of the
+ * scenario's) never causes the two to visibly diverge for more than one
+ * cycle.
  *
  * `<video>` cannot send an Authorization header, so `video_url` is served
  * from the public, unauthenticated `/media/cctv` route (see
@@ -145,6 +150,7 @@ export function ScenarioVideoPanel() {
               src={videoSrc}
               autoPlay
               muted
+              loop
               className="w-full h-full object-cover"
             />
           ) : (

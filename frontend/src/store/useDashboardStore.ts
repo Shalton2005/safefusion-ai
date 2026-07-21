@@ -77,7 +77,13 @@ export const useDashboardStore = create<DashboardStoreState>((set, get) => ({
       ] = await Promise.all([
         dashboardService.getSummary({ signal }),
         dashboardService.getZoneOverview({ signal }),
-        compoundRiskService.calculate({ signal }),
+        // The real, camera-aware Compound Risk Engine (9 rules, including
+        // PPE/fire/smoke) — not the legacy v1 weighted scorer
+        // (`compoundRiskService.calculate`), which has no camera signal at
+        // all and is why the dashboard's "AI Verdict" previously looked
+        // static regardless of what the CCTV scene showed. Read-only, so
+        // this poll doesn't also write a new risk_scores row every tick.
+        compoundRiskService.calculateReal({ signal }),
         emergencyResponseService.getActions({ signal }),
         recommendationService.getRecommendations({ signal }),
         complianceService.getStatus(undefined, { signal }),
@@ -85,13 +91,13 @@ export const useDashboardStore = create<DashboardStoreState>((set, get) => ({
         compoundRiskService.getRecent({ limit: 20 }, { signal }),
         sensorsService.getSensors({ limit: 100 }, { signal })
       ]);
-      
+
       if (!signal?.aborted) {
         set({
           summary: summaryRes.data.data,
           zones: zonesRes.data.data.zones,
-          assessment: compoundRiskService.toAssessment(riskRes),
-          explanation: compoundRiskService.toExplanation(riskRes),
+          assessment: compoundRiskService.toRealAssessment(riskRes),
+          explanation: compoundRiskService.toRealExplanation(riskRes),
           emergencyActions: emergencyResponseService.toActionItems(emergencyRes),
           recommendations: recRes.recommendations,
           compliance: compRes,

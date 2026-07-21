@@ -159,8 +159,14 @@ def list_risk_scores(
 def calculate_risk_scores(
     service: RiskScoreCalculationServiceDep,
     persist: bool = Query(
-        True,
-        description="When true, persist each calculated zone result as a new risk score record.",
+        False,
+        description=(
+            "When true, persist each calculated zone result as a new risk score record. "
+            "Defaults to false: most callers poll this endpoint purely to read the current "
+            "score (e.g. dashboard panels), and persisting on every poll — rather than only "
+            "when a caller genuinely wants a historical snapshot — grew the risk_scores "
+            "table unboundedly (thousands of rows/hour) with no read ever using most of them."
+        ),
     ),
 ) -> RiskScoreCalculationResultResponse:
     results = service.calculate_risk_scores()

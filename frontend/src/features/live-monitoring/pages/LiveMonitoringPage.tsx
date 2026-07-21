@@ -1,3 +1,5 @@
+import { useEffect } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { Activity } from 'lucide-react';
 import { PageHeader, Badge } from '@/components/ui';
 import { AIIncidentSummary } from '@/features/live-monitoring/components/AIIncidentSummary';
@@ -7,6 +9,7 @@ import { SafetyHeatmapContainer } from '@/features/live-monitoring/components/Sa
 import { AIDecisionTimeline } from '@/features/live-monitoring/components/AIDecisionTimeline';
 import { AICopilotPanel } from '@/features/live-monitoring/components/AICopilotPanel';
 import { IncidentActionModals, useIncidentActions } from '@/features/live-monitoring/components/IncidentActionModals';
+import { useAnalyticsStore } from '@/store/useAnalyticsStore';
 
 /**
  * Live Monitoring answers one question: "what is happening right now?"
@@ -21,6 +24,22 @@ import { IncidentActionModals, useIncidentActions } from '@/features/live-monito
  */
 export function LiveMonitoringPage() {
   const { onExecuteResponse, onViewIncident, onNotifyTeam, onViewCctv, modalProps } = useIncidentActions();
+
+  // SafetyHeatmapContainer ("Incident Intelligence Map") needs `overlays` to
+  // render — without it, it's permanently stuck on its loading skeleton
+  // (the prop is optional and there is no other default). Reuses the same
+  // analytics store AnalyticsPage already populates via GET
+  // /analytics/overview, rather than adding a second data source for the
+  // same map shape.
+  const { mapOverlays, fetchMapOverlays } = useAnalyticsStore(
+    useShallow((state) => ({ mapOverlays: state.baseState, fetchMapOverlays: state.fetchData })),
+  );
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchMapOverlays(controller.signal);
+    return () => controller.abort();
+  }, [fetchMapOverlays]);
 
   return (
     <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_22rem] items-stretch">
@@ -55,7 +74,7 @@ export function LiveMonitoringPage() {
           </div>
 
           <div className="xl:col-span-3 h-full min-h-0">
-            <SafetyHeatmapContainer />
+            <SafetyHeatmapContainer overlays={mapOverlays ?? undefined} />
           </div>
         </div>
       </div>
