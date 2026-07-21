@@ -87,6 +87,65 @@ const kindColorMap: Record<GraphNodeKind, string> = Object.fromEntries(
   Object.entries(GRAPH_TYPE_META).map(([kind, meta]) => [kind, meta.color]),
 ) as Record<GraphNodeKind, string>;
 
+function applyConcentricLayout(nodes: GraphNode[]): GraphNode[] {
+  // We don't want to mutate the original props, so we shallow clone
+  const cloned = nodes.map(n => ({ ...n }));
+
+  const ring0: GraphNode[] = []; // incident, risk
+  const ring1: GraphNode[] = []; // zone
+  const ring2: GraphNode[] = []; // worker, permit, equipment
+  const ring3: GraphNode[] = []; // sensor, camera
+
+  cloned.forEach(node => {
+    switch (node.kind) {
+      case 'incident':
+      case 'risk':
+        ring0.push(node);
+        break;
+      case 'zone':
+        ring1.push(node);
+        break;
+      case 'worker':
+      case 'permit':
+      case 'equipment':
+        ring2.push(node);
+        break;
+      case 'sensor':
+      case 'camera':
+      default:
+        ring3.push(node);
+        break;
+    }
+  });
+
+  const distribute = (ringNodes: GraphNode[], radius: number) => {
+    const total = ringNodes.length;
+    if (total === 0) return;
+    if (total === 1 && radius === 0) {
+      ringNodes[0].position = { x: 0, y: 0 };
+      return;
+    }
+    const actualRadius = total === 1 ? 0 : radius;
+    const angleStep = (2 * Math.PI) / total;
+    ringNodes.forEach((node, i) => {
+      node.position = {
+        x: actualRadius * Math.cos(i * angleStep),
+        y: actualRadius * Math.sin(i * angleStep)
+      };
+    });
+  };
+
+  // Give multiple center nodes a tiny radius to prevent exact overlap
+  distribute(ring0, ring0.length > 1 ? 50 : 0); 
+  distribute(ring1, 250);
+  distribute(ring2, 550);
+  distribute(ring3, 850);
+
+  // Return exactly the original array order but with positions populated
+  // Since we cloned, we can just return the cloned array. It has the same order, but positions are assigned.
+  return cloned;
+}
+
 const GRID_COLUMNS = 4;
 const GRID_SPACING_X = 220;
 const GRID_SPACING_Y = 140;
@@ -156,10 +215,10 @@ function GraphVisualizationInner({
     [nodes],
   );
 
-  const flowNodes = useMemo(
-    () => nodes.map((node, index) => toFlowNode(node, index, selectedNodeId)),
-    [nodes, selectedNodeId],
-  );
+  const flowNodes = useMemo(() => {
+    const layoutedNodes = applyConcentricLayout(nodes);
+    return layoutedNodes.map((node, index) => toFlowNode(node, index, selectedNodeId));
+  }, [nodes, selectedNodeId]);
   const flowEdges = useMemo(() => edges.map(toFlowEdge), [edges]);
 
   const handleNodeClick = useCallback<NodeMouseHandler>(
@@ -189,6 +248,7 @@ function GraphVisualizationInner({
         onNodeClick={handleNodeClick}
         onPaneClick={handlePaneClick}
         fitView
+        fitViewOptions={{ padding: 0.2 }}
         panOnDrag
         zoomOnScroll
         zoomOnPinch
@@ -198,7 +258,6 @@ function GraphVisualizationInner({
         proOptions={{ hideAttribution: true }}
       >
         <Background variant={BackgroundVariant.Dots} gap={16} size={1} />
-        <Controls showInteractive={false} />
         {showMiniMap && (
           <MiniMap
             pannable
