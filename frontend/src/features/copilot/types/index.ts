@@ -18,6 +18,30 @@ export interface CopilotSourceChunk {
   similarity: number;
 }
 
+/** One agent's contribution to an assistant reply, for the explainability footer's "Evidence" line. */
+export interface CopilotEvidenceItem {
+  /** Human-readable label for the agent, e.g. "Matching procedures". */
+  label: string;
+  /** Number of citations/matches this agent contributed. */
+  count: number;
+}
+
+/**
+ * Explainability data for a single assistant reply — confidence, the
+ * distinct sources it drew on, per-agent evidence counts, and when it was
+ * generated. Derived entirely from real per-reply data (`reasoning.agent_traces`
+ * from `POST /ai/chat`), never fabricated — see `copilotApiService.ask`.
+ */
+export interface CopilotExplainability {
+  /** 0-100, the share of agents that ran for this reply that succeeded. */
+  confidence: number;
+  /** Distinct source/document names cited across all agents. */
+  sources: string[];
+  evidence: CopilotEvidenceItem[];
+  /** ISO timestamp this reply was generated — same as the message's own `createdAt`, kept alongside for footer rendering. */
+  generatedAt: string;
+}
+
 export interface CopilotMessage {
   id: string;
   role: CopilotMessageRole;
@@ -26,6 +50,18 @@ export interface CopilotMessage {
   createdAt: string;
   /** Populated on assistant messages once retrieval completes. */
   sources?: CopilotSourceChunk[];
+  /**
+   * Marks this assistant message as a proactively generated brief (e.g. an
+   * emergency briefing auto-surfaced on load) rather than a reply to a user
+   * question — `MessageBubble` renders its confidence/sources header only
+   * when this is set.
+   */
+  briefing?: {
+    label: string;
+    confidence: number;
+  };
+  /** Collapsible confidence/sources/evidence footer — populated on completed assistant replies. */
+  explainability?: CopilotExplainability;
 }
 
 /** A saved conversation thread, listed in the history sidebar. */

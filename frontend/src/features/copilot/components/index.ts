@@ -1,6 +1,9 @@
 export { MessageBubble }             from './MessageBubble';
 export type { MessageBubbleProps }   from './MessageBubble';
 
+export { ExplainabilityFooter }      from './ExplainabilityFooter';
+export type { ExplainabilityFooterProps } from './ExplainabilityFooter';
+
 export { TypingIndicator }           from './TypingIndicator';
 
 export { SuggestedPrompts }          from './SuggestedPrompts';

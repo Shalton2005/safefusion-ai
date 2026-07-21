@@ -32,13 +32,13 @@ export function MessageList({ messages, isSending }: MessageListProps) {
 
   return (
     <div
-      className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 scroll-smooth"
+      className="flex-1 overflow-y-auto px-6 py-6 scroll-smooth"
       role="log"
       aria-live="polite"
       aria-relevant="additions"
       aria-label="Conversation messages"
     >
-      <div className="flex flex-col gap-5 max-w-3xl mx-auto">
+      <div className="flex flex-col gap-5 max-w-5xl mx-auto">
         {visibleMessages.map((message) => (
           <MessageBubble key={message.id} message={message} />
         ))}

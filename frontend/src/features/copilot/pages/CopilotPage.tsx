@@ -13,10 +13,11 @@
  * so the page fills `DashboardLayout`'s `<main>` viewport instead.
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { History, PanelLeftClose } from 'lucide-react';
 import { PageHeader, Button } from '@/components/ui';
 import { useCopilotStore } from '@/store';
+import { usePlantStatus } from '@/features/plant-status/hooks/usePlantStatus';
 import { ChatWindow } from '../components/ChatWindow';
 import { ConversationHistoryList } from '../components/ConversationHistoryList';
 
@@ -28,10 +29,29 @@ export function CopilotPage() {
   const error = useCopilotStore((s) => s.error);
   const sendMessage = useCopilotStore((s) => s.sendMessage);
   const startNewConversation = useCopilotStore((s) => s.startNewConversation);
+  const startEmergencyBriefing = useCopilotStore((s) => s.startEmergencyBriefing);
   const selectConversation = useCopilotStore((s) => s.selectConversation);
   const deleteConversation = useCopilotStore((s) => s.deleteConversation);
 
+  const { inEmergency } = usePlantStatus();
+
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+
+  // Auto-surface an emergency briefing in place of the empty "no
+  // conversations yet" state — a plant-wide emergency with a passive,
+  // empty Copilot reads as a contradiction, so open already reporting
+  // what's known. Only fires once, and only when there's truly nothing
+  // to preserve (no history, no active thread) so it never clobbers a
+  // conversation the user already started.
+  const hasOfferedBriefing = useRef(false);
+  useEffect(() => {
+    if (hasOfferedBriefing.current) return;
+    if (inEmergency !== true) return;
+    if (conversationHistory.length > 0 || conversation !== null) return;
+
+    hasOfferedBriefing.current = true;
+    startEmergencyBriefing();
+  }, [inEmergency, conversationHistory.length, conversation, startEmergencyBriefing]);
 
   // Close the mobile history drawer on Escape, matching standard dialog behaviour.
   useEffect(() => {
@@ -128,7 +148,13 @@ export function CopilotPage() {
         )}
 
         {/* Chat window */}
-        <ChatWindow conversation={activeConversation} isSending={loading} error={error} onSend={sendMessage} />
+        <ChatWindow
+          conversation={activeConversation}
+          isSending={loading}
+          error={error}
+          onSend={sendMessage}
+          inEmergency={inEmergency === true}
+        />
       </div>
     </div>
   );
