@@ -36,7 +36,7 @@ export function ChatWindow({ conversation, isSending, error, onSend, inEmergency
   const isEmpty = messages.length === 0;
 
   return (
-    <div className="flex flex-col h-full min-w-0">
+    <div className="flex-1 flex flex-col w-full h-full min-w-0">
       {isEmpty ? (
         <div className="flex-1 flex flex-col items-center justify-center gap-6 px-6 text-center overflow-y-auto motion-safe:animate-fade-in">
           <div className="flex flex-col items-center gap-3">
