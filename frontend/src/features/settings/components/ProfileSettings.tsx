@@ -41,7 +41,7 @@ export function ProfileSettings() {
     setLoading(true);
     try {
       const updatedProfile = await userService.updateProfile(formData);
-      updateUser(updatedProfile);
+      updateUser(updatedProfile as any);
       setInitialData(formData);
       toast.success('Profile Updated', 'Your profile information has been saved successfully.');
     } catch (err) {
