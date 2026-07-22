@@ -102,7 +102,8 @@ export function Badge({
   className,
   children,
 }: BadgeProps) {
-  const { badge: badgeClass, dot: dotClass } = variantMap[variant];
+  const safeVariant = variantMap[variant] ? variant : 'default';
+  const { badge: badgeClass, dot: dotClass } = variantMap[safeVariant];
 
   return (
     <span

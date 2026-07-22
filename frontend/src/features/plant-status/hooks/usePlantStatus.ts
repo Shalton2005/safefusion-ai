@@ -71,7 +71,7 @@ export function usePlantStatus(): UsePlantStatusResult {
 
       setInEmergency(emergencyStatus.in_emergency);
       setRiskLevel(resolvedRiskLevel);
-      setStatus(emergencyStatus.in_emergency ? 'emergency' : RISK_LEVEL_TO_PLANT_STATUS[resolvedRiskLevel]);
+      setStatus(RISK_LEVEL_TO_PLANT_STATUS[resolvedRiskLevel]);
       hasLoadedOnce.current = true;
     } catch (err) {
       const apiError = ApiError.from(err);
@@ -94,9 +94,7 @@ export function usePlantStatus(): UsePlantStatusResult {
   const effectiveStatus =
     inEmergency === null || effectiveRiskLevel === null
       ? status
-      : inEmergency
-        ? 'emergency'
-        : RISK_LEVEL_TO_PLANT_STATUS[effectiveRiskLevel];
+      : RISK_LEVEL_TO_PLANT_STATUS[effectiveRiskLevel];
 
   return {
     status: effectiveStatus,

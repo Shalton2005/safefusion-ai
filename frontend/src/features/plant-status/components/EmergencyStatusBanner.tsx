@@ -19,8 +19,9 @@
 
 import { ShieldAlert, ShieldCheck, TriangleAlert, Siren } from 'lucide-react';
 import { cn } from '@/lib/cn';
+import { Badge } from '@/components/ui';
 import { LastUpdated } from '@/components/common/LastUpdated';
-import { PLANT_STATUS_LABEL, PLANT_STATUS_BANNER_CLASSES } from '@/utils/severity';
+import { PLANT_STATUS_LABEL, PLANT_STATUS_BANNER_CLASSES, SEVERITY_BADGE_VARIANT } from '@/utils/severity';
 import { capitalise } from '@/utils/format';
 import type { PlantStatus } from '@/types';
 import type { SeverityLevel } from '@/constants';
@@ -59,14 +60,18 @@ export function EmergencyStatusBanner({ status, riskLevel, inEmergency, lastUpda
         <span className="text-sm font-semibold">Plant Status: {PLANT_STATUS_LABEL[status]}</span>
       </div>
 
-      <div className="flex items-center gap-1.5 text-sm">
+      <div className="flex items-center gap-2 text-sm">
         <span className="opacity-70">Risk Level:</span>
-        <span className="font-medium">{capitalise(riskLevel)}</span>
+        <Badge variant={SEVERITY_BADGE_VARIANT[riskLevel]} size="sm">
+          {capitalise(riskLevel)}
+        </Badge>
       </div>
 
-      <div className="flex items-center gap-1.5 text-sm">
+      <div className="flex items-center gap-2 text-sm">
         <span className="opacity-70">Emergency Mode:</span>
-        <span className="font-medium">{inEmergency ? 'Active' : 'Inactive'}</span>
+        <Badge variant={inEmergency ? 'danger' : 'default'} size="sm">
+          {inEmergency ? 'Active' : 'Inactive'}
+        </Badge>
       </div>
 
       <LastUpdated timestamp={lastUpdated} className="ml-auto opacity-80" />
