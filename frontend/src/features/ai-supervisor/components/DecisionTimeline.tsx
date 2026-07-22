@@ -28,6 +28,7 @@ import { cn } from '@/lib/cn';
 import { formatRelativeTime, formatDateTime, capitalise } from '@/utils/format';
 import { SEVERITY_BADGE_VARIANT, BADGE_DOT_CLASS } from '@/utils/severity';
 import type { AIDecision, AIDecisionExecutionStatus, AIDecisionType } from '../types';
+import { useState } from 'react';
 
 export interface DecisionTimelineProps {
   decisions: AIDecision[];
@@ -84,6 +85,8 @@ export function DecisionTimeline({
   onRetry,
   className,
 }: DecisionTimelineProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
   return (
     <QueryState<AIDecision[]>
       loading={loading}
@@ -120,12 +123,12 @@ export function DecisionTimeline({
           return acc;
         }, [] as (AIDecision & { count: number })[]);
 
-        const displayData = groupedData.slice(0, 5);
+        const displayData = isExpanded ? groupedData : groupedData.slice(0, 5);
         const hasMore = groupedData.length > 5;
 
         return (
-          <div className={className}>
-            <ol className="flex flex-col gap-1 max-h-[400px] overflow-y-auto pr-1">
+          <div className={cn("flex flex-col h-full", className)}>
+            <ol className="flex flex-col gap-1 flex-1 overflow-y-auto pr-1 min-h-0">
               {displayData.map((decision) => {
                 const isSelected = decision.id === selectedId;
                 
@@ -199,8 +202,12 @@ export function DecisionTimeline({
               })}
             </ol>
             {hasMore && (
-              <button className="w-full mt-2 py-2 text-xs font-medium text-primary-400 hover:text-primary-300 border border-transparent hover:border-[var(--sf-border-default)] bg-[var(--sf-surface-raised)] rounded-lg transition-colors">
-                View Full Timeline
+              <button
+                type="button"
+                onClick={() => setIsExpanded(!isExpanded)}
+                className="w-full mt-2 py-2 text-xs font-medium text-primary-400 hover:text-primary-300 border border-transparent hover:border-[var(--sf-border-default)] bg-[var(--sf-surface-raised)] rounded-lg transition-colors flex-shrink-0"
+              >
+                {isExpanded ? 'Collapse Timeline' : 'View Full Timeline'}
               </button>
             )}
           </div>
