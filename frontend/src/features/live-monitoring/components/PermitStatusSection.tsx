@@ -73,7 +73,10 @@ export function PermitStatusSection() {
   const suspendedCount = permits.filter((p) => p.status === 'suspended').length;
   const closedCount = permits.filter((p) => p.status === 'closed').length;
 
+  const [isExpanded, setIsExpanded] = useState(false);
   const sorted = [...permits].sort((a, b) => permitPriority(b) - permitPriority(a));
+  const displayPermits = isExpanded ? sorted : sorted.slice(0, SUMMARY_LIMIT);
+  const hasMore = sorted.length > SUMMARY_LIMIT;
 
   return (
     <Card padding="none" className="h-full flex flex-col">
@@ -97,7 +100,7 @@ export function PermitStatusSection() {
         <LastUpdated timestamp={lastUpdated} />
       </div>
 
-      <div className="p-4 flex-1 overflow-y-auto min-h-0 custom-scrollbar">
+      <div className="p-4 flex-1 overflow-y-auto min-h-0 custom-scrollbar flex flex-col">
         <QueryState
           loading={loading}
           error={error}
@@ -129,9 +132,9 @@ export function PermitStatusSection() {
           }
         >
           {() => (
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-4 flex-1">
               {/* Status counts */}
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-4 gap-2 flex-shrink-0">
                 <div className="flex flex-col items-center gap-0.5 py-2 rounded-lg bg-primary-500/10 border border-primary-500/20">
                   <span className="text-lg font-bold text-primary-500">{activeCount}</span>
                   <span className="text-2xs font-semibold uppercase tracking-wide text-[var(--sf-text-tertiary)]">Active</span>
@@ -151,8 +154,8 @@ export function PermitStatusSection() {
               </div>
 
               {/* Most urgent permits */}
-              <div className="flex flex-col gap-2">
-                {sorted.map((permit) => (
+              <div className="flex flex-col gap-2 flex-1 min-h-0">
+                {displayPermits.map((permit) => (
                   <PermitStatusIndicator
                     key={permit.id}
                     permitId={permit.id}
@@ -164,6 +167,16 @@ export function PermitStatusSection() {
                   />
                 ))}
               </div>
+              
+              {hasMore && (
+                <button
+                  type="button"
+                  onClick={() => setIsExpanded(!isExpanded)}
+                  className="w-full py-2 mt-2 text-xs font-medium text-primary-400 hover:text-primary-300 border border-transparent hover:border-[var(--sf-border-default)] bg-[var(--sf-surface-raised)] rounded-lg transition-colors flex-shrink-0"
+                >
+                  {isExpanded ? 'Collapse Permits' : 'View Full List'}
+                </button>
+              )}
             </div>
           )}
         </QueryState>

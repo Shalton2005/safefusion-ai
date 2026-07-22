@@ -106,8 +106,12 @@ export function AlertsSection() {
 
   const { lastUpdated, refresh } = usePolling(fetchIncidents, DASHBOARD_REFRESH_INTERVAL);
 
+  const [isExpanded, setIsExpanded] = useState(false);
   const enhancedIncidents = useMemo(() => groupAndEnhanceIncidents(incidents), [incidents]);
   const criticalCount = enhancedIncidents.filter((i) => i.severity === 'critical').length;
+  
+  const displayIncidents = isExpanded ? enhancedIncidents : enhancedIncidents.slice(0, SUMMARY_LIMIT);
+  const hasMore = enhancedIncidents.length > SUMMARY_LIMIT;
 
   return (
     <Card padding="none" className="h-full flex flex-col">
@@ -132,7 +136,7 @@ export function AlertsSection() {
         <LastUpdated timestamp={lastUpdated} />
       </div>
 
-      <div className="p-4 flex-1 overflow-y-auto min-h-0 custom-scrollbar">
+      <div className="p-4 flex-1 overflow-y-auto min-h-0 custom-scrollbar flex flex-col">
         <QueryState
           loading={loading}
           error={error}
@@ -156,11 +160,23 @@ export function AlertsSection() {
             />
           }
         >
-          {(data) => (
-            <div className="flex flex-col gap-2">
-              {data.map((incident) => (
-                <AIIncidentSummaryRow key={incident.id} incident={incident} />
-              ))}
+          {() => (
+            <div className="flex flex-col gap-2 flex-1">
+              <div className="flex flex-col gap-2 flex-1 min-h-0">
+                {displayIncidents.map((incident) => (
+                  <AIIncidentSummaryRow key={incident.id} incident={incident} />
+                ))}
+              </div>
+              
+              {hasMore && (
+                <button
+                  type="button"
+                  onClick={() => setIsExpanded(!isExpanded)}
+                  className="w-full py-2 mt-2 text-xs font-medium text-primary-400 hover:text-primary-300 border border-transparent hover:border-[var(--sf-border-default)] bg-[var(--sf-surface-raised)] rounded-lg transition-colors flex-shrink-0"
+                >
+                  {isExpanded ? 'Collapse Incidents' : 'View Full List'}
+                </button>
+              )}
             </div>
           )}
         </QueryState>
