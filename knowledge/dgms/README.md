@@ -1,10 +1,23 @@
-# DGMS
+# DGMS (Directorate General of Mines Safety)
 
-Placeholder folder for DGMS (Directorate General of Mines Safety) circulars, regulations, and guidelines.
+Placeholder directory for DGMS circulars, regulations, and safety guidelines.
 
-No documents have been added yet. This folder holds a place in the corpus structure until legitimately sourced, official copies of the relevant DGMS material are available.
+*(Note: No documents have been added to this directory yet.)*
 
-## Adding documents
+## Purpose
+This directory provides the RAG pipeline with strict mining safety regulations. The AI Copilot uses these documents to advise on compliance regarding ventilation, roof support, explosive handling, and heavy machinery operations specific to mining environments.
 
-- Only add documents you have the legal right to use. DGMS material is published by the Directorate General of Mines Safety (Ministry of Labour & Employment) — obtain copies through official DGMS channels.
-- Record the circular/regulation number, title, issue date, and retrieval date for each document added (see corpus [README.md](../README.md#provenance-tracking)).
+## Supported Documents
+- `.pdf`, `.txt`, `.md`, `.docx`
+
+## Naming Convention
+`[YYYYMMDD]_DGMS_[Circular/Regulation_Number]_[Title].[ext]`
+*Example:* `20200815_DGMS_Tech_Circular_04_Dump_Stability.pdf`
+
+## Document Ingestion Workflow
+1. Obtain official copies through official DGMS channels.
+2. Place the file in this directory.
+3. Trigger the `POST /api/v1/rag/ingest` endpoint to chunk and embed the file into the Vector Database via `backend/src/services/rag/`.
+
+## How RAG Consumes Them
+When a user asks the AI Copilot about mining compliance or pit safety, the RAG engine performs a vector search against the chunks generated from these DGMS documents. The LLM then formulates an answer based purely on these regulations, citing the specific circular number in its response.

@@ -1,34 +1,46 @@
-# Knowledge Corpus
+# SafeFusion AI Knowledge Corpus
 
-Source documents for the SafeFusion AI Retrieval-Augmented Generation (RAG) pipeline. Files placed here are chunked and embedded by the ingestion pipeline (see [backend/src/services/rag/](../backend/src/services/rag/)) and become retrievable via the RAG API ([backend/src/routes/rag.py](../backend/src/routes/rag.py)).
+This directory serves as the root storage layer for the source documents that power the SafeFusion AI Retrieval-Augmented Generation (RAG) pipeline. 
 
-## Structure
+## Purpose
+The files placed within this directory constitute the "ground truth" knowledge base for the AI Safety Copilot. By providing the AI with domain-specific industrial regulations, internal SOPs, and historical reports, the system can generate highly accurate, context-aware answers accompanied by precise document citations.
 
-| Folder | Contents |
+## Folder Structure
+
+| Folder | Contents / Purpose |
 | --- | --- |
-| [`factory-act/`](factory-act/) | Factory Act and related state Factory Rules |
-| [`oisd/`](oisd/) | OISD (Oil Industry Safety Directorate) standards and guidelines |
-| [`dgms/`](dgms/) | DGMS (Directorate General of Mines Safety) circulars and regulations |
-| [`sop/`](sop/) | Site/organization Standard Operating Procedures |
-| [`incident-reports/`](incident-reports/) | Historical incident/accident reports |
+| [`factory-act/`](factory-act/) | Factory Act documents and related state-level Factory Rules. |
+| [`oisd/`](oisd/) | OISD (Oil Industry Safety Directorate) standards and guidelines. |
+| [`dgms/`](dgms/) | DGMS (Directorate General of Mines Safety) circulars and regulations. |
+| [`sop/`](sop/) | Internal organizational Standard Operating Procedures. |
+| [`incident-reports/`](incident-reports/) | Historical, anonymized incident and accident investigation reports. |
 
-Each folder currently contains only a README placeholder — no regulatory or procedural content has been added yet. Folders are populated only with documents from legitimate, permitted sources; see each folder's README for source guidance specific to that category.
+*(Note: These folders currently serve as structural placeholders. No regulatory documents or files have been uploaded yet.)*
 
-## Status
+## Supported Documents
+The backend ingestion pipeline currently supports processing the following file formats:
+- PDF (`.pdf`)
+- Plain Text (`.txt`)
+- Markdown (`.md`)
+- Word Documents (`.docx`)
 
-This is the initial scaffold. No source documents are present. Do not assume any regulatory content exists in this corpus until it has been explicitly added.
+## Naming Convention
+To ensure metadata is cleanly extracted during ingestion, follow this standard naming convention for all files added to subdirectories:
+`[YYYYMMDD]_[Source]_[Identifier]_[Short_Title].[ext]`
 
-## Provenance tracking
+*Example:* `20230512_OISD_STD_114_Hot_Work_Permit.pdf`
 
-When adding a document to any folder, record its provenance (source, identifier/edition, and retrieval date) either in a per-document sidecar note or in a shared log within that folder. This keeps the corpus auditable and makes it possible to verify a retrieved chunk traces back to a legitimate source.
+## Document Ingestion Workflow
+When a new document is added to this directory, it must be ingested into the system to become searchable:
+1. **Upload:** Place the legally obtained document into the appropriate subdirectory.
+2. **Trigger Ingestion:** Call the backend API (`POST /api/v1/rag/ingest`) providing the file path.
+3. **Processing (Backend):** The pipeline (`backend/src/services/rag/`) loads the document, splits it into semantically meaningful chunks, and extracts metadata.
+4. **Embedding:** Chunks are passed through an embedding model (e.g., via Ollama).
+5. **Storage:** The resulting vectors and text chunks are saved into the backend Vector Database (pgvector).
 
-## Adding documents
-
-1. Confirm you have the legal right to use the document (official publication, license, or organizational ownership).
-2. Place it in the matching category folder.
-3. Record its provenance (see above).
-4. Run the ingestion pipeline to chunk and embed it into the `document_embeddings` table (pgvector) for retrieval.
-
-## Out of scope for this scaffold
-
-This commit only creates the folder structure and documentation. It does not include any Factory Act, OISD, DGMS, or other regulatory text — that content must be sourced and added separately, with permission verified for each document.
+## How RAG Consumes Them
+Once ingested, the documents power the AI Safety Copilot:
+1. **Query:** A user asks the Copilot a safety-related question.
+2. **Retrieval:** The RAG pipeline (`backend/src/routes/rag.py`) performs a semantic similarity search across the vector database to find the most relevant document chunks.
+3. **Generation:** The retrieved chunks are injected into the context window of the local LLM.
+4. **Response:** The LLM generates a precise answer and automatically cites the specific source document and page number from this corpus.

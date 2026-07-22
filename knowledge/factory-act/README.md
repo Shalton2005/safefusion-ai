@@ -1,11 +1,23 @@
-# Factory Act
+# Factory Act & State Rules
 
-Placeholder folder for Factory Act source documents (e.g. the Factories Act, 1948, and applicable state Factory Rules).
+Placeholder directory for the Factories Act, 1948, and corresponding state-specific Factory Rules.
 
-No documents have been added yet. This folder holds a place in the corpus structure until legitimately sourced, licensed copies of the relevant acts/rules are available.
+*(Note: No documents have been added to this directory yet.)*
 
-## Adding documents
+## Purpose
+This directory equips the RAG pipeline with the foundational legal framework governing occupational safety, health, and welfare of workers in factories. The AI Copilot uses this to ensure that answers regarding working hours, hazardous processes, and welfare facilities align with statutory law.
 
-- Only add documents you have the legal right to use (official government publications, purchased/licensed copies, or other verifiably permitted sources).
-- Prefer official sources, e.g. state Labour Department or Directorate General Factory Advice Service & Labour Institutes (DGFASLI) publications.
-- Record the source, edition/amendment year, and retrieval date for each document added (see corpus [README.md](../README.md#provenance-tracking)).
+## Supported Documents
+- `.pdf`, `.txt`, `.md`, `.docx`
+
+## Naming Convention
+`[YYYY]_Govt_[Act_or_Rule_Name]_[State_if_applicable].[ext]`
+*Example:* `1948_Govt_The_Factories_Act_Central.pdf`
+
+## Document Ingestion Workflow
+1. Obtain legally permitted copies (e.g., from DGFASLI or State Labour Departments).
+2. Place the file in this directory.
+3. Trigger the `POST /api/v1/rag/ingest` endpoint. The backend pipeline parses the complex legal numbering, splits it into chunks, and stores the embeddings in the Vector Database.
+
+## How RAG Consumes Them
+If a user asks "What are the legal requirements for storing flammable solvents?", the RAG pipeline retrieves the relevant sections from the Factory Act documents. The LLM uses these chunks as a strict factual basis, ensuring its advice is legally sound and citing the exact Chapter and Section.
