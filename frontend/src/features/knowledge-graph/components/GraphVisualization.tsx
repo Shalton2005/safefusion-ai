@@ -190,14 +190,14 @@ function toFlowEdge(edge: GraphEdge): Edge {
     target: edge.target,
     label: edge.label,
     animated: edge.animated ?? false,
-    style: { stroke: 'var(--sf-border-strong)', strokeWidth: 1.5, opacity: 0.7 },
-    labelStyle: { fill: 'var(--sf-text-secondary)', fontSize: 10 },
-    labelBgStyle: { fill: 'var(--sf-surface-card)', padding: [2, 4] },
+    style: { stroke: 'var(--sf-text-secondary)', strokeWidth: 2, opacity: 0.9 },
+    labelStyle: { fill: 'var(--sf-text-primary)', fontSize: 11, fontWeight: 600 },
+    labelBgStyle: { fill: 'var(--sf-surface-hover)', padding: [4, 6], borderRadius: 4 },
     markerEnd: {
       type: MarkerType.ArrowClosed,
-      width: 15,
-      height: 15,
-      color: 'var(--sf-border-strong)',
+      width: 20,
+      height: 20,
+      color: 'var(--sf-text-secondary)',
     },
   };
 }
@@ -273,7 +273,6 @@ function GraphVisualizationInner({
         proOptions={{ hideAttribution: true }}
       >
         <Background variant={BackgroundVariant.Dots} gap={16} size={1} />
-        <Controls position="bottom-left" style={{ display: 'flex', flexDirection: 'column' }} />
         {showMiniMap && (
           <MiniMap
             pannable
