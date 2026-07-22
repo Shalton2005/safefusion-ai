@@ -10,6 +10,9 @@ import { AIDecisionTimeline } from '@/features/live-monitoring/components/AIDeci
 import { AICopilotPanel } from '@/features/live-monitoring/components/AICopilotPanel';
 import { IncidentActionModals, useIncidentActions } from '@/features/live-monitoring/components/IncidentActionModals';
 import { useAnalyticsStore } from '@/store/useAnalyticsStore';
+import { useDashboardStore } from '@/store/useDashboardStore';
+import { usePolling } from '@/hooks/usePolling';
+import { DASHBOARD_REFRESH_INTERVAL } from '@/constants';
 
 /**
  * Live Monitoring answers one question: "what is happening right now?"
@@ -35,11 +38,21 @@ export function LiveMonitoringPage() {
     useShallow((state) => ({ mapOverlays: state.baseState, fetchMapOverlays: state.fetchData })),
   );
 
+  const { syncTick, assessment, explanation } = useDashboardStore(
+    useShallow((state) => ({
+      syncTick: state.syncTick,
+      assessment: state.assessment,
+      explanation: state.explanation,
+    })),
+  );
+
   useEffect(() => {
     const controller = new AbortController();
     fetchMapOverlays(controller.signal);
     return () => controller.abort();
   }, [fetchMapOverlays]);
+
+  usePolling(syncTick, DASHBOARD_REFRESH_INTERVAL);
 
   return (
     <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_22rem] items-stretch">
@@ -61,7 +74,12 @@ export function LiveMonitoringPage() {
         {/* Dashboard grid: explicit rows, equal-height by construction */}
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 xl:gap-6 grid-rows-[auto_minmax(0,380px)_minmax(0,420px)] xl:grid-rows-[auto_minmax(0,400px)_minmax(0,440px)]">
           <div className="xl:col-span-3">
-            <AIIncidentSummary onExecuteResponse={onExecuteResponse} onViewIncident={onViewIncident} />
+            <AIIncidentSummary 
+              assessment={assessment}
+              explanation={explanation}
+              onExecuteResponse={onExecuteResponse} 
+              onViewIncident={onViewIncident} 
+            />
           </div>
 
           <div className="xl:col-span-2 h-full grid grid-cols-1 lg:grid-cols-2 gap-4 xl:gap-6 min-h-0">

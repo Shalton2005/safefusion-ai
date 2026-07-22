@@ -1,46 +1,20 @@
 import { useRef, useState } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { BrainCircuit, Activity, Eye, AlertTriangle, UserCheck, Siren, ArrowDown, Network } from 'lucide-react';
+import { BrainCircuit, Activity, Eye, AlertTriangle, UserCheck, Siren, ArrowDown, Network, FileWarning, Lightbulb } from 'lucide-react';
 import { Card, CardHeader, Badge, QueryState, EmptyState, Skeleton } from '@/components/ui';
 import { cn } from '@/lib/cn';
 import { ApiError } from '@/api/errors';
 import { usePolling } from '@/hooks/usePolling';
+import { safetyTimelineService } from '@/services';
+import type { SafetyTimelineEvent, SafetyTimelineEventType } from '@/types';
 
-export type AIDecisionType = 'sensor' | 'correlation' | 'vision' | 'risk' | 'notification' | 'action';
-
-export interface AIDecisionStep {
-  id: string;
-  timestamp: string;
-  message: string;
-  type: AIDecisionType;
-}
-
-// Simulated backend call for the AI reasoning engine feed
-async function fetchAIDecisions(signal?: AbortSignal): Promise<AIDecisionStep[]> {
-  return new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => {
-      if (signal?.aborted) return reject(new Error('Aborted'));
-      resolve([
-        { id: '1', timestamp: '2026-07-21T11:21:00Z', message: 'Gas reached warning level', type: 'sensor' },
-        { id: '2', timestamp: '2026-07-21T11:22:00Z', message: 'AI correlated active Hot Work permit', type: 'correlation' },
-        { id: '3', timestamp: '2026-07-21T11:22:30Z', message: 'Computer Vision detected missing PPE', type: 'vision' },
-        { id: '4', timestamp: '2026-07-21T11:23:00Z', message: 'Compound Risk exceeded threshold', type: 'risk' },
-        { id: '5', timestamp: '2026-07-21T11:24:00Z', message: 'Safety Officer notified', type: 'notification' },
-        { id: '6', timestamp: '2026-07-21T11:25:00Z', message: 'Evacuation initiated', type: 'action' },
-      ]);
-    }, 900);
-    
-    signal?.addEventListener('abort', () => clearTimeout(timeout));
-  });
-}
-
-const STEP_STYLES: Record<AIDecisionType, { icon: React.ElementType, colorClass: string, textClass: string }> = {
-  sensor: { icon: Activity, colorClass: 'text-caution-500 bg-caution-500/10 border-caution-500/20', textClass: 'text-[var(--sf-text-primary)]' },
-  correlation: { icon: BrainCircuit, colorClass: 'text-primary-500 bg-primary-500/10 border-primary-500/20', textClass: 'text-[var(--sf-text-primary)]' },
-  vision: { icon: Eye, colorClass: 'text-primary-500 bg-primary-500/10 border-primary-500/20', textClass: 'text-[var(--sf-text-primary)]' },
-  risk: { icon: AlertTriangle, colorClass: 'text-danger-500 bg-danger-500/10 border-danger-500/20 shadow-[0_0_10px_rgba(239,68,68,0.2)]', textClass: 'text-danger-400' },
-  notification: { icon: UserCheck, colorClass: 'text-safe-500 bg-safe-500/10 border-safe-500/20', textClass: 'text-safe-400' },
-  action: { icon: Siren, colorClass: 'text-danger-500 bg-danger-500/10 border-danger-500/20', textClass: 'text-danger-500' },
+const STEP_STYLES: Record<SafetyTimelineEventType, { icon: React.ElementType, colorClass: string, textClass: string }> = {
+  sensor_threshold_crossed: { icon: Activity, colorClass: 'text-caution-500 bg-caution-500/10 border-caution-500/20', textClass: 'text-[var(--sf-text-primary)]' },
+  permit_expired: { icon: FileWarning, colorClass: 'text-warning-500 bg-warning-500/10 border-warning-500/20', textClass: 'text-[var(--sf-text-primary)]' },
+  worker_entered_zone: { icon: Eye, colorClass: 'text-primary-500 bg-primary-500/10 border-primary-500/20', textClass: 'text-[var(--sf-text-primary)]' },
+  compound_risk_generated: { icon: AlertTriangle, colorClass: 'text-danger-500 bg-danger-500/10 border-danger-500/20 shadow-[0_0_10px_rgba(239,68,68,0.2)]', textClass: 'text-danger-400' },
+  recommendation_issued: { icon: Lightbulb, colorClass: 'text-safe-500 bg-safe-500/10 border-safe-500/20', textClass: 'text-safe-400' },
+  emergency_action_dispatched: { icon: Siren, colorClass: 'text-danger-500 bg-danger-500/10 border-danger-500/20', textClass: 'text-danger-500' },
 };
 
 function formatTimeOnly(iso: string) {
@@ -52,7 +26,7 @@ function formatTimeOnly(iso: string) {
 }
 
 export function AIDecisionTimeline() {
-  const [steps, setSteps] = useState<AIDecisionStep[]>([]);
+  const [steps, setSteps] = useState<SafetyTimelineEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const hasLoadedOnce = useRef(false);
@@ -62,7 +36,9 @@ export function AIDecisionTimeline() {
     if (!hasLoadedOnce.current) setLoading(true);
     setError(null);
     try {
-      const data = await fetchAIDecisions(signal);
+      const data = await safetyTimelineService.getTimeline({ limit: 50 }, { signal });
+      // The timeline should ideally show oldest-to-newest if it's a feed, or newest-first.
+      // AIDecisionTimeline is rendered as a descending feed, so newest-first is fine.
       setSteps(data);
       hasLoadedOnce.current = true;
     } catch (err) {
@@ -77,13 +53,13 @@ export function AIDecisionTimeline() {
     }
   };
 
-  const { refresh } = usePolling(fetchSteps, 15000); // 15s refresh for live timeline
+  const { refresh } = usePolling(fetchSteps, 5000); // Poll every 5s
 
   const rowVirtualizer = useVirtualizer({
     count: steps.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 70,
-    overscan: 3,
+    estimateSize: () => 80,
+    overscan: 5,
   });
 
   return (
@@ -180,8 +156,13 @@ export function AIDecisionTimeline() {
                       {/* Content */}
                       <div className={cn("flex flex-col pt-1.5 flex-1 min-w-0", !isLast ? "pb-6" : "pb-0")}>
                         <span className={cn("text-sm font-bold leading-snug", style.textClass)}>
-                          {step.message}
+                          {step.label}
                         </span>
+                        {step.description && (
+                          <span className="text-xs text-[var(--sf-text-secondary)] mt-0.5 whitespace-pre-line leading-relaxed">
+                            {step.description}
+                          </span>
+                        )}
                       </div>
                     </li>
                   );

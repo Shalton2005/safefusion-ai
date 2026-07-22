@@ -1,18 +1,7 @@
-import { useState, useEffect } from 'react';
-import { BrainCircuit, ShieldAlert, Zap, AlertTriangle, Eye, Bell, Activity, FileWarning, HardHat, Wind, CheckCircle2 } from 'lucide-react';
+import { BrainCircuit, ShieldAlert, Zap, AlertTriangle, Eye, Bell, Activity, FileWarning, HardHat, Wind, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { Card, Badge, Button, Skeleton } from '@/components/ui';
-
-export interface CopilotState {
-  incidentType: string;
-  confidence: number;
-  estimatedResponseTime: string;
-  potentialOutcome: string;
-  reasoning: Array<{
-    type: 'gas' | 'permit' | 'ppe' | 'weather';
-    description: string;
-  }>;
-  actions: string[];
-}
+import { useDashboardStore } from '@/store/useDashboardStore';
+import { useShallow } from 'zustand/react/shallow';
 
 export interface AICopilotPanelProps {
   onExecuteResponse?: () => void;
@@ -21,36 +10,18 @@ export interface AICopilotPanelProps {
 }
 
 export function AICopilotPanel({ onExecuteResponse, onNotifyTeam, onViewCctv }: AICopilotPanelProps) {
-  const [copilotData, setCopilotData] = useState<CopilotState | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { assessment, explanation, emergencyActions, loading } = useDashboardStore(
+    useShallow((state) => ({
+      assessment: state.assessment,
+      explanation: state.explanation,
+      emergencyActions: state.emergencyActions,
+      loading: state.loading,
+    }))
+  );
 
-  // Simulate backend integration for live copilot streaming inference
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setCopilotData({
-        incidentType: 'Critical Compound Risk',
-        confidence: 98.4,
-        estimatedResponseTime: '2m 45s',
-        potentialOutcome: 'Flash fire in Tank Farm A due to simultaneous gas accumulation and active spark source.',
-        reasoning: [
-          { type: 'gas', description: 'Gas Leak Detected' },
-          { type: 'permit', description: 'Active Hot Work' },
-          { type: 'ppe', description: 'Missing PPE (Worker)' },
-          { type: 'weather', description: 'Wind Direction (Towards Unit)' },
-        ],
-        actions: [
-          'Suspend Hot Work permit PTW-2026-014 immediately.',
-          'Evacuate Tank Farm A personnel (2 workers).',
-          'Notify on-duty Safety Officer.'
-        ]
-      });
-      setLoading(false);
-    }, 900);
+  const hasRisk = assessment && assessment.risk_score > 0 && assessment.risk_level !== 'low';
 
-    return () => clearTimeout(timer);
-  }, []);
-
-  if (loading || !copilotData) {
+  if (loading && !assessment) {
     return (
       <div className="flex flex-col h-full">
         <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6 min-h-0">
@@ -66,23 +37,52 @@ export function AICopilotPanel({ onExecuteResponse, onNotifyTeam, onViewCctv }: 
             <Skeleton className="h-3 w-40 rounded" />
             <Skeleton className="h-24 rounded-xl" />
           </div>
-          <div className="flex flex-col gap-3 flex-shrink-0">
-            <Skeleton className="h-3 w-36 rounded" />
-            <Skeleton className="h-20 rounded-xl" />
-          </div>
-        </div>
-        <div className="flex-shrink-0 p-6 pt-4 border-t border-[var(--sf-border-default)] bg-[var(--sf-surface-base)]">
-          <div className="flex flex-col gap-3">
-            <Skeleton className="h-12 rounded-lg" />
-            <div className="grid grid-cols-2 gap-3">
-              <Skeleton className="h-10 rounded-lg" />
-              <Skeleton className="h-10 rounded-lg" />
-            </div>
-          </div>
         </div>
       </div>
     );
   }
+
+  if (!hasRisk) {
+    return (
+      <div className="flex flex-col h-full animate-in fade-in slide-in-from-right-4 duration-500">
+        <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6 scrollbar-thin min-h-0">
+          <div className="flex items-center justify-between mb-2 flex-shrink-0">
+            <h2 className="text-lg font-bold text-[var(--sf-text-primary)] flex items-center gap-2.5">
+              <BrainCircuit className="w-5 h-5 text-safe-500" />
+              AI Copilot
+            </h2>
+            <Badge variant="primary" size="sm">Standby</Badge>
+          </div>
+          
+          <Card padding="none" className="border-safe-500/20 bg-safe-500/5 flex-shrink-0">
+            <div className="p-6 flex flex-col items-center justify-center text-center gap-3">
+              <ShieldCheck className="w-8 h-8 text-safe-500/50" />
+              <p className="text-sm font-medium text-[var(--sf-text-secondary)]">
+                Copilot is actively analyzing sensor telemetry and camera feeds. No risks detected.
+              </p>
+            </div>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  const incidentType = 'Compound Risk';
+  const confidence = assessment.confidence ?? 95.0;
+  const estimatedResponseTime = explanation?.timeframe || 'Immediate';
+  const potentialOutcome = explanation?.threat_escalation || explanation?.explanation || 'Unknown escalation threat';
+  const reasoning = explanation?.contributing_factors.map(f => {
+    const lFactor = f.name.toLowerCase();
+    let type = 'other';
+    if (lFactor.includes('gas') || lFactor.includes('leak')) type = 'gas';
+    else if (lFactor.includes('permit') || lFactor.includes('hot work') || lFactor.includes('ptw')) type = 'permit';
+    else if (lFactor.includes('ppe') || lFactor.includes('helmet') || lFactor.includes('vest')) type = 'ppe';
+    else if (lFactor.includes('wind') || lFactor.includes('weather')) type = 'weather';
+    return { type, description: f.detail || f.name };
+  }) || [];
+  
+  const actions = explanation?.recommendations || emergencyActions.map(a => a.explanation) || [];
+
 
   const renderReasoningIcon = (type: string) => {
     switch (type) {
@@ -120,24 +120,24 @@ export function AICopilotPanel({ onExecuteResponse, onNotifyTeam, onViewCctv }: 
           <div className="bg-danger-500/10 px-4 py-3 border-b border-danger-500/20 flex items-start justify-between">
             <div className="flex items-center gap-2.5">
               <ShieldAlert className="w-4.5 h-4.5 text-danger-500" />
-              <span className="text-sm font-bold text-danger-500 uppercase tracking-widest">{copilotData.incidentType}</span>
+              <span className="text-sm font-bold text-danger-500 uppercase tracking-widest">{incidentType}</span>
             </div>
           </div>
           <div className="p-4 flex flex-col gap-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col gap-1">
                 <span className="text-2xs uppercase tracking-widest font-bold text-[var(--sf-text-tertiary)]">Confidence</span>
-                <span className="text-sm font-bold text-[var(--sf-text-primary)]">{copilotData.confidence}%</span>
+                <span className="text-sm font-bold text-[var(--sf-text-primary)]">{confidence}%</span>
               </div>
               <div className="flex flex-col gap-1">
                 <span className="text-2xs uppercase tracking-widest font-bold text-[var(--sf-text-tertiary)]">Est. Response</span>
-                <span className="text-sm font-bold text-[var(--sf-text-primary)]">{copilotData.estimatedResponseTime}</span>
+                <span className="text-sm font-bold text-[var(--sf-text-primary)]">{estimatedResponseTime}</span>
               </div>
             </div>
             
             <div className="flex flex-col gap-1.5 mt-1">
               <span className="text-2xs uppercase tracking-widest font-bold text-[var(--sf-text-tertiary)]">Potential Outcome</span>
-              <span className="text-sm font-medium text-[var(--sf-text-secondary)] leading-relaxed">{copilotData.potentialOutcome}</span>
+              <span className="text-sm font-medium text-[var(--sf-text-secondary)] leading-relaxed">{potentialOutcome}</span>
             </div>
           </div>
         </Card>
@@ -147,7 +147,7 @@ export function AICopilotPanel({ onExecuteResponse, onNotifyTeam, onViewCctv }: 
           <h3 className="text-3xs font-bold uppercase tracking-widest text-[var(--sf-text-tertiary)] px-1">Why this recommendation?</h3>
           <Card padding="sm" className="bg-[var(--sf-surface-sunken)] border-[var(--sf-border-subtle)]">
             <div className="flex flex-col gap-0.5">
-              {copilotData.reasoning.map((reason, idx) => (
+              {reasoning.map((reason, idx) => (
                 <div key={idx}>
                   <div className="flex items-center gap-3 py-2">
                     <div className={`w-8 h-8 rounded-full ${renderReasoningBg(reason.type)} flex items-center justify-center flex-shrink-0`}>
@@ -155,7 +155,7 @@ export function AICopilotPanel({ onExecuteResponse, onNotifyTeam, onViewCctv }: 
                     </div>
                     <span className="text-xs font-semibold text-[var(--sf-text-secondary)]">{reason.description}</span>
                   </div>
-                  {idx < copilotData.reasoning.length - 1 && (
+                  {idx < reasoning.length - 1 && (
                     <div className="pl-4 border-l-2 border-dashed border-[var(--sf-border-default)] py-1.5 ml-4 flex items-center text-3xs text-[var(--sf-text-tertiary)] font-bold tracking-widest">
                       PLUS
                     </div>
@@ -163,9 +163,15 @@ export function AICopilotPanel({ onExecuteResponse, onNotifyTeam, onViewCctv }: 
                 </div>
               ))}
               
+              {reasoning.length === 0 && (
+                <div className="py-2 flex justify-center">
+                  <span className="text-xs text-[var(--sf-text-tertiary)]">No explicit reasoning mapped.</span>
+                </div>
+              )}
+              
               <div className="mt-4 pt-3 border-t border-[var(--sf-border-default)] flex items-center justify-between">
                 <span className="text-xs font-bold text-[var(--sf-text-primary)] uppercase tracking-wide">Conclusion</span>
-                <Badge variant="danger" size="sm">{copilotData.incidentType}</Badge>
+                <Badge variant="danger" size="sm">{incidentType}</Badge>
               </div>
             </div>
           </Card>
@@ -176,12 +182,17 @@ export function AICopilotPanel({ onExecuteResponse, onNotifyTeam, onViewCctv }: 
           <h3 className="text-3xs font-bold uppercase tracking-widest text-[var(--sf-text-tertiary)] px-1">Recommended Actions</h3>
           <Card padding="sm" className="border-primary-500/20 bg-primary-500/5">
             <ul className="flex flex-col gap-3">
-              {copilotData.actions.map((action, idx) => (
+              {actions.map((action, idx) => (
                 <li key={idx} className="flex items-start gap-2.5 text-sm text-[var(--sf-text-secondary)] font-medium">
                   <CheckCircle2 className="w-4 h-4 text-primary-500 flex-shrink-0 mt-0.5" />
                   {action}
                 </li>
               ))}
+              {actions.length === 0 && (
+                <li className="flex justify-center text-sm text-[var(--sf-text-tertiary)]">
+                  No explicit actions mapped.
+                </li>
+              )}
             </ul>
           </Card>
         </div>
