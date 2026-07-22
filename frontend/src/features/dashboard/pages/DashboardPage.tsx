@@ -51,15 +51,18 @@ export function DashboardPage() {
   });
 
   useEffect(() => {
+    // The banner represents the GLOBAL plant status. We must publish the highest
+    // risk level across ALL zones, not the localized risk level of the active demo zone
+    // (which might be 'low' even if another zone is 'critical').
     if (riskEngineData.assessment) {
       usePlantStatusStore.getState().publish({
-        riskLevel: riskEngineData.assessment.risk_level,
+        riskLevel: store.globalRiskLevel,
         inEmergency: emergencyData.actions.length > 0,
         lastUpdated: riskEngineData.lastUpdated,
       });
     }
     return () => usePlantStatusStore.getState().clear();
-  }, [riskEngineData.assessment, emergencyData.actions, riskEngineData.lastUpdated]);
+  }, [riskEngineData.assessment, store.globalRiskLevel, emergencyData.actions, riskEngineData.lastUpdated]);
 
   const timelineEvents = useMemo(
     () =>

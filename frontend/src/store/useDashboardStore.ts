@@ -28,6 +28,7 @@ export interface DashboardStoreState {
   zones: ZoneOverview[] | null;
   assessment: CompoundRiskAssessment | null;
   explanation: RiskExplanation | null;
+  globalRiskLevel: SeverityLevel;
   emergencyActions: EmergencyActionItem[];
   recommendations: Recommendation[];
   compliance: ComplianceStatusSnapshot | null;
@@ -44,9 +45,10 @@ export interface DashboardStoreState {
 
 export const useDashboardStore = create<DashboardStoreState>((set, get) => ({
   summary: null,
-  zones: null,
+  zones: [],
   assessment: null,
   explanation: null,
+  globalRiskLevel: 'low',
   emergencyActions: [],
   recommendations: [],
   compliance: null,
@@ -103,6 +105,9 @@ export const useDashboardStore = create<DashboardStoreState>((set, get) => ({
           zones: zonesRes.data.data.zones,
           assessment: compoundRiskService.toRealAssessment(riskRes, activeDemoZone),
           explanation: compoundRiskService.toRealExplanation(riskRes, activeDemoZone),
+          globalRiskLevel: riskRes.results.length > 0 
+            ? [...riskRes.results].sort((a, b) => b.risk_score - a.risk_score)[0].risk_level 
+            : 'low',
           emergencyActions: emergencyResponseService.toActionItems(emergencyRes),
           recommendations: recRes.recommendations,
           compliance: compRes,
