@@ -190,12 +190,18 @@ function buildColumns(actions: ReportRowActions): TableColumn<Report>[] {
             size="sm"
             iconOnly
             aria-label="Report actions"
-            onClick={() => actions.setOpenMenuId(actions.openMenuId === row.id ? null : row.id)}
+            onClick={(e) => {
+              e.stopPropagation();
+              actions.setOpenMenuId(actions.openMenuId === row.id ? null : row.id);
+            }}
           >
             <MoreVertical className="w-4 h-4" />
           </Button>
           {actions.openMenuId === row.id && (
-            <div className="absolute top-full right-0 mt-1 w-52 bg-[var(--sf-surface-card)] border border-[var(--sf-border-default)] rounded-xl shadow-lg z-50 py-1">
+            <div
+              className="absolute top-full right-0 mt-1 w-52 bg-[var(--sf-surface-card)] border border-[var(--sf-border-default)] rounded-xl shadow-lg z-50 py-1"
+              onClick={(e) => e.stopPropagation()}
+            >
               <button
                 type="button"
                 className="w-full flex items-center gap-2 px-3 py-2 text-sm text-[var(--sf-text-primary)] hover:bg-[var(--sf-surface-sunken)] text-left"
@@ -633,6 +639,7 @@ export function ReportsPage() {
               keyExtractor={(r) => r.id}
               caption="Report history"
               loading={loading}
+              onRowClick={handleView}
             />
           )}
 
