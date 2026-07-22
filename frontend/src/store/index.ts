@@ -16,7 +16,7 @@ export { useCopilotStore }                   from './useCopilotStore';
 export type { CopilotConversationMeta }      from './useCopilotStore';
 
 // ─── Notifications ────────────────────────────────────────────────
-
+export { useNotificationStore, toast }       from './useNotificationStore';
 // ─── User ─────────────────────────────────────────────────────────
 export { useAuthStore }                      from './useAuthStore';
 // ─── Application ──────────────────────────────────────────────────
