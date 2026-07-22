@@ -74,7 +74,6 @@ export function PermitStatusSection() {
   const closedCount = permits.filter((p) => p.status === 'closed').length;
 
   const sorted = [...permits].sort((a, b) => permitPriority(b) - permitPriority(a));
-  const topPermits = sorted.slice(0, SUMMARY_LIMIT);
 
   return (
     <Card padding="none" className="h-full flex flex-col">
@@ -153,7 +152,7 @@ export function PermitStatusSection() {
 
               {/* Most urgent permits */}
               <div className="flex flex-col gap-2">
-                {topPermits.map((permit) => (
+                {sorted.map((permit) => (
                   <PermitStatusIndicator
                     key={permit.id}
                     permitId={permit.id}

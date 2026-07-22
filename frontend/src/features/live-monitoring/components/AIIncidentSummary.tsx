@@ -101,11 +101,13 @@ export function AIIncidentSummary({
         <div className="lg:col-span-5 p-6 border-b lg:border-b-0 lg:border-r border-[var(--sf-border-default)] bg-gradient-to-b from-transparent to-[var(--sf-surface-card)] flex flex-col justify-center">
           <div className="mb-6">
             <span className="text-2xs uppercase tracking-widest text-[var(--sf-text-tertiary)] mb-3 block">Detected Factors</span>
-            <div className="grid grid-cols-2 gap-3 mt-2">
+            <div className="flex flex-col gap-2 mt-2">
               {factors.map((factor, idx) => (
                 <div key={idx} className="flex items-center gap-2 text-sm text-[var(--sf-text-secondary)]">
                   <Check className="w-4 h-4 text-danger-400 flex-shrink-0" />
-                  <span className="font-medium">{factor.name}</span>
+                  <span className="font-medium truncate" title={factor.name}>
+                    {factor.name.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+                  </span>
                 </div>
               ))}
               {factors.length === 0 && (
@@ -115,12 +117,13 @@ export function AIIncidentSummary({
           </div>
           
           <div>
-            <span className="text-2xs uppercase tracking-widest text-[var(--sf-text-tertiary)] mb-3 block">Potential Escalation</span>
+            <span className="text-2xs uppercase tracking-widest text-[var(--sf-text-tertiary)] mb-3 block">Context & Escalation</span>
             <div className="flex items-start gap-3 p-3 rounded-lg border border-danger-500/30 bg-danger-500/10">
               <AlertTriangle className="w-5 h-5 text-danger-400 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm font-bold text-danger-300">{escalation.threat}</p>
-                <p className="text-xs text-danger-400/80 mt-1">{escalation.timeframe}</p>
+                <p className="text-sm font-medium text-danger-300">
+                  {explanation?.explanation || 'No explicit threat escalation details provided.'}
+                </p>
               </div>
             </div>
           </div>
@@ -134,7 +137,7 @@ export function AIIncidentSummary({
               {recommendations.slice(0, 4).map((action, idx) => (
                 <li key={idx} className="flex items-center gap-2 text-sm text-[var(--sf-text-secondary)] font-medium">
                   <div className="w-1.5 h-1.5 rounded-full bg-primary-400 flex-shrink-0" />
-                  <span>{action}</span>
+                  <span className="truncate" title={action}>{action}</span>
                 </li>
               ))}
               {recommendations.length === 0 && (

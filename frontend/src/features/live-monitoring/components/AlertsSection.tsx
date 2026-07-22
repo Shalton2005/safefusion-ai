@@ -108,7 +108,6 @@ export function AlertsSection() {
 
   const enhancedIncidents = useMemo(() => groupAndEnhanceIncidents(incidents), [incidents]);
   const criticalCount = enhancedIncidents.filter((i) => i.severity === 'critical').length;
-  const topIncidents = enhancedIncidents.slice(0, SUMMARY_LIMIT);
 
   return (
     <Card padding="none" className="h-full flex flex-col">
@@ -137,7 +136,7 @@ export function AlertsSection() {
         <QueryState
           loading={loading}
           error={error}
-          data={topIncidents}
+          data={enhancedIncidents}
           onRetry={refresh}
           errorTitle="Failed to load incidents"
           isEmpty={(d) => d.length === 0}
