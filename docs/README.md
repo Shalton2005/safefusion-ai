@@ -1,10 +1,11 @@
-# Docs
+# SafeFusion AI Documentation Hub
 
-Placeholder documentation hub for architecture, APIs, AI workflows, and operations.
+Welcome to the central documentation repository for SafeFusion AI. 
+This directory contains in-depth documentation covering all aspects of the platform's engineering, from system architecture to AI workflows.
 
-Planned areas:
+## Directory Structure
 
-- `architecture/` for system-level design docs
-- `api/` for interface and contract documentation
-- `ai/` for model, RAG, and graph workflow docs
-- `operations/` for deployment and runbook content
+- **[`architecture/`](./architecture/)**: High-level system design, backend/frontend paradigms, and data flow diagrams.
+- **[`api/`](./api/)**: REST API design, endpoint documentation, and authentication patterns.
+- **[`ai/`](./ai/)**: Details on the AI Safety Copilot, LangGraph agents, Computer Vision pipeline, and RAG/Knowledge Graph integration.
+- **[`operations/`](./operations/)**: Deployment guidelines, Docker orchestration, and environment configuration.
