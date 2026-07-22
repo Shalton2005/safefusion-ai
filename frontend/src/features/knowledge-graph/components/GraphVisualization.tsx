@@ -97,9 +97,9 @@ function applyForceLayout(nodes: GraphNode[], edges: GraphEdge[]): GraphNode[] {
   const d3Edges = edges.map(e => ({ source: e.source, target: e.target }));
 
   const simulation = d3.forceSimulation(d3Nodes)
-    .force('link', d3.forceLink(d3Edges).id((d: any) => d.id).distance(140))
-    .force('charge', d3.forceManyBody().strength(-200))
-    .force('collide', d3.forceCollide().radius(50))
+    .force('link', d3.forceLink(d3Edges).id((d: any) => d.id).distance(90))
+    .force('charge', d3.forceManyBody().strength(-120))
+    .force('collide', d3.forceCollide().radius(45))
     .force('center', d3.forceCenter(0, 0))
     .stop();
 
