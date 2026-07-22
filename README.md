@@ -1,5 +1,5 @@
 <div align="center">
-  <h1>🛡️ SafeFusion AI</h1>
+  <h1><img src="frontend/public/logo.png" width="50" style="vertical-align: middle; margin-right: 10px;" />SafeFusion AI</h1>
   <p><strong>AI-Powered Industrial Safety Intelligence Platform for Zero-Harm Operations</strong></p>
   <p>
     <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License" />
@@ -35,12 +35,9 @@
   - [Running Frontend](#running-frontend)
 - [Docker](#-docker)
 - [Environment Variables](#-environment-variables)
-- [Demo & Screenshots](#-demo--screenshots)
 - [Team](#-team)
 - [Future Scope](#-future-scope)
 - [License](#-license)
-- [Acknowledgements](#-acknowledgements)
-
 ---
 
 ## 📖 Project Overview
@@ -221,30 +218,10 @@ Key variables in `backend/.env`:
 - `NEO4J_URI` / `NEO4J_USER` / `NEO4J_PASSWORD`: Graph DB credentials.
 - `OLLAMA_BASE_URL`: URL to the local Ollama instance (default: `http://localhost:11434`).
 
----
-
-## 🎥 Demo & Screenshots
-
-### Application Demo
-![Demo](docs/demo.gif)
-*(Placeholder: Add an animated GIF of the dashboard in action at `docs/demo.gif`)*
-
-### Live CCTV & AI Supervisor
-![Dashboard](docs/dashboard.png)
-*(Placeholder: Add a screenshot of the main dashboard at `docs/dashboard.png`)*
-
-### Compound Risk Heatmap
-![Heatmap](docs/heatmap.png)
-*(Placeholder: Add a screenshot of the spatial heatmap at `docs/heatmap.png`)*
-
----
-
 ## 👥 Team
 
-- **[Team Member 1]** - Role / Contribution
-- **[Team Member 2]** - Role / Contribution
-- **[Team Member 3]** - Role / Contribution
-*(Placeholder: Add team member details)*
+- **Shalton Menezes** – Backend, AI, Architecture
+- **Luke Roman Noronha** – Frontend, UI/UX
 
 ---
 
@@ -260,13 +237,3 @@ Key variables in `backend/.env`:
 ## 📜 License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
-
----
-
-## 🙏 Acknowledgements
-
-- [FastAPI](https://fastapi.tiangolo.com/) for the blazing fast backend framework.
-- [Ollama](https://ollama.ai/) for seamless local LLM orchestration.
-- [LangChain & LangGraph](https://www.langchain.com/) for agentic workflows.
-- [Ultralytics YOLO](https://ultralytics.com/) for state-of-the-art computer vision models.
-- [Neo4j](https://neo4j.com/) for the graph database topology.
