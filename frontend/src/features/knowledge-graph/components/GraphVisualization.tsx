@@ -26,6 +26,7 @@ import {
   type Node,
   type Edge,
   type NodeMouseHandler,
+  MarkerType,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { cn } from '@/lib/cn';
@@ -123,8 +124,8 @@ function applyConcentricLayout(nodes: GraphNode[]): GraphNode[] {
     const total = ringNodes.length;
     if (total === 0) return;
     
-    // Ensure circumference is large enough for all nodes to fit side by side (approx 250px + 50px gap)
-    const requiredCircumference = total * 300;
+    // Ensure circumference is large enough for all nodes to fit side by side (approx 140px width + 30px gap)
+    const requiredCircumference = total * 170;
     const requiredRadius = requiredCircumference / (2 * Math.PI);
     
     currentRadius = Math.max(currentRadius + minGap, requiredRadius);
@@ -142,9 +143,9 @@ function applyConcentricLayout(nodes: GraphNode[]): GraphNode[] {
   };
 
   distribute(ring0, 0); 
-  distribute(ring1, 400); // Add at least 400px gap from previous ring
-  distribute(ring2, 400);
-  distribute(ring3, 400);
+  distribute(ring1, 200); // Tighter gaps between rings
+  distribute(ring2, 200);
+  distribute(ring3, 200);
 
   return cloned;
 }
@@ -170,10 +171,10 @@ function toFlowNode(node: GraphNode, index: number, selectedNodeId?: string | nu
       border: `2px solid ${kindColorMap[kind]}`,
       background: 'var(--sf-surface-card)',
       color: 'var(--sf-text-primary)',
-      fontSize: 12,
+      fontSize: 10,
       fontWeight: 500,
-      padding: '8px 14px',
-      width: 220,
+      padding: '4px 8px',
+      width: 140,
       whiteSpace: 'nowrap',
       overflow: 'hidden',
       textOverflow: 'ellipsis',
@@ -190,8 +191,14 @@ function toFlowEdge(edge: GraphEdge): Edge {
     label: edge.label,
     animated: edge.animated ?? false,
     style: { stroke: 'var(--sf-border-strong)', strokeWidth: 1.5, opacity: 0.7 },
-    labelStyle: { fill: 'var(--sf-text-secondary)', fontSize: 11 },
-    labelBgStyle: { fill: 'var(--sf-surface-card)' },
+    labelStyle: { fill: 'var(--sf-text-secondary)', fontSize: 10 },
+    labelBgStyle: { fill: 'var(--sf-surface-card)', padding: [2, 4] },
+    markerEnd: {
+      type: MarkerType.ArrowClosed,
+      width: 15,
+      height: 15,
+      color: 'var(--sf-border-strong)',
+    },
   };
 }
 
