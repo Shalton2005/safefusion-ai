@@ -79,10 +79,7 @@ export function TopNav() {
       <div className="hidden md:flex w-full max-w-sm items-center justify-center">
         <Badge variant="primary" className="flex items-center gap-2 px-4 py-1.5 shadow-sm border border-primary-500/20 bg-primary-500/10 text-primary-400">
           <Activity className="w-4 h-4 animate-pulse text-primary-400" />
-          <div className="flex flex-col">
-            <span className="font-medium tracking-wide">Global Manufacturing Facility • Active Shift</span>
-            <span className="text-[10px] uppercase tracking-wider text-[var(--sf-text-tertiary)] font-bold mt-0.5">Production Line A</span>
-          </div>
+          <span className="font-medium tracking-wide">Global Manufacturing Facility • Active Shift</span>
         </Badge>
       </div>
 
