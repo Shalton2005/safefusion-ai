@@ -14,6 +14,8 @@ import {
 import { ChartCard } from '@/components/charts';
 import { SafetyHeatmapContainer } from '@/features/live-monitoring/components/SafetyHeatmapContainer';
 import { LineChart, Line, ReferenceLine, Legend, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell } from 'recharts';
+import { usePolling } from '@/hooks/usePolling';
+import { FAST_REFRESH_INTERVAL } from '@/constants';
 
 interface MetricCardProps {
   label: string;
@@ -163,11 +165,9 @@ export function AnalyticsPage() {
 
   const [hoveredZoneIndex, setHoveredZoneIndex] = useState<number | null>(null);
 
-  useEffect(() => {
-    const controller = new AbortController();
-    fetchData(controller.signal);
-    return () => controller.abort();
-  }, [fetchData]);
+  const { refresh } = usePolling(async (signal) => {
+    await fetchData(signal);
+  }, FAST_REFRESH_INTERVAL);
 
   const scrollTo = (id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
