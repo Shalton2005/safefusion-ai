@@ -97,10 +97,12 @@ function applyForceLayout(nodes: GraphNode[], edges: GraphEdge[]): GraphNode[] {
   const d3Edges = edges.map(e => ({ source: e.source, target: e.target }));
 
   const simulation = d3.forceSimulation(d3Nodes)
-    .force('link', d3.forceLink(d3Edges).id((d: any) => d.id).distance(120))
-    .force('charge', d3.forceManyBody().strength(-300))
-    .force('collide', d3.forceCollide().radius(60))
+    .force('link', d3.forceLink(d3Edges).id((d: any) => d.id).distance(60))
+    .force('charge', d3.forceManyBody().strength(-60))
+    .force('collide', d3.forceCollide().radius(45))
     .force('center', d3.forceCenter(0, 0))
+    .force('x', d3.forceX().strength(0.1))
+    .force('y', d3.forceY().strength(0.1))
     .stop();
 
   for (let i = 0; i < 300; ++i) {
@@ -134,13 +136,13 @@ function toFlowEdge(edge: GraphEdge): Edge {
     label: edge.label,
     type: 'straight',
     animated: edge.animated ?? false,
-    style: { stroke: 'var(--sf-text-secondary)', strokeWidth: 1.5, opacity: 0.6 },
-    labelStyle: { fill: 'var(--sf-text-primary)', fontSize: 10, fontWeight: 500 },
-    labelBgStyle: { fill: 'var(--sf-surface-hover)', padding: [2, 4], borderRadius: 4 },
+    style: { stroke: 'var(--sf-text-secondary)', strokeWidth: 3, opacity: 0.8 },
+    labelStyle: { fill: 'var(--sf-text-primary)', fontSize: 11, fontWeight: 600 },
+    labelBgStyle: { fill: 'var(--sf-surface-hover)', padding: [4, 6], borderRadius: 4 },
     markerEnd: {
       type: MarkerType.ArrowClosed,
-      width: 15,
-      height: 15,
+      width: 20,
+      height: 20,
       color: 'var(--sf-text-secondary)',
     },
   };
@@ -218,6 +220,10 @@ function GraphVisualizationInner({
         proOptions={{ hideAttribution: true }}
       >
         <Background variant={BackgroundVariant.Dots} gap={16} size={1} />
+        <Controls 
+          position="bottom-left" 
+          className="overflow-hidden border border-[var(--sf-border-default)] rounded-md shadow-lg [&>button]:bg-[var(--sf-surface-card)] [&>button]:border-b [&>button]:border-[var(--sf-border-default)] [&>button>svg]:fill-[var(--sf-text-primary)] hover:[&>button]:bg-[var(--sf-surface-hover)]"
+        />
         {showMiniMap && (
           <MiniMap
             pannable

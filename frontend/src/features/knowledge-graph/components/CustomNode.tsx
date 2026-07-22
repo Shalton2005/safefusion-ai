@@ -40,9 +40,9 @@ function CustomNodeComponent({ data, selected }: { data: CustomNodeData; selecte
         </span>
       </div>
 
-      {/* Invisible handles to connect edges exactly to the top/bottom edges of the bubble */}
-      <Handle type="target" position={Position.Top} className="!opacity-0 !w-0 !h-0" />
-      <Handle type="source" position={Position.Bottom} className="!opacity-0 !w-0 !h-0" />
+      {/* Visible handles to connect edges exactly to the top/bottom edges of the bubble */}
+      <Handle type="target" position={Position.Top} className="!w-3 !h-3 !bg-[var(--sf-text-secondary)] !border-2 !border-[var(--sf-surface-sunken)] z-0" />
+      <Handle type="source" position={Position.Bottom} className="!w-3 !h-3 !bg-[var(--sf-text-secondary)] !border-2 !border-[var(--sf-surface-sunken)] z-0" />
     </div>
   );
 }
