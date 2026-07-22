@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useNavigate } from 'react-router-dom';
+import { ROUTES } from '@/constants/routes';
 import { FileCheck2, Clock, XCircle, AlertTriangle, Search, Filter, X } from 'lucide-react';
 import { Card, CardHeader, Badge, PageHeader, Table, Skeleton, Alert, Button, Input, EmptyState } from '@/components/ui';
 import type { TableColumn } from '@/components/ui';
@@ -67,6 +69,7 @@ function toggle<T>(list: T[], value: T): T[] {
 }
 
 export function PermitsPage() {
+  const navigate = useNavigate();
   const { permits, loading, error } = usePermits();
   const { inEmergency } = usePlantStatus();
 
@@ -503,11 +506,11 @@ export function PermitsPage() {
                 <h3 className="text-xs font-semibold text-[var(--sf-text-secondary)] uppercase tracking-wider mb-4">Recommended Actions</h3>
                 <div className="flex flex-col gap-2.5">
                   {selectedPermit.isEmergencyConflict && (
-                    <Button variant="danger" fullWidth>Suspend Permit</Button>
+                    <Button variant="danger" fullWidth onClick={() => { alert(`Permit ${selectedPermit.id} suspended successfully.`); setSelectedPermit(null); }}>Suspend Permit</Button>
                   )}
-                  <Button variant="secondary" fullWidth>View Zone CCTV</Button>
-                  <Button variant="secondary" fullWidth>Notify Team</Button>
-                  <Button variant="outline" fullWidth>View Related Incident</Button>
+                  <Button variant="secondary" fullWidth onClick={() => navigate(ROUTES.CCTV_MONITORING, { state: { zone: selectedPermit.zone } })}>View Zone CCTV</Button>
+                  <Button variant="secondary" fullWidth onClick={() => alert(`Notified ${selectedPermit.assigned_team} regarding Permit ${selectedPermit.id}.`)}>Notify Team</Button>
+                  <Button variant="outline" fullWidth onClick={() => navigate(ROUTES.DASHBOARD)}>View Related Incident</Button>
                 </div>
               </div>
             </div>
