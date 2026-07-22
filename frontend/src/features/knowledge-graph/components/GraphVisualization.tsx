@@ -87,42 +87,34 @@ const kindColorMap: Record<GraphNodeKind, string> = Object.fromEntries(
   Object.entries(GRAPH_TYPE_META).map(([kind, meta]) => [kind, meta.color]),
 ) as Record<GraphNodeKind, string>;
 
-import dagre from 'dagre';
+import * as d3 from 'd3-force';
 
-function applyDagreLayout(nodes: GraphNode[], edges: GraphEdge[], direction = 'LR'): GraphNode[] {
-  const dagreGraph = new dagre.graphlib.Graph();
-  dagreGraph.setDefaultEdgeLabel(() => ({}));
-  
-  // Configure the layout algorithm
-  dagreGraph.setGraph({ 
-    rankdir: direction, // Left to Right
-    nodesep: 50,       // Vertical separation between nodes
-    ranksep: 200,      // Horizontal separation between layers
-    edgesep: 20,
-  });
+function applyForceLayout(nodes: GraphNode[], edges: GraphEdge[]): GraphNode[] {
+  // We need to pass objects that d3-force can mutate with x/y properties
+  const d3Nodes = nodes.map(n => ({ ...n, x: 0, y: 0 }));
+  const d3Edges = edges.map(e => ({ source: e.source, target: e.target }));
 
-  nodes.forEach((node) => {
-    // Standard node width based on current styling
-    dagreGraph.setNode(node.id, { width: 250, height: 60 });
-  });
+  const simulation = d3.forceSimulation(d3Nodes)
+    .force('link', d3.forceLink(d3Edges).id((d: any) => d.id).distance(150))
+    .force('charge', d3.forceManyBody().strength(-400))
+    .force('collide', d3.forceCollide().radius(80))
+    .force('center', d3.forceCenter(0, 0))
+    .stop();
 
-  edges.forEach((edge) => {
-    dagreGraph.setEdge(edge.source, edge.target);
-  });
+  // Run the simulation synchronously to compute the layout before rendering!
+  // 300 ticks is generally enough for the graph to settle nicely.
+  for (let i = 0; i < 300; ++i) {
+    simulation.tick();
+  }
 
-  dagre.layout(dagreGraph);
-
-  // Return exactly the original array order but with positions populated
-  return nodes.map(n => {
-    const nodeWithPosition = dagreGraph.node(n.id);
-    return {
-      ...n,
-      position: {
-        x: nodeWithPosition.x - 250 / 2,
-        y: nodeWithPosition.y - 60 / 2,
-      }
-    };
-  });
+  // Map the computed positions back to our nodes
+  return nodes.map((n, i) => ({
+    ...n,
+    position: {
+      x: d3Nodes[i].x - 110, // offset half width
+      y: d3Nodes[i].y - 30,  // offset half height
+    }
+  }));
 }
 
 const GRID_COLUMNS = 4;
@@ -201,7 +193,7 @@ function GraphVisualizationInner({
   );
 
   const flowNodes = useMemo(() => {
-    const layoutedNodes = applyDagreLayout(nodes, edges);
+    const layoutedNodes = applyForceLayout(nodes, edges);
     return layoutedNodes.map((node, index) => toFlowNode(node, index, selectedNodeId));
   }, [nodes, edges, selectedNodeId]);
   const flowEdges = useMemo(() => edges.map(toFlowEdge), [edges]);
@@ -243,6 +235,11 @@ function GraphVisualizationInner({
         proOptions={{ hideAttribution: true }}
       >
         <Background variant={BackgroundVariant.Dots} gap={16} size={1} />
+        <Controls 
+          position="bottom-left" 
+          showInteractive={false} 
+          className="bg-[var(--sf-surface-card)] border border-[var(--sf-border-default)] shadow-xl rounded-lg overflow-hidden [&>button]:border-b [&>button]:border-[var(--sf-border-default)] [&>button]:text-[var(--sf-text-secondary)] [&>button:hover]:bg-[var(--sf-surface-hover)] [&>button]:bg-[var(--sf-surface-card)]"
+        />
         {showMiniMap && (
           <MiniMap
             pannable
