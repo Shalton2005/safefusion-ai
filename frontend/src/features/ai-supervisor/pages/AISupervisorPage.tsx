@@ -75,7 +75,7 @@ export function AISupervisorPage() {
       <AISupervisorCard snapshot={snapshot} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-4">
-        <Card className="flex flex-col lg:col-span-1">
+        <Card className="flex flex-col lg:col-span-1 max-h-[800px]">
           <CardHeader title="What did the AI decide?" description="Chronological log of AI judgements and executed actions" />
           <CardContent className="flex-1 overflow-hidden">
             <DecisionTimeline
@@ -89,34 +89,37 @@ export function AISupervisorPage() {
           </CardContent>
         </Card>
 
-        <Card className="flex flex-col lg:col-span-2">
-          <CardHeader title="Why? & What evidence supports it?" description="Full breakdown of why the AI Supervisor made this call" />
-          <CardContent className="flex-1 overflow-hidden">
-            <ExplainableAIPanel
-              data={selectedDecision ? aiSupervisorService.toExplainableAIData(selectedDecision) : null}
-            />
-          </CardContent>
-        </Card>
-      </div>
+        <div className="flex flex-col gap-4 lg:col-span-2">
+          <Card className="flex-1 flex flex-col">
+            <CardHeader title="Why? & What evidence supports it?" description="Full breakdown of why the AI Supervisor made this call" />
+            <CardContent className="flex-1 overflow-hidden">
+              <ExplainableAIPanel
+                data={selectedDecision ? aiSupervisorService.toExplainableAIData(selectedDecision) : null}
+              />
+            </CardContent>
+          </Card>
 
-      <Card className="mt-4">
-        <CardHeader
-          title="What actions were taken?"
-          description="AI-surfaced recommendations via POST /ai/recommend"
-          action={
-            <Button size="sm" variant="outline" onClick={aiRecommend.refresh} leftIcon={<RotateCw className="w-3.5 h-3.5" />}>
-              Refresh
-            </Button>
-          }
-        />
-        <CardContent>
-          <AIRecommendationCardGrid
-            recommendations={aiRecommend.recommendations}
-            loading={aiRecommend.loading}
-            error={aiRecommend.error}
-          />
-        </CardContent>
-      </Card>
+          <Card className="flex-1 flex flex-col">
+            <CardHeader
+              title="What actions were taken?"
+              description="AI-surfaced recommendations via POST /ai/recommend"
+              action={
+                <Button size="sm" variant="outline" onClick={aiRecommend.refresh} leftIcon={<RotateCw className="w-3.5 h-3.5" />}>
+                  Refresh
+                </Button>
+              }
+            />
+            <CardContent className="flex-1">
+              <AIRecommendationCardGrid
+                recommendations={aiRecommend.recommendations}
+                loading={aiRecommend.loading}
+                error={aiRecommend.error}
+                className="xl:grid-cols-2"
+              />
+            </CardContent>
+          </Card>
+        </div>
+      </div>
 
       <div className="mt-6">
         <Collapsible title="Advanced Diagnostics" description="Technical details, raw AI reasoning, and data pipelines" defaultOpen={false}>
