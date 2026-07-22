@@ -36,7 +36,7 @@ function CustomNodeComponent({ data, selected }: { data: CustomNodeData; selecte
       <div className={`absolute top-full mt-2 text-center pointer-events-none z-20 transition-all duration-200
         ${selected ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 -translate-y-2 scale-95 group-hover:opacity-100 group-hover:translate-y-0 group-hover:scale-100'}
       `}>
-        <span className="text-[11px] font-semibold text-[var(--sf-text-primary)] bg-[var(--sf-surface-card)]/90 border border-[var(--sf-border-default)] backdrop-blur-sm px-2 py-0.5 rounded shadow-lg whitespace-nowrap">
+        <span className="text-sm font-semibold text-[var(--sf-text-primary)] bg-[var(--sf-surface-card)]/95 border border-[var(--sf-border-default)] backdrop-blur-sm px-3 py-1 rounded shadow-lg whitespace-nowrap">
           {data.label}
         </span>
       </div>
