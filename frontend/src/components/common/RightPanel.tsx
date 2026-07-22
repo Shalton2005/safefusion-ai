@@ -1,25 +1,23 @@
 import { useId } from 'react';
 import { PanelRightClose, X } from 'lucide-react';
 import { cn } from '@/lib/cn';
-import { useRightPanelStore } from '@/store';
+import { useRightPanelStore, toast } from '@/store';
 import { ActivityPanel } from '@/components/common/activity-panel';
 import { Button } from '@/components/ui';
 
 import { formatRelativeTime } from '@/utils/format';
 import { useRecentAlerts } from '@/features/alerts/hooks/useRecentAlerts';
 import type { ActivityFeedItem } from '@/components/common/activity-panel/types';
+import { alertsService } from '@/services/alerts.service';
 
 export function RightPanel() {
   const open = useRightPanelStore((s) => s.open);
   const setOpen = useRightPanelStore((s) => s.setOpen);
-  const clearedAt = useRightPanelStore((s) => s.clearedAt);
-  const setClearedAt = useRightPanelStore((s) => s.setClearedAt);
   const headingId = useId();
 
   const alertsData = useRecentAlerts({ limit: 10 });
   
   const alertsFeed = alertsData.alerts
-    .filter(a => new Date(a.generated_at).getTime() > clearedAt || clearedAt === 0)
     .map((a): ActivityFeedItem => ({
       id: a.id,
       title: a.alert_type,
@@ -28,6 +26,16 @@ export function RightPanel() {
       badgeLabel: a.zone,
       tone: a.severity === 'critical' ? 'danger' : a.severity === 'high' ? 'warning' : 'primary',
     }));
+
+  const handleClearAll = async () => {
+    try {
+      await alertsService.clearAllAlerts();
+      toast.success('All alerts cleared globally.');
+      alertsData.refresh();
+    } catch (e) {
+      toast.error('Failed to clear alerts.');
+    }
+  };
 
   if (!open) return null;
 
@@ -43,7 +51,7 @@ export function RightPanel() {
         <h2 id={headingId} className="text-sm font-semibold text-[var(--sf-text-primary)]">Alerts &amp; Activity</h2>
         <div className="flex items-center gap-2">
           {alertsFeed.length > 0 && (
-            <Button variant="ghost" size="sm" className="text-xs text-[var(--sf-text-tertiary)] hover:text-[var(--sf-text-primary)]" onClick={() => setClearedAt(Date.now())}>
+            <Button variant="ghost" size="sm" className="text-xs text-[var(--sf-text-tertiary)] hover:text-[var(--sf-text-primary)]" onClick={handleClearAll}>
               Clear All
             </Button>
           )}

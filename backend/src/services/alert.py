@@ -26,6 +26,8 @@ class AlertRepositoryPort(Protocol):
 
     def delete(self, record_id: UUID) -> bool: ...
 
+    def delete_all(self) -> int: ...
+
 
 class AlertAIPipelinePort(Protocol):
     """Optional AI extension points for alert lifecycle events."""
@@ -71,3 +73,6 @@ class AlertService:
         if deleted and self._ai_pipeline is not None:
             self._ai_pipeline.on_alert_deleted(alert_id)
         return deleted
+
+    def delete_all_alerts(self) -> int:
+        return self._repository.delete_all()

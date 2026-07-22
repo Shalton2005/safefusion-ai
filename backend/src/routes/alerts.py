@@ -183,3 +183,12 @@ def resolve_alert(alert_id: UUID, service: AlertServiceDep) -> AlertRead:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Alert not found.")
     return AlertRead.model_validate(alert)
 
+@router.delete(
+    "/all",
+    summary="Delete all alerts",
+    description="Deletes all alert records from the system. Used to clear the dashboard.",
+    status_code=status.HTTP_200_OK,
+)
+def clear_all_alerts(service: AlertServiceDep) -> dict:
+    deleted = service.delete_all_alerts()
+    return {"message": "All alerts cleared.", "deleted_count": deleted}

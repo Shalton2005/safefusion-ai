@@ -310,6 +310,23 @@ export function AlertsPage() {
         description="Monitor, acknowledge, and resolve safety alerts."
         actions={
           <div className="flex items-center gap-2">
+            <Button
+              variant="danger"
+              size="sm"
+              onClick={async () => {
+                if (window.confirm("Are you sure you want to delete all alerts? This action cannot be undone.")) {
+                  try {
+                    await alertsService.clearAllAlerts();
+                    toast.success('All alerts cleared successfully.');
+                    refresh();
+                  } catch (e) {
+                    toast.error('Failed to clear alerts.');
+                  }
+                }
+              }}
+            >
+              Clear All Alerts
+            </Button>
             <div className="relative inline-block">
               <Button 
                 variant={filterSeverity || filterStatus || filterInsight || filterLocation ? 'primary' : 'outline'} 
