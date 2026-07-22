@@ -91,45 +91,42 @@ export function SafetyHeatmapContainer({ overlays }: SafetyHeatmapContainerProps
       />
 
       <div className="p-4 flex flex-col gap-4 flex-1 min-h-[400px]">
-        {/* Interactive Legends */}
-        <div className="flex flex-col gap-3 px-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <Button variant={layers.incidents ? 'secondary' : 'ghost'} size="sm" onClick={() => toggleLayer('incidents')} className="h-7 text-xs px-2">
-              <span className="w-2 h-2 rounded-full mr-1.5 bg-[var(--sf-danger)]" /> Incidents
-            </Button>
-            <Button variant={layers.workers ? 'secondary' : 'ghost'} size="sm" onClick={() => toggleLayer('workers')} className="h-7 text-xs px-2">
-              <div className="w-3 h-3 rounded-full bg-blue-500/20 border border-blue-500 flex items-center justify-center mr-1.5"><div className="w-1 h-1 bg-blue-500 rounded-full" /></div>
-              Workers
-            </Button>
-            <Button variant={layers.permits ? 'secondary' : 'ghost'} size="sm" onClick={() => toggleLayer('permits')} className="h-7 text-xs px-2">
-              <div className="w-3 h-3 rounded-md bg-amber-500/20 border border-amber-500 mr-1.5" />
-              Permits
-            </Button>
-            <Button variant={layers.cameras ? 'secondary' : 'ghost'} size="sm" onClick={() => toggleLayer('cameras')} className="h-7 text-xs px-2">
-              <div className="w-3 h-3 rounded-full bg-purple-500/20 border border-purple-500 mr-1.5" />
-              Cameras
-            </Button>
-            <Button variant={layers.sensors ? 'secondary' : 'ghost'} size="sm" onClick={() => toggleLayer('sensors')} className="h-7 text-xs px-2">
-              <div className="w-3 h-3 rounded-sm bg-emerald-500/20 border border-emerald-500 mr-1.5" />
-              Gas Sensors
-            </Button>
-            <Button variant={layers.evacuation ? 'secondary' : 'ghost'} size="sm" onClick={() => toggleLayer('evacuation')} className="h-7 text-xs px-2">
-              <span className="w-3 h-1 rounded-full bg-[var(--sf-safe)] mr-1.5" />
-              Evacuation Path
-            </Button>
-          </div>
-        </div>
+        {/* The legend will be moved inside the map container */}
 
         {!overlays ? (
             <Skeleton className="w-full h-full" />
           ) : (
             <>
-              <div className="relative w-full h-full overflow-hidden border border-[var(--sf-border-default)] rounded-xl bg-[var(--sf-surface-base)]">
+              <div className="relative w-full h-full overflow-hidden border border-[var(--sf-border-default)] rounded-xl bg-slate-950">
+                {/* Floating Legends */}
+                <div className="absolute top-4 left-4 z-10 flex flex-wrap gap-2 max-w-[70%]">
+                  <button onClick={() => toggleLayer('incidents')} className={cn("flex items-center h-8 rounded-full backdrop-blur-md border border-slate-700/50 text-xs px-3 shadow-lg transition-all", layers.incidents ? "bg-slate-800/90 text-white" : "bg-slate-900/50 text-slate-400 hover:bg-slate-800/70")}>
+                    <span className="w-2 h-2 rounded-full mr-2 bg-danger-500 shadow-[0_0_8px_var(--sf-danger)]" /> Incidents
+                  </button>
+                  <button onClick={() => toggleLayer('workers')} className={cn("flex items-center h-8 rounded-full backdrop-blur-md border border-slate-700/50 text-xs px-3 shadow-lg transition-all", layers.workers ? "bg-slate-800/90 text-white" : "bg-slate-900/50 text-slate-400 hover:bg-slate-800/70")}>
+                    <div className="w-3 h-3 rounded-full bg-blue-500/20 border border-blue-500 flex items-center justify-center mr-2"><div className="w-1 h-1 bg-blue-500 rounded-full" /></div> Workers
+                  </button>
+                  <button onClick={() => toggleLayer('permits')} className={cn("flex items-center h-8 rounded-full backdrop-blur-md border border-slate-700/50 text-xs px-3 shadow-lg transition-all", layers.permits ? "bg-slate-800/90 text-white" : "bg-slate-900/50 text-slate-400 hover:bg-slate-800/70")}>
+                    <div className="w-3 h-3 rounded-md bg-amber-500/20 border border-amber-500 mr-2" /> Permits
+                  </button>
+                  <button onClick={() => toggleLayer('cameras')} className={cn("flex items-center h-8 rounded-full backdrop-blur-md border border-slate-700/50 text-xs px-3 shadow-lg transition-all", layers.cameras ? "bg-slate-800/90 text-white" : "bg-slate-900/50 text-slate-400 hover:bg-slate-800/70")}>
+                    <div className="w-3 h-3 rounded-full bg-purple-500/20 border border-purple-500 mr-2" /> Cameras
+                  </button>
+                  <button onClick={() => toggleLayer('sensors')} className={cn("flex items-center h-8 rounded-full backdrop-blur-md border border-slate-700/50 text-xs px-3 shadow-lg transition-all", layers.sensors ? "bg-slate-800/90 text-white" : "bg-slate-900/50 text-slate-400 hover:bg-slate-800/70")}>
+                    <div className="w-3 h-3 rounded-sm bg-emerald-500/20 border border-emerald-500 mr-2" /> Gas Sensors
+                  </button>
+                  <button onClick={() => toggleLayer('evacuation')} className={cn("flex items-center h-8 rounded-full backdrop-blur-md border border-slate-700/50 text-xs px-3 shadow-lg transition-all", layers.evacuation ? "bg-slate-800/90 text-white" : "bg-slate-900/50 text-slate-400 hover:bg-slate-800/70")}>
+                    <span className="w-3 h-1 rounded-full bg-safe-500 mr-2" /> Evacuation Path
+                  </button>
+                </div>
+
                 {/* Map Controls */}
-                <div className="absolute top-4 right-4 z-10 flex flex-col gap-1 bg-[var(--sf-surface-card)] rounded-lg shadow-sm border border-[var(--sf-border-default)] p-1">
-                  <Button variant="ghost" size="sm" className="px-2" onClick={zoomIn} title="Zoom In"><ZoomIn className="w-4 h-4" /></Button>
-                  <Button variant="ghost" size="sm" className="px-2" onClick={zoomOut} title="Zoom Out"><ZoomOut className="w-4 h-4" /></Button>
-                  <Button variant="ghost" size="sm" className="px-2" onClick={resetZoom} title="Reset"><Maximize className="w-4 h-4" /></Button>
+                <div className="absolute bottom-6 right-6 z-10 flex flex-col gap-1.5 bg-slate-900/80 backdrop-blur-md rounded-xl shadow-2xl border border-slate-700/50 p-1.5 overflow-hidden">
+                  <Button variant="ghost" size="sm" className="px-2 hover:bg-slate-800 text-slate-300" onClick={zoomIn} title="Zoom In"><ZoomIn className="w-4.5 h-4.5" /></Button>
+                  <div className="w-full h-px bg-slate-700/50" />
+                  <Button variant="ghost" size="sm" className="px-2 hover:bg-slate-800 text-slate-300" onClick={zoomOut} title="Zoom Out"><ZoomOut className="w-4.5 h-4.5" /></Button>
+                  <div className="w-full h-px bg-slate-700/50" />
+                  <Button variant="ghost" size="sm" className="px-2 hover:bg-slate-800 text-slate-300" onClick={resetZoom} title="Reset"><Maximize className="w-4.5 h-4.5" /></Button>
                 </div>
               <svg 
                 viewBox={`0 0 ${SVG_WIDTH} ${SVG_HEIGHT}`} 
@@ -144,8 +141,12 @@ export function SafetyHeatmapContainer({ overlays }: SafetyHeatmapContainerProps
               >
                 <defs>
                   <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-                    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="var(--sf-border-default)" strokeWidth="0.5" strokeOpacity="0.5"/>
+                    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(148, 163, 184, 0.1)" strokeWidth="1"/>
                   </pattern>
+                  <radialGradient id="radarGlow" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stopColor="var(--sf-primary-500)" stopOpacity="0.08" />
+                    <stop offset="100%" stopColor="var(--sf-primary-900)" stopOpacity="0" />
+                  </radialGradient>
                   <filter id="glow">
                     <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
                     <feMerge>
@@ -154,6 +155,7 @@ export function SafetyHeatmapContainer({ overlays }: SafetyHeatmapContainerProps
                     </feMerge>
                   </filter>
                 </defs>
+                <rect width="100%" height="100%" fill="url(#radarGlow)" />
                 <rect width="100%" height="100%" fill="url(#grid)" />
                 <g style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${scale})`, transformOrigin: 'center', transition: isDragging ? 'none' : 'transform 0.1s ease-out' }}>
 
@@ -166,10 +168,11 @@ export function SafetyHeatmapContainer({ overlays }: SafetyHeatmapContainerProps
                       width={zone.width} 
                       height={zone.height} 
                       fill={zone.color} 
-                      fillOpacity={zone.opacity || 1}
-                      stroke="var(--sf-border-strong)" 
-                      strokeWidth="2" 
-                      rx="8"
+                      fillOpacity={zone.opacity ? zone.opacity * 0.5 : 0.04}
+                      stroke={zone.color} 
+                      strokeWidth="1.5" 
+                      strokeDasharray="6 4"
+                      rx="12"
                     />
                     <text 
                       x={zone.x + 16} 
@@ -383,14 +386,14 @@ export function SafetyHeatmapContainer({ overlays }: SafetyHeatmapContainerProps
                 <div 
                   className="absolute pointer-events-none z-50 transform -translate-x-1/2 -translate-y-full"
                   style={{
-                    left: `${(activeTooltip.x / SVG_WIDTH) * 100}%`,
-                    top: `calc(${(activeTooltip.y / SVG_HEIGHT) * 100}% - 4px)`
+                    left: `${((activeTooltip.x * scale + pan.x) / SVG_WIDTH) * 100}%`,
+                    top: `calc(${((activeTooltip.y * scale + pan.y) / SVG_HEIGHT) * 100}% - 4px)`
                   }}
                 >
-                  <div className="bg-slate-900/95 backdrop-blur-sm border border-slate-700 text-slate-100 rounded-lg p-3 shadow-2xl animate-in fade-in zoom-in-95 duration-200 whitespace-nowrap">
+                  <div className="bg-slate-900/95 backdrop-blur-md border border-slate-700/80 text-slate-100 rounded-xl p-3.5 shadow-xl animate-in fade-in zoom-in-95 duration-200 whitespace-nowrap min-w-[220px]">
                     {activeTooltip.content}
                     {/* Tooltip arrow */}
-                    <div className="absolute left-1/2 bottom-0 transform -translate-x-1/2 translate-y-1/2 rotate-45 w-2.5 h-2.5 bg-slate-900 border-r border-b border-slate-700" />
+                    <div className="absolute left-1/2 bottom-0 transform -translate-x-1/2 translate-y-1/2 rotate-45 w-3 h-3 bg-slate-900 border-r border-b border-slate-700/80" />
                   </div>
                 </div>
               )}
