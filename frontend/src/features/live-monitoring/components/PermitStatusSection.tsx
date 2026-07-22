@@ -132,7 +132,7 @@ export function PermitStatusSection() {
           }
         >
           {() => (
-            <div className="flex flex-col gap-4 flex-1">
+            <div className="flex flex-col gap-4">
               {/* Status counts */}
               <div className="grid grid-cols-4 gap-2 flex-shrink-0">
                 <div className="flex flex-col items-center gap-0.5 py-2 rounded-lg bg-primary-500/10 border border-primary-500/20">
@@ -154,7 +154,7 @@ export function PermitStatusSection() {
               </div>
 
               {/* Most urgent permits */}
-              <div className="flex flex-col gap-2 flex-1 min-h-0">
+              <div className="flex flex-col gap-2">
                 {displayPermits.map((permit) => (
                   <PermitStatusIndicator
                     key={permit.id}
