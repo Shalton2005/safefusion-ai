@@ -97,12 +97,12 @@ function applyForceLayout(nodes: GraphNode[], edges: GraphEdge[]): GraphNode[] {
   const d3Edges = edges.map(e => ({ source: e.source, target: e.target }));
 
   const simulation = d3.forceSimulation(d3Nodes)
-    .force('link', d3.forceLink(d3Edges).id((d: any) => d.id).distance(60))
-    .force('charge', d3.forceManyBody().strength(-60))
-    .force('collide', d3.forceCollide().radius(45))
+    .force('link', d3.forceLink(d3Edges).id((d: any) => d.id).distance(180)) // give edges room to breathe
+    .force('charge', d3.forceManyBody().strength(-300)) // repel nodes to spread them out
+    .force('collide', d3.forceCollide().radius(40)) // ensure no overlap
     .force('center', d3.forceCenter(0, 0))
-    .force('x', d3.forceX().strength(0.1))
-    .force('y', d3.forceY().strength(0.1))
+    .force('x', d3.forceX().strength(0.02)) // very weak gravity just to prevent drifting
+    .force('y', d3.forceY().strength(0.02))
     .stop();
 
   for (let i = 0; i < 300; ++i) {
