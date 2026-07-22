@@ -22,9 +22,60 @@ export const BADGE_DOT_CLASS: Record<BadgeVariant, string> = {
 /** Badge colour variant for each severity level. Single source of truth — reuse instead of redefining per component. */
 export const SEVERITY_BADGE_VARIANT: Record<SeverityLevel, 'success' | 'primary' | 'warning' | 'danger'> = {
   low:      'success',
-  medium:   'primary',
-  high:     'warning',
-  critical: 'danger',
+  medium:   'warning', // Amber/Yellow
+  high:     'warning', // Orange
+  critical: 'danger',  // Red
+};
+
+/** Text color for each severity level. */
+export const SEVERITY_TEXT_COLOR: Record<SeverityLevel, string> = {
+  low: 'text-safe-500',
+  medium: 'text-amber-500',
+  high: 'text-caution-500',
+  critical: 'text-danger-500',
+};
+
+/** Background and border color for each severity level (used in cards/gauges). */
+export const SEVERITY_BG_COLOR: Record<SeverityLevel, string> = {
+  low: 'bg-safe-500/10 border-safe-500/20',
+  medium: 'bg-amber-500/10 border-amber-500/20',
+  high: 'bg-caution-500/10 border-caution-500/20',
+  critical: 'bg-danger-500/10 border-danger-500/20',
+};
+
+export interface SeverityTheme {
+  bgGradient: string;
+  iconColor: string;
+  textColor: string;
+  borderColor: string;
+}
+
+/** Theme mapping for headers and banners based on severity level. */
+export const SEVERITY_HEADER_THEME: Record<SeverityLevel, SeverityTheme> = {
+  low: {
+    bgGradient: 'from-safe-700/20 to-transparent',
+    iconColor: 'text-safe-400',
+    textColor: 'text-safe-500',
+    borderColor: 'border-safe-500/30',
+  },
+  medium: {
+    bgGradient: 'from-amber-700/20 to-transparent',
+    iconColor: 'text-amber-400',
+    textColor: 'text-amber-500',
+    borderColor: 'border-amber-500/30',
+  },
+  high: {
+    bgGradient: 'from-caution-700/20 to-transparent',
+    iconColor: 'text-caution-400',
+    textColor: 'text-caution-500',
+    borderColor: 'border-caution-500/30',
+  },
+  critical: {
+    bgGradient: 'from-danger-700/20 to-transparent',
+    iconColor: 'text-danger-400',
+    textColor: 'text-danger-500',
+    borderColor: 'border-danger-500/30',
+  },
 };
 
 /** Badge colour variant for each alert status. Single source of truth — reuse instead of redefining per component. */
@@ -63,6 +114,44 @@ export const EMERGENCY_ACTION_LABEL: Record<EmergencyActionType, string> = {
   evacuate_area:         'Evacuate Area',
   generate_incident:     'Generate Incident',
 };
+
+export interface DashboardStateUI {
+  plantStatusText: string;
+  emergencyModeText: string;
+  emergencyModeVariant: 'default' | 'danger' | 'warning';
+  theme: SeverityTheme;
+}
+
+/** 
+ * Maps the current dashboard state to its corresponding UI representations.
+ * Ensures the banner and headers are fully synchronized.
+ */
+export function getDashboardStateUI(riskLevel: SeverityLevel, inEmergency: boolean): DashboardStateUI {
+  // Determine Plant Status based on risk level as requested
+  let plantStatusText = 'Normal';
+  if (riskLevel === 'medium') plantStatusText = 'Monitoring';
+  else if (riskLevel === 'high') plantStatusText = 'Warning';
+  else if (riskLevel === 'critical') plantStatusText = 'Emergency';
+
+  // Determine Emergency Mode
+  let emergencyModeText = 'Inactive';
+  let emergencyModeVariant: 'default' | 'danger' | 'warning' = 'default';
+  
+  if (inEmergency || riskLevel === 'critical') {
+    emergencyModeText = 'Active';
+    emergencyModeVariant = 'danger';
+  } else if (riskLevel === 'high') {
+    emergencyModeText = 'Standby';
+    emergencyModeVariant = 'warning';
+  }
+
+  return {
+    plantStatusText,
+    emergencyModeText,
+    emergencyModeVariant,
+    theme: SEVERITY_HEADER_THEME[riskLevel]
+  };
+}
 
 /** Short badge label for each regulatory framework. Single source of truth — reuse instead of redefining per component. */
 export const COMPLIANCE_FRAMEWORK_LABEL: Record<ComplianceFramework, string> = {

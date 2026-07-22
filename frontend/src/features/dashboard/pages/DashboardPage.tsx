@@ -51,18 +51,19 @@ export function DashboardPage() {
   });
 
   useEffect(() => {
-    // The banner represents the GLOBAL plant status. We must publish the highest
-    // risk level across ALL zones, not the localized risk level of the active demo zone
-    // (which might be 'low' even if another zone is 'critical').
+    // The banner normally represents the GLOBAL plant status, but for a synchronized 
+    // user experience on the dashboard, we publish the currently viewed dashboard risk level.
     if (riskEngineData.assessment) {
+      const currentRisk = riskEngineData.assessment.risk_level;
       usePlantStatusStore.getState().publish({
-        riskLevel: store.globalRiskLevel,
-        inEmergency: emergencyData.actions.length > 0,
+        riskLevel: currentRisk,
+        // Only show emergency active if the current zone actually warrants it
+        inEmergency: (emergencyData.actions.length > 0 && (currentRisk === 'critical' || currentRisk === 'high')),
         lastUpdated: riskEngineData.lastUpdated,
       });
     }
     return () => usePlantStatusStore.getState().clear();
-  }, [riskEngineData.assessment, store.globalRiskLevel, emergencyData.actions, riskEngineData.lastUpdated]);
+  }, [riskEngineData.assessment, emergencyData.actions, riskEngineData.lastUpdated]);
 
   const timelineEvents = useMemo(
     () =>

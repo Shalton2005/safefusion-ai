@@ -4,6 +4,7 @@ import { cn } from '@/lib/cn';
 import { formatRelativeTime, capitalise, formatLabel } from '@/utils/format';
 import type { CompoundRiskAssessment, RiskExplanation, Recommendation, AlertRecord, EmergencyActionItem } from '@/types';
 import type { AISupervisorSnapshot } from '@/features/ai-supervisor/types';
+import { SEVERITY_HEADER_THEME, SEVERITY_TEXT_COLOR, SEVERITY_BG_COLOR } from '@/utils/severity';
 import { AISituationReport } from './AISituationReport';
 
 export interface AICommandCenterProps {
@@ -19,19 +20,7 @@ export interface AICommandCenterProps {
   onOpenLiveMonitoring?: () => void;
 }
 
-const severityColor = {
-  low: 'text-safe-500',
-  medium: 'text-primary-400',
-  high: 'text-caution-500',
-  critical: 'text-danger-500',
-};
 
-const severityBg = {
-  low: 'bg-safe-500/10 border-safe-500/20',
-  medium: 'bg-primary-500/10 border-primary-500/20',
-  high: 'bg-caution-500/10 border-caution-500/20',
-  critical: 'bg-danger-500/10 border-danger-500/20',
-};
 
 export function AICommandCenter({
   assessment,
@@ -76,11 +65,17 @@ export function AICommandCenter({
   return (
     <Card className="flex flex-col overflow-hidden bg-[var(--sf-surface-card)] border-[var(--sf-border-default)] shadow-2xl">
       {/* Top Banner indicating AI active state */}
-      <div className="flex items-center justify-between px-4 py-2 bg-gradient-to-r from-primary-900/30 to-transparent border-b border-[var(--sf-border-default)]">
+      <div className={cn(
+        "flex items-center justify-between px-4 py-2 bg-gradient-to-r border-b transition-colors duration-500",
+        SEVERITY_HEADER_THEME[riskLevel].bgGradient,
+        SEVERITY_HEADER_THEME[riskLevel].borderColor
+      )}>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
-            <BrainCircuit className="w-4 h-4 text-primary-400 animate-pulse" />
-            <span className="text-xs font-mono font-semibold text-primary-300 uppercase tracking-widest">SafeFusion Sentinel AI Active</span>
+            <BrainCircuit className={cn("w-4 h-4 animate-pulse transition-colors duration-500", SEVERITY_HEADER_THEME[riskLevel].iconColor)} />
+            <span className={cn("text-xs font-mono font-semibold uppercase tracking-widest transition-colors duration-500", SEVERITY_HEADER_THEME[riskLevel].textColor)}>
+              SafeFusion Sentinel AI Active
+            </span>
           </div>
           <div className="hidden sm:flex items-center gap-3 text-[var(--sf-text-tertiary)] border-l border-[var(--sf-border-default)] pl-4">
             <span className="text-xs uppercase tracking-widest font-semibold">Monitoring:</span>
@@ -104,7 +99,7 @@ export function AICommandCenter({
             {isFlashingRed ? <ShieldAlert className="w-5 h-5 text-danger-500" /> : isWarning ? <AlertTriangle className="w-5 h-5 text-caution-500" /> : <ShieldCheck className="w-5 h-5 text-safe-500" />}
             <h2 className="text-lg font-bold text-[var(--sf-text-primary)] uppercase tracking-wide">AI Verdict</h2>
           </div>
-          <h3 className={cn("text-xl font-semibold mb-2", severityColor[riskLevel])}>
+          <h3 className={cn("text-xl font-semibold mb-2 transition-colors duration-500", SEVERITY_TEXT_COLOR[riskLevel])}>
             {verdictTitle}
           </h3>
           <AISituationReport 
@@ -130,9 +125,9 @@ export function AICommandCenter({
           <span className="text-2xs uppercase tracking-widest text-[var(--sf-text-tertiary)] mb-4">Overall Risk</span>
           
           <div className="relative flex items-center justify-center w-40 h-40 rounded-full border-4 border-dashed border-[var(--sf-border-default)]">
-            <div className={cn("absolute inset-2 rounded-full border-2", severityBg[riskLevel])} />
+            <div className={cn("absolute inset-2 rounded-full border-2 transition-colors duration-500", SEVERITY_BG_COLOR[riskLevel])} />
             <div className="flex flex-col items-center z-10">
-              <span className={cn("text-5xl font-extrabold font-mono tracking-tighter leading-none", severityColor[riskLevel])}>
+              <span className={cn("text-5xl font-extrabold font-mono tracking-tighter leading-none transition-colors duration-500", SEVERITY_TEXT_COLOR[riskLevel])}>
                 {riskScore}
               </span>
               <span className="text-xs text-[var(--sf-text-tertiary)] mt-1 font-mono">/ 100</span>
