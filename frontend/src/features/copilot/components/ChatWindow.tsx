@@ -45,7 +45,7 @@ export function ChatWindow({ conversation, isSending, error, onSend, inEmergency
             </div>
             <div>
               <h2 className="text-lg font-semibold text-[var(--sf-text-primary)] tracking-tight">AI Safety Copilot</h2>
-              <p className="mt-1.5 text-sm text-[var(--sf-text-tertiary)] leading-relaxed max-w-md">
+              <p className="mt-1.5 text-sm text-[var(--sf-text-tertiary)] leading-relaxed max-w-2xl mx-auto">
                 Ask about safety procedures, compliance requirements, and incident response — grounded in your
                 plant's ingested regulatory documents.
               </p>
