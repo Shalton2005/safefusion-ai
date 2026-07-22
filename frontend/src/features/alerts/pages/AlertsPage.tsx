@@ -7,7 +7,10 @@ import { RecentIncidentsPanel } from '@/features/alerts/components/RecentInciden
 import { useRecentAlerts } from '@/features/alerts/hooks/useRecentAlerts';
 import { useMemo, useState, useEffect } from 'react';
 import { alertsService } from '@/services/alerts.service';
-import { useToast } from '@/hooks/useToast';
+const useToast = () => ({
+  success: (msg: string) => console.log('SUCCESS:', msg),
+  error: (msg: string) => console.error('ERROR:', msg)
+});
 
 const statusVariant: Record<string, 'danger' | 'warning' | 'success'> = {
   active:       'danger',
@@ -161,14 +164,6 @@ export function AlertsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 25;
 
-  useEffect(() => {
-    if (!autoRefresh) return;
-    const interval = setInterval(() => {
-      refresh();
-    }, 30000);
-    return () => clearInterval(interval);
-  }, [autoRefresh, refresh]);
-
   const resetFilters = () => {
     setFilterSeverity('');
     setFilterStatus('');
@@ -195,66 +190,36 @@ export function AlertsPage() {
 
       const seed = row.id.split('').reduce((a, b) => a + b.charCodeAt(0), 0);
       
-      let realisticSeverity = 'low';
+      let realisticSeverity = row.severity || 'low';
+      let realisticSource = row.source || 'System';
+      let realisticLocation = row.zone || 'Unknown';
       let insightLabel = 'Informational';
       let insightColor: 'primary' | 'secondary' | 'success' | 'warning' | 'danger' | 'ghost' | 'outline' = 'outline';
-      let realisticSource = 'IoT Gateway';
-      
-      const locationsGas = ['Tank Farm A A-12', 'Scrubber Line S-02', 'Confined Space CS-07'];
-      const locationsThermal = ['Boiler Unit B-03', 'Cooling Tower CT-02'];
-      const locationsPressure = ['Pump House P-04', 'Boiler Unit B-03'];
-      const locationsGeneral = ['Tank Farm A A-12', 'Boiler Unit B-03', 'Scrubber Line S-02', 'Pump House P-04', 'Control Room CR-01', 'Confined Space CS-07', 'Cooling Tower CT-02'];
-
-      let realisticLocation = locationsGeneral[seed % locationsGeneral.length];
 
       if (category === 'gas') {
-        realisticSeverity = 'critical';
         insightLabel = seed % 2 === 0 ? 'Gas Escalation' : 'Gas + Hot Work';
         insightColor = 'danger';
-        realisticSource = 'Gas Sensor Array';
-        realisticLocation = locationsGas[seed % locationsGas.length];
       } else if (category === 'thermal') {
-        realisticSeverity = 'critical';
         insightLabel = 'Thermal Escalation';
         insightColor = 'danger';
-        realisticSource = 'Thermal Camera';
-        realisticLocation = locationsThermal[seed % locationsThermal.length];
       } else if (category === 'pressure') {
-        realisticSeverity = 'critical';
         insightLabel = 'Pressure Anomaly';
         insightColor = 'danger';
-        realisticSource = 'Pressure Transmitter';
-        realisticLocation = locationsPressure[seed % locationsPressure.length];
       } else if (category === 'permit') {
-        realisticSeverity = 'high';
         insightLabel = 'Permit Conflict';
         insightColor = 'warning';
-        realisticSource = 'Permit Validation AI';
-        realisticLocation = locationsGeneral[seed % locationsGeneral.length];
       } else if (category === 'ppe') {
-        realisticSeverity = 'high';
         insightLabel = 'Worker at Risk';
         insightColor = 'warning';
-        realisticSource = 'Vision AI';
-        realisticLocation = locationsGeneral[seed % locationsGeneral.length];
       } else if (category === 'vision') {
-        realisticSeverity = 'high';
         insightLabel = 'Vision Detection';
         insightColor = 'warning';
-        realisticSource = 'Vision AI';
-        realisticLocation = locationsGeneral[seed % locationsGeneral.length];
       } else if (category === 'worker') {
-        realisticSeverity = 'high';
         insightLabel = 'Worker at Risk';
         insightColor = 'warning';
-        realisticSource = 'Worker Tracking AI';
-        realisticLocation = 'Confined Space CS-07';
       } else {
-        realisticSeverity = seed % 2 === 0 ? 'medium' : 'low';
-        insightLabel = realisticSeverity === 'medium' ? 'Compound Risk' : 'Informational';
-        insightColor = realisticSeverity === 'medium' ? 'warning' : 'outline';
-        realisticSource = seed % 2 === 0 ? 'Environmental Sensors' : 'IoT Gateway';
-        realisticLocation = locationsGeneral[seed % locationsGeneral.length];
+        insightLabel = realisticSeverity === 'critical' || realisticSeverity === 'high' ? 'Compound Risk' : 'Informational';
+        insightColor = realisticSeverity === 'critical' ? 'danger' : realisticSeverity === 'high' ? 'warning' : 'outline';
       }
 
       let confidence = 0;

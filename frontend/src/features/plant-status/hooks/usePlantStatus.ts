@@ -94,7 +94,9 @@ export function usePlantStatus(): UsePlantStatusResult {
   const effectiveStatus =
     inEmergency === null || effectiveRiskLevel === null
       ? status
-      : RISK_LEVEL_TO_PLANT_STATUS[effectiveRiskLevel];
+      : inEmergency
+        ? 'emergency'
+        : RISK_LEVEL_TO_PLANT_STATUS[effectiveRiskLevel];
 
   return {
     status: effectiveStatus,
