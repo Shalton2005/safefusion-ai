@@ -97,12 +97,10 @@ function applyForceLayout(nodes: GraphNode[], edges: GraphEdge[]): GraphNode[] {
   const d3Edges = edges.map(e => ({ source: e.source, target: e.target }));
 
   const simulation = d3.forceSimulation(d3Nodes)
-    .force('link', d3.forceLink(d3Edges).id((d: any) => d.id).distance(180)) // give edges room to breathe
-    .force('charge', d3.forceManyBody().strength(-300)) // repel nodes to spread them out
-    .force('collide', d3.forceCollide().radius(40)) // ensure no overlap
+    .force('link', d3.forceLink(d3Edges).id((d: any) => d.id).distance(140))
+    .force('charge', d3.forceManyBody().strength(-200))
+    .force('collide', d3.forceCollide().radius(50))
     .force('center', d3.forceCenter(0, 0))
-    .force('x', d3.forceX().strength(0.02)) // very weak gravity just to prevent drifting
-    .force('y', d3.forceY().strength(0.02))
     .stop();
 
   for (let i = 0; i < 300; ++i) {
@@ -128,23 +126,18 @@ function toFlowNode(node: GraphNode, index: number, selectedNodeId?: string | nu
   };
 }
 
-function toFlowEdge(edge: GraphEdge): Edge {
+function toFlowEdge(edge: GraphEdge, sourceNode?: GraphNode): Edge {
+  const color = sourceNode ? kindColorMap[sourceNode.kind ?? 'default'] : 'var(--sf-border-strong)';
   return {
     id: edge.id,
     source: edge.source,
     target: edge.target,
-    label: edge.label,
-    type: 'straight',
+    label: edge.label, // Optional, can be removed if too cluttered
+    type: 'default', // Elegant bezier curve
     animated: edge.animated ?? false,
-    style: { stroke: 'var(--sf-text-secondary)', strokeWidth: 3, opacity: 0.8 },
-    labelStyle: { fill: 'var(--sf-text-primary)', fontSize: 11, fontWeight: 600 },
-    labelBgStyle: { fill: 'var(--sf-surface-hover)', padding: [4, 6], borderRadius: 4 },
-    markerEnd: {
-      type: MarkerType.ArrowClosed,
-      width: 20,
-      height: 20,
-      color: 'var(--sf-text-secondary)',
-    },
+    style: { stroke: color, strokeWidth: 1.5, opacity: 0.5 },
+    labelStyle: { fill: 'var(--sf-text-secondary)', fontSize: 9 },
+    labelBgStyle: { fill: 'transparent' },
   };
 }
 
@@ -180,7 +173,7 @@ function GraphVisualizationInner({
     const layoutedNodes = applyForceLayout(nodes, edges);
     return layoutedNodes.map((node, index) => toFlowNode(node, index, selectedNodeId));
   }, [nodes, edges, selectedNodeId]);
-  const flowEdges = useMemo(() => edges.map(toFlowEdge), [edges]);
+  const flowEdges = useMemo(() => edges.map(e => toFlowEdge(e, nodeLookup.get(e.source))), [edges, nodeLookup]);
 
   const handleNodeClick = useCallback<NodeMouseHandler>(
     (_event, flowNode) => {

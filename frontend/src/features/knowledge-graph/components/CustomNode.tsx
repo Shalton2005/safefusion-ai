@@ -8,41 +8,40 @@ interface CustomNodeData {
 }
 
 function CustomNodeComponent({ data, selected }: { data: CustomNodeData; selected: boolean }) {
-  // Fallback to a default if kind is missing
   const kind = (data.kind as GraphNodeKind) || 'sensor';
   const meta = GRAPH_TYPE_META[kind];
   const Icon = meta?.icon;
 
+  // Dynamically scale node size based on its importance/kind
+  const sizeClass = kind === 'incident' ? 'w-20 h-20' : kind === 'zone' ? 'w-16 h-16' : 'w-12 h-12';
+  const iconSize = kind === 'incident' ? 'w-8 h-8' : kind === 'zone' ? 'w-7 h-7' : 'w-5 h-5';
+
   return (
     <div className="relative flex flex-col items-center group cursor-pointer">
-      {/* Node Bubble */}
+      {/* Translucent Node Bubble */}
       <div 
-        className={`w-14 h-14 rounded-full flex items-center justify-center transition-all duration-300 z-10
-          ${selected 
-            ? 'ring-4 ring-offset-2 ring-offset-[var(--sf-surface-sunken)] ring-white scale-110 shadow-xl' 
-            : 'group-hover:scale-110 shadow-md group-hover:shadow-[0_0_20px_rgba(255,255,255,0.2)]'
-          }
+        className={`${sizeClass} rounded-full flex items-center justify-center transition-all duration-300 z-10
+          ${selected ? 'ring-4 ring-offset-2 ring-offset-[var(--sf-surface-sunken)] ring-white scale-110 shadow-2xl' : 'group-hover:scale-110 shadow-lg'}
         `}
         style={{ 
-          backgroundColor: meta?.color ?? '#64748b',
-          boxShadow: selected ? undefined : `0 4px 14px 0 ${meta?.color ?? '#64748b'}60`,
+          backgroundColor: meta?.color ? `${meta.color}CC` : '#64748bCC', // CC = 80% opacity
+          border: `2px solid ${meta?.color ?? '#64748b'}`,
+          boxShadow: selected ? undefined : `0 0 25px ${meta?.color ?? '#64748b'}30`,
         }}
       >
-        {Icon && <Icon className="w-6 h-6 text-white drop-shadow-sm" />}
+        {Icon && <Icon className={`${iconSize} text-white drop-shadow-md`} />}
       </div>
 
-      {/* Hover Label Box (Underneath) */}
-      <div className={`absolute top-[64px] bg-[var(--sf-surface-card)] px-3 py-1.5 rounded border border-[var(--sf-border-default)] shadow-lg transition-all duration-200 z-20 whitespace-nowrap
-        ${selected ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 -translate-y-2 scale-95 group-hover:opacity-100 group-hover:translate-y-0 group-hover:scale-100'}
-      `}>
-        <span className="text-xs font-semibold text-[var(--sf-text-primary)]">
+      {/* Always-visible Label Box (Underneath) */}
+      <div className="absolute top-full mt-2 text-center pointer-events-none z-20">
+        <span className="text-[11px] font-semibold text-[var(--sf-text-primary)] bg-[var(--sf-surface-card)]/80 backdrop-blur-sm px-2 py-0.5 rounded shadow-sm whitespace-nowrap">
           {data.label}
         </span>
       </div>
 
-      {/* Visible handles to connect edges exactly to the top/bottom edges of the bubble */}
-      <Handle type="target" position={Position.Top} className="!w-3 !h-3 !bg-[var(--sf-text-secondary)] !border-2 !border-[var(--sf-surface-sunken)] z-0" />
-      <Handle type="source" position={Position.Bottom} className="!w-3 !h-3 !bg-[var(--sf-text-secondary)] !border-2 !border-[var(--sf-surface-sunken)] z-0" />
+      {/* Invisible routing handles */}
+      <Handle type="target" position={Position.Top} className="!opacity-0 !border-0" />
+      <Handle type="source" position={Position.Bottom} className="!opacity-0 !border-0" />
     </div>
   );
 }
