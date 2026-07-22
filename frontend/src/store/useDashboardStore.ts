@@ -22,6 +22,7 @@ import type {
   SensorReading
 } from '@/types';
 import { ApiError } from '@/api/errors';
+import type { SeverityLevel } from '@/constants';
 
 export interface DashboardStoreState {
   summary: DashboardSummary | null;

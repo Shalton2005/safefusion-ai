@@ -28,9 +28,9 @@ export function groupConversationsByDate(conversations: CopilotConversation[]): 
   }
 
   return [
-    { label: 'Today', conversations: today },
-    { label: 'Yesterday', conversations: yesterday },
-    { label: 'Earlier', conversations: earlier },
+    { label: 'Today' as ConversationGroupLabel, conversations: today },
+    { label: 'Yesterday' as ConversationGroupLabel, conversations: yesterday },
+    { label: 'Earlier' as ConversationGroupLabel, conversations: earlier },
   ].filter((group) => group.conversations.length > 0);
 }
 

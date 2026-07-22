@@ -417,6 +417,8 @@ export interface CompoundRiskAssessment {
   triggered_rules_count: number;
   /** Overall status derived from `risk_level`. */
   status: RiskStatus;
+  confidence?: number;
+  zone?: string;
 }
 
 /** A single triggered rule, backed 1:1 by a `RiskFactorContribution` returned by the engine. */
@@ -442,6 +444,9 @@ export interface RiskExplanation {
   explanation: string | null;
   /** Full contributing-factor detail (name, points, weight, detail) for this zone. */
   contributing_factors: RiskFactorContribution[];
+  timeframe?: string;
+  threat_escalation?: string;
+  recommendations?: string[];
 }
 
 /** Persisted risk score record exactly as returned by `GET /risk-scores` (`RiskScoreRead`). */

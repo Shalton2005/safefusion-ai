@@ -1,11 +1,11 @@
 import { createService } from './base.service';
-import type { AnalyticsSummary, DashboardPayload, DashboardSummary, PlantSafetyOverview, ZoneOverview } from '@/types';
+import type { DashboardPayload, DashboardSummary, PlantSafetyOverview, ZoneOverview } from '@/types';
 import type { ApiResponse } from '@/types';
 import type { SeverityLevel } from '@/constants';
 import { SEVERITY_LEVELS } from '@/constants';
 import type { RequestOptions } from '@/api/types';
 
-const base = createService<AnalyticsSummary>('/dashboard');
+const base = createService<DashboardSummary>('/dashboard');
 
 function toRiskLevel(level: string | null): SeverityLevel | null {
   return (SEVERITY_LEVELS as readonly string[]).includes(level ?? '') ? (level as SeverityLevel) : null;

@@ -1,6 +1,6 @@
 import apiClient from '@/api/client';
-import type { RequestOptions, ApiResponse } from '@/types';
-import type { AnalyticsOverviewResponse } from '@/types';
+import type { RequestOptions } from '@/api/types';
+import type { ApiResponse, AnalyticsOverviewResponse } from '@/types';
 
 export const analyticsService = {
   getOverview: async (options?: RequestOptions): Promise<AnalyticsOverviewResponse> => {
