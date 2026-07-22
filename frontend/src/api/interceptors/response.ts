@@ -48,15 +48,6 @@ export function handleResponseError(error: unknown): Promise<never> {
     );
   }
 
-  // ── 401 handling ─────────────────────────────────────────────────
-  if (apiError.isAuthError) {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    // Only redirect if not already on the login page
-    if (!window.location.pathname.startsWith('/login')) {
-      window.location.replace('/login');
-    }
-  }
 
   // ── 429 rate-limit warning ────────────────────────────────────────
   if (apiError.isRateLimitError && env.isDev) {
