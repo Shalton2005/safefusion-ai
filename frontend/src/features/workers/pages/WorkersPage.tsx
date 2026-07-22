@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { ROUTES } from '@/constants/routes';
 import { AlertTriangle, HardHat, ShieldCheck, ShieldAlert, Activity, X } from 'lucide-react';
 import { Card, CardHeader, Badge, PageHeader, Table, Skeleton, Alert, Button } from '@/components/ui';
 import type { TableColumn } from '@/components/ui';
@@ -83,6 +85,7 @@ const columns: TableColumn<EnrichedWorker>[] = [
 ];
 
 export function WorkersPage() {
+  const navigate = useNavigate();
   const { workers, loading, error } = useWorkers();
   const { violations } = usePpeViolations();
   const { actions } = useEmergencyResponse();
@@ -364,10 +367,10 @@ export function WorkersPage() {
               <section className="pb-8">
                  <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--sf-text-tertiary)] mb-4">Recommended Actions</h3>
                  <div className="flex flex-col gap-2">
-                    <Button variant="secondary" className="justify-start shadow-sm bg-[var(--sf-surface-card)]">View CCTV</Button>
-                    <Button variant="secondary" className="justify-start shadow-sm bg-[var(--sf-surface-card)]">Locate Worker</Button>
-                    <Button variant="secondary" className="justify-start shadow-sm bg-[var(--sf-surface-card)]">Notify Supervisor</Button>
-                    <Button variant="secondary" className="justify-start shadow-sm bg-[var(--sf-surface-card)]">View Permit</Button>
+                    <Button variant="secondary" className="justify-start shadow-sm bg-[var(--sf-surface-card)]" onClick={() => navigate(ROUTES.CCTV_MONITORING, { state: { zone: selectedWorker.current_zone } })}>View CCTV</Button>
+                    <Button variant="secondary" className="justify-start shadow-sm bg-[var(--sf-surface-card)]" onClick={() => navigate(ROUTES.LIVE_MONITORING, { state: { zone: selectedWorker.current_zone } })}>Locate Worker</Button>
+                    <Button variant="secondary" className="justify-start shadow-sm bg-[var(--sf-surface-card)]" onClick={() => alert(`Supervisor notified for ${selectedWorker.name}.`)}>Notify Supervisor</Button>
+                    <Button variant="secondary" className="justify-start shadow-sm bg-[var(--sf-surface-card)]" onClick={() => navigate(ROUTES.PERMITS)}>View Permit</Button>
                  </div>
               </section>
             </div>
