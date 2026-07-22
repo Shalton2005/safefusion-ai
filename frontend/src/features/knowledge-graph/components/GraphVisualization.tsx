@@ -31,6 +31,10 @@ import {
 import '@xyflow/react/dist/style.css';
 import { cn } from '@/lib/cn';
 import { GRAPH_TYPE_META, type GraphNodeKind } from '@/features/knowledge-graph/utils/graphTaxonomy';
+import * as d3 from 'd3-force';
+import { CustomNode } from './CustomNode';
+
+const nodeTypes = { custom: CustomNode };
 
 // ─── Public domain types ──────────────────────────────────────────
 // Kept independent of React Flow's own Node/Edge types so consumers
@@ -88,98 +92,37 @@ const kindColorMap: Record<GraphNodeKind, string> = Object.fromEntries(
   Object.entries(GRAPH_TYPE_META).map(([kind, meta]) => [kind, meta.color]),
 ) as Record<GraphNodeKind, string>;
 
-function applyConcentricLayout(nodes: GraphNode[]): GraphNode[] {
-  const cloned = nodes.map(n => ({ ...n }));
+function applyForceLayout(nodes: GraphNode[], edges: GraphEdge[]): GraphNode[] {
+  const d3Nodes = nodes.map(n => ({ ...n, id: n.id } as any));
+  const d3Edges = edges.map(e => ({ source: e.source, target: e.target }));
 
-  const ring0: GraphNode[] = []; // incident, risk
-  const ring1: GraphNode[] = []; // zone
-  const ring2: GraphNode[] = []; // worker, permit, equipment
-  const ring3: GraphNode[] = []; // sensor, camera
+  const simulation = d3.forceSimulation(d3Nodes)
+    .force('link', d3.forceLink(d3Edges).id((d: any) => d.id).distance(120))
+    .force('charge', d3.forceManyBody().strength(-300))
+    .force('collide', d3.forceCollide().radius(60))
+    .force('center', d3.forceCenter(0, 0))
+    .stop();
 
-  cloned.forEach(node => {
-    switch (node.kind) {
-      case 'incident':
-      case 'risk':
-        ring0.push(node);
-        break;
-      case 'zone':
-        ring1.push(node);
-        break;
-      case 'worker':
-      case 'permit':
-      case 'equipment':
-        ring2.push(node);
-        break;
-      case 'sensor':
-      case 'camera':
-      default:
-        ring3.push(node);
-        break;
+  for (let i = 0; i < 300; ++i) {
+    simulation.tick();
+  }
+
+  return nodes.map((n, i) => ({
+    ...n,
+    position: {
+      x: (d3Nodes[i].x || 0) - 28,
+      y: (d3Nodes[i].y || 0) - 28,
     }
-  });
-
-  let currentRadius = 0;
-
-  const distribute = (ringNodes: GraphNode[], minGap: number) => {
-    const total = ringNodes.length;
-    if (total === 0) return;
-    
-    // Ensure circumference is large enough for all nodes to fit side by side (approx 140px width + 30px gap)
-    const requiredCircumference = total * 170;
-    const requiredRadius = requiredCircumference / (2 * Math.PI);
-    
-    currentRadius = Math.max(currentRadius + minGap, requiredRadius);
-    
-    // For single center nodes, keep them explicitly at center
-    if (total === 1 && currentRadius < 10) currentRadius = 0;
-
-    const angleStep = (2 * Math.PI) / total;
-    ringNodes.forEach((node, i) => {
-      node.position = {
-        x: currentRadius * Math.cos(i * angleStep),
-        y: currentRadius * Math.sin(i * angleStep)
-      };
-    });
-  };
-
-  distribute(ring0, 0); 
-  distribute(ring1, 200); // Tighter gaps between rings
-  distribute(ring2, 200);
-  distribute(ring3, 200);
-
-  return cloned;
+  }));
 }
 
-const GRID_COLUMNS = 4;
-const GRID_SPACING_X = 220;
-const GRID_SPACING_Y = 140;
-
 function toFlowNode(node: GraphNode, index: number, selectedNodeId?: string | null): Node {
-  const kind = node.kind ?? 'default';
-  const position = node.position ?? {
-    x: (index % GRID_COLUMNS) * GRID_SPACING_X,
-    y: Math.floor(index / GRID_COLUMNS) * GRID_SPACING_Y,
-  };
-
   return {
     id: node.id,
-    position,
-    data: { label: node.label },
+    type: 'custom',
+    position: node.position ?? { x: 0, y: 0 },
+    data: { label: node.label, kind: node.kind },
     selected: node.id === selectedNodeId,
-    style: {
-      borderRadius: 9999,
-      border: `2px solid ${kindColorMap[kind]}`,
-      background: 'var(--sf-surface-card)',
-      color: 'var(--sf-text-primary)',
-      fontSize: 10,
-      fontWeight: 500,
-      padding: '4px 8px',
-      width: 140,
-      whiteSpace: 'nowrap',
-      overflow: 'hidden',
-      textOverflow: 'ellipsis',
-      textAlign: 'center',
-    } satisfies CSSProperties,
   };
 }
 
@@ -189,14 +132,15 @@ function toFlowEdge(edge: GraphEdge): Edge {
     source: edge.source,
     target: edge.target,
     label: edge.label,
+    type: 'straight',
     animated: edge.animated ?? false,
-    style: { stroke: 'var(--sf-text-secondary)', strokeWidth: 2, opacity: 0.9 },
-    labelStyle: { fill: 'var(--sf-text-primary)', fontSize: 11, fontWeight: 600 },
-    labelBgStyle: { fill: 'var(--sf-surface-hover)', padding: [4, 6], borderRadius: 4 },
+    style: { stroke: 'var(--sf-text-secondary)', strokeWidth: 1.5, opacity: 0.6 },
+    labelStyle: { fill: 'var(--sf-text-primary)', fontSize: 10, fontWeight: 500 },
+    labelBgStyle: { fill: 'var(--sf-surface-hover)', padding: [2, 4], borderRadius: 4 },
     markerEnd: {
       type: MarkerType.ArrowClosed,
-      width: 20,
-      height: 20,
+      width: 15,
+      height: 15,
       color: 'var(--sf-text-secondary)',
     },
   };
@@ -231,9 +175,9 @@ function GraphVisualizationInner({
   );
 
   const flowNodes = useMemo(() => {
-    const layoutedNodes = applyConcentricLayout(nodes);
+    const layoutedNodes = applyForceLayout(nodes, edges);
     return layoutedNodes.map((node, index) => toFlowNode(node, index, selectedNodeId));
-  }, [nodes, selectedNodeId]);
+  }, [nodes, edges, selectedNodeId]);
   const flowEdges = useMemo(() => edges.map(toFlowEdge), [edges]);
 
   const handleNodeClick = useCallback<NodeMouseHandler>(
@@ -258,6 +202,7 @@ function GraphVisualizationInner({
       )}
     >
       <ReactFlow
+        nodeTypes={nodeTypes}
         nodes={flowNodes}
         edges={flowEdges}
         onNodeClick={handleNodeClick}
