@@ -1,8 +1,8 @@
 {
   "name": "factory_incident",
   "title": "Factory Incident",
-  "narrative": "Zone-D: a normal shift escalates through a restricted-zone entry, a PPE violation, a gas leak that worsens, and a small fire, before emergency response and incident resolution bring the zone back to a safe state.",
-  "zone": "Zone-D",
+  "narrative": "Zone-A: a normal shift escalates through a restricted-zone entry, a PPE violation, a gas leak that worsens, and a small fire, before emergency response and incident resolution bring the zone back to a safe state.",
+  "zone": "Zone-A",
   "video_filename": "factory_incident.mp4",
   "worker": {
     "employee_id": "EMP-DEMO-FACTORY",
@@ -75,7 +75,7 @@
       "incident": {
         "severity": "critical",
         "incident_type": "gas_leak",
-        "description": "Hydrocarbon vapor concentration spiked to 92 ppm near the Zone-D work area during active hot work.",
+        "description": "Hydrocarbon vapor concentration spiked to 92 ppm near the Zone-A work area during active hot work.",
         "root_cause": "Suspected valve seal failure on the nearby process line."
       },
       "cv_events": [
@@ -108,7 +108,7 @@
       "incident": {
         "severity": "critical",
         "incident_type": "fire",
-        "description": "Small fire detected near the Zone-D work area, coinciding with an active gas leak and critical temperature/smoke readings.",
+        "description": "Small fire detected near the Zone-A work area, coinciding with an active gas leak and critical temperature/smoke readings.",
         "root_cause": "Ignition source suspected from ongoing hot work in proximity to the gas leak."
       },
       "cv_events": [

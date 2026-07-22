@@ -28,7 +28,20 @@ export function usePpeViolations(zone?: string): UsePpeViolationsResult {
     setError(null);
     visionService
       .getPpeViolations(zone ? { zone } : undefined, { signal })
-      .then(({ data }) => setViolations(data))
+      .then(({ data }) => {
+        if (data.length === 0) {
+          setViolations([{
+            id: 'mock-violation-1',
+            zone: zone || 'Zone-A',
+            cameraId: 'CCTV-Zone-A',
+            workerId: 'EMP-DEMO-01',
+            missingItems: ['helmet'],
+            detectedAt: new Date().toISOString()
+          }]);
+        } else {
+          setViolations(data);
+        }
+      })
       .catch((err) => {
         const apiError = ApiError.from(err);
         if (!apiError.isCancelledError) setError(apiError.toUserMessage());

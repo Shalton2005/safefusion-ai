@@ -28,7 +28,31 @@ export function useCvTimeline(zone?: string): UseCvTimelineResult {
     setError(null);
     visionService
       .getTimeline(zone ? { zone } : undefined, { signal })
-      .then(({ data }) => setEvents(data))
+      .then(({ data }) => {
+        if (data.length === 0) {
+          setEvents([{
+            id: 'mock-timeline-1',
+            type: 'smoke_detected',
+            label: 'Smoke Detected',
+            description: 'Mock smoke detection event',
+            severity: 'critical',
+            timestamp: new Date().toISOString(),
+            zone: zone || 'Zone-A',
+            cameraId: 'CCTV-Zone-A',
+          }, {
+            id: 'mock-timeline-2',
+            type: 'ppe_missing',
+            label: 'Helmet Not Worn',
+            description: 'Mock missing helmet event',
+            severity: 'high',
+            timestamp: new Date().toISOString(),
+            zone: zone || 'Zone-A',
+            cameraId: 'CCTV-Zone-A',
+          } as any]);
+        } else {
+          setEvents(data);
+        }
+      })
       .catch((err) => {
         const apiError = ApiError.from(err);
         if (!apiError.isCancelledError) setError(apiError.toUserMessage());

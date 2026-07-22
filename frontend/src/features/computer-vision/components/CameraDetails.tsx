@@ -7,6 +7,7 @@
  * `LiveCameraGrid`/`CameraTile`.
  */
 
+import { useState } from 'react';
 import { LoaderCircle, Video, VideoOff } from 'lucide-react';
 import { Badge, Modal } from '@/components/ui';
 import { formatDateTime, formatRelativeTime } from '@/utils/format';
@@ -23,8 +24,9 @@ export interface CameraDetailsProps {
 export function CameraDetails({ camera, onClose }: CameraDetailsProps) {
   const { detections, loading: detectionsLoading } = useFrameDetections(camera?.id);
 
+  const [videoFailed, setVideoFailed] = useState(false);
   if (!camera) return null;
-  const isLive = camera.status === 'online' && Boolean(camera.streamUrl);
+  const isLive = camera.status === 'online' && Boolean(camera.streamUrl) && !videoFailed;
   const isOffline = camera.status === 'offline';
 
   return (
@@ -38,10 +40,15 @@ export function CameraDetails({ camera, onClose }: CameraDetailsProps) {
       <div className="flex flex-col gap-4">
         <div className="relative aspect-video rounded-lg overflow-hidden bg-[var(--sf-surface-sunken)] flex items-center justify-center">
           {isLive ? (
-            <img
-              src={camera.streamUrl ?? undefined}
-              alt={`Live feed from ${camera.name}`}
+            <video
+              src={camera.streamUrl!}
+              autoPlay
+              muted
+              loop
+              playsInline
               className="w-full h-full object-cover"
+              onError={() => setVideoFailed(true)}
+              ref={(el) => { if (el) el.playbackRate = 0.85; }}
             />
           ) : (
             <div className="flex flex-col items-center gap-2 text-[var(--sf-text-tertiary)]">

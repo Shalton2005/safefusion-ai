@@ -21,6 +21,7 @@
 import type { AxiosResponse } from 'axios';
 import { createService } from './base.service';
 import apiClient from '@/api/client';
+import env from '@/config/env';
 import type { RequestOptions, ListParams } from '@/api/types';
 import type { SeverityLevel } from '@/constants';
 import type {
@@ -151,19 +152,73 @@ export const visionService = {
   /** GET /cameras — every camera with at least one recorded frame. Backs `useCameras`. */
   getCameras: async (params?: ZoneScopedParams, options?: RequestOptions): Promise<AxiosResponse<Camera[]>> => {
     const { data } = await apiClient.get<RawCameraStatus[]>('/cameras', { ...options, params });
-    const cameras: Camera[] = data.map((raw) => ({
-      id: raw.camera_id,
-      name: raw.camera_id,
-      zone: raw.zone,
-      location: raw.zone,
-      status: 'online' as CameraStatus,
-      streamUrl: null,
-      lastFrameAt: raw.last_seen_at,
-      resolution: '',
-      fps: null,
-      detectionCount: raw.detection_count,
-      riskLevel: raw.highest_severity,
-    }));
+    let cameras: Camera[] = data
+      .filter((raw) => !raw.camera_id.includes('Zone-D'))
+      .map((raw) => {
+        let streamUrl: string | null = null;
+        let num = 1;
+        if (raw.camera_id.includes('Zone-A') || raw.camera_id.includes('CAM-01')) num = 1;
+        else if (raw.camera_id.includes('Zone-B') || raw.camera_id.includes('CAM-02')) num = 2;
+        else if (raw.camera_id.includes('Zone-C') || raw.camera_id.includes('CAM-03')) num = 3;
+        
+        try {
+          const baseUrl = new URL(env.apiBaseUrl).origin;
+          streamUrl = `${baseUrl}/media/cctv/cam_${num}.mp4`;
+        } catch {
+          // Fallback if env.apiBaseUrl is not a valid absolute URL
+          streamUrl = `/media/cctv/cam_${num}.mp4`;
+        }
+
+        return {
+          id: raw.camera_id,
+          name: raw.camera_id,
+          zone: raw.zone,
+          location: raw.zone,
+          status: 'online' as CameraStatus,
+          streamUrl,
+          lastFrameAt: raw.last_seen_at,
+          resolution: '',
+          fps: null,
+          detectionCount: raw.detection_count,
+          riskLevel: raw.highest_severity,
+        };
+      });
+
+    const cameraIds = new Set(cameras.map(c => c.id));
+    const defaultCameras = [
+      { id: 'CCTV-Zone-A', zone: 'Zone-A', num: 1 },
+      { id: 'CCTV-Zone-B', zone: 'Zone-B', num: 2 },
+      { id: 'CCTV-Zone-C', zone: 'Zone-C', num: 3 },
+    ];
+    for (const dc of defaultCameras) {
+      if (!cameraIds.has(dc.id)) {
+        let streamUrl: string | null = null;
+        try {
+          const baseUrl = new URL(env.apiBaseUrl).origin;
+          streamUrl = `${baseUrl}/media/cctv/cam_${dc.num}.mp4`;
+        } catch {
+          streamUrl = `/media/cctv/cam_${dc.num}.mp4`;
+        }
+
+        cameras.push({
+          id: dc.id,
+          name: dc.id,
+          zone: dc.zone,
+          location: dc.zone,
+          status: 'online',
+          streamUrl,
+          lastFrameAt: null,
+          resolution: '',
+          fps: null,
+          detectionCount: 0,
+          riskLevel: null,
+        });
+      }
+    }
+    
+    // Sort cameras to ensure A, B, C order
+    cameras.sort((a, b) => a.id.localeCompare(b.id));
+
     return wrap(cameras);
   },
 

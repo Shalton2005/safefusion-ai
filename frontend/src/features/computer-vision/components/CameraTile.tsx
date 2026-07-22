@@ -15,6 +15,7 @@
  * Clicking a loaded, non-error tile opens `CameraDetails` for that camera.
  */
 
+import { useState } from 'react';
 import { ScanEye, Video, VideoOff } from 'lucide-react';
 import { Badge, Card, QueryState, Skeleton } from '@/components/ui';
 import { capitalise, formatDateTime, formatRelativeTime } from '@/utils/format';
@@ -61,7 +62,8 @@ export function CameraTile({ camera, loading = false, error, onRetry, onSelect, 
       }
     >
       {(camera) => {
-        const isLive = camera.status === 'online' && Boolean(camera.streamUrl);
+        const [videoFailed, setVideoFailed] = useState(false);
+        const isLive = camera.status === 'online' && Boolean(camera.streamUrl) && !videoFailed;
         const isOffline = camera.status === 'offline';
         const label = `${camera.name}, ${camera.zone}, ${CAMERA_STATUS_LABEL[camera.status]}${camera.riskLevel ? `, ${capitalise(camera.riskLevel)} risk` : ''}`;
 
@@ -79,10 +81,15 @@ export function CameraTile({ camera, loading = false, error, onRetry, onSelect, 
             {/* ── Stream placeholder ──────────────────────────────────── */}
             <div className="relative aspect-video bg-[var(--sf-surface-sunken)] flex items-center justify-center">
               {isLive ? (
-                <img
-                  src={camera.streamUrl ?? undefined}
-                  alt={`Live feed from ${camera.name}`}
+                <video
+                  src={camera.streamUrl!}
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
                   className="w-full h-full object-cover"
+                  onError={() => setVideoFailed(true)}
+                  ref={(el) => { if (el) el.playbackRate = 0.85; }}
                 />
               ) : (
                 <div className="flex flex-col items-center gap-2 text-[var(--sf-text-tertiary)]">
