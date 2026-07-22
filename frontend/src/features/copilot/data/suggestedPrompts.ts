@@ -32,43 +32,33 @@ export const SUGGESTED_PROMPTS: SuggestedPrompt[] = [
  */
 export const EMERGENCY_SUGGESTED_PROMPTS: SuggestedPrompt[] = [
   {
-    id: 'emergency-shutdown-checklist',
-    label: 'View emergency shutdown checklist',
-    prompt: 'Show the emergency shutdown checklist for the affected zone.',
-  },
-  {
     id: 'who-in-danger-zone',
-    label: 'Who is still inside the danger zone?',
-    prompt: 'Who is still inside the danger zone right now?',
+    label: 'Personnel in danger zone',
+    prompt: 'Who is currently inside the danger zone and have they been accounted for?',
   },
   {
-    id: 'gas-leak-sop',
-    label: 'Show gas leak SOP',
-    prompt: 'Show the standard operating procedure for this gas leak.',
+    id: 'emergency-shutdown-checklist',
+    label: 'Emergency shutdown checklist',
+    prompt: 'Show the emergency shutdown checklist for the affected facility zone.',
+  },
+  {
+    id: 'active-incident-sop',
+    label: 'Standard Operating Procedures',
+    prompt: 'What are the standard operating procedures for resolving this specific type of emergency?',
   },
   {
     id: 'why-evacuation-recommended',
-    label: 'Why did AI recommend evacuation?',
-    prompt: 'Why did the AI recommend evacuation for this zone?',
-  },
-  {
-    id: 'affected-workers',
-    label: 'List affected workers',
-    prompt: 'List the workers affected by the current emergency.',
+    label: 'Explain AI reasoning',
+    prompt: 'Explain the reasoning behind the AI Supervisor\'s recommended emergency response.',
   },
   {
     id: 'open-permit-conflicts',
-    label: 'Open permit conflicts',
-    prompt: 'Show any open permit conflicts related to the current emergency.',
-  },
-  {
-    id: 'cctv-evidence',
-    label: 'Show CCTV evidence',
-    prompt: 'Show the CCTV evidence for the current emergency.',
+    label: 'Active permit conflicts',
+    prompt: 'Are there any active permits in the area that conflict with the current emergency?',
   },
   {
     id: 'nearest-assembly-point',
-    label: 'Nearest emergency assembly point',
-    prompt: 'What is the nearest emergency assembly point?',
+    label: 'Safe assembly point',
+    prompt: 'What is the safest and nearest assembly point considering the current hazard?',
   },
 ];
