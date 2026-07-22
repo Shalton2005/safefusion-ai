@@ -268,11 +268,12 @@ function GraphVisualizationInner({
         zoomOnScroll
         zoomOnPinch
         selectionOnDrag={false}
-        minZoom={0.25}
+        minZoom={0.05}
         maxZoom={2}
         proOptions={{ hideAttribution: true }}
       >
         <Background variant={BackgroundVariant.Dots} gap={16} size={1} />
+        <Controls position="bottom-left" style={{ display: 'flex', flexDirection: 'column' }} />
         {showMiniMap && (
           <MiniMap
             pannable
