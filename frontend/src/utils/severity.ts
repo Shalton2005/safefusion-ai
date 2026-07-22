@@ -131,10 +131,21 @@ export const PLANT_STATUS_LABEL: Record<PlantStatus, string> = {
  * derived from a badge-variant map.
  */
 export const PLANT_STATUS_BANNER_CLASSES: Record<PlantStatus, string> = {
-  normal:    'bg-safe-500/10 border-safe-500/30 text-safe-700 dark:text-safe-400',
-  warning:   'bg-caution-500/10 border-caution-500/30 text-caution-700 dark:text-caution-400',
-  critical:  'bg-danger-500/10 border-danger-500/30 text-danger-700 dark:text-danger-400',
-  emergency: 'bg-danger-600/20 border-danger-600/50 text-danger-800 dark:text-danger-300',
+  normal:    'bg-safe-500/10 border-safe-500/30',
+  warning:   'bg-caution-500/10 border-caution-500/30',
+  critical:  'bg-danger-500/10 border-danger-500/30',
+  emergency: 'bg-danger-600/20 border-danger-600/50',
+};
+
+/**
+ * Text color classes for each plant status, allowing values to be colored independently
+ * of their container's text color.
+ */
+export const PLANT_STATUS_TEXT_CLASSES: Record<PlantStatus, string> = {
+  normal:    'text-safe-700 dark:text-safe-400',
+  warning:   'text-caution-700 dark:text-caution-400',
+  critical:  'text-danger-700 dark:text-danger-400',
+  emergency: 'text-danger-800 dark:text-danger-300',
 };
 
 /**

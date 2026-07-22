@@ -21,7 +21,7 @@ import { ShieldAlert, ShieldCheck, TriangleAlert, Siren } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { Badge } from '@/components/ui';
 import { LastUpdated } from '@/components/common/LastUpdated';
-import { PLANT_STATUS_LABEL, PLANT_STATUS_BANNER_CLASSES, SEVERITY_BADGE_VARIANT } from '@/utils/severity';
+import { PLANT_STATUS_LABEL, PLANT_STATUS_BANNER_CLASSES, PLANT_STATUS_TEXT_CLASSES, SEVERITY_BADGE_VARIANT } from '@/utils/severity';
 import { capitalise } from '@/utils/format';
 import type { PlantStatus } from '@/types';
 import type { SeverityLevel } from '@/constants';
@@ -56,8 +56,8 @@ export function EmergencyStatusBanner({ status, riskLevel, inEmergency, lastUpda
       )}
     >
       <div className="flex items-center gap-2">
-        <Icon className={cn('w-5 h-5 flex-shrink-0', status === 'emergency' && 'animate-pulse-slow')} aria-hidden="true" />
-        <span className="text-sm font-semibold">Plant Status: {PLANT_STATUS_LABEL[status]}</span>
+        <Icon className={cn('w-5 h-5 flex-shrink-0', PLANT_STATUS_TEXT_CLASSES[status], status === 'emergency' && 'animate-pulse-slow')} aria-hidden="true" />
+        <span className="text-sm font-semibold text-[var(--sf-text-secondary)]">Plant Status: <span className={PLANT_STATUS_TEXT_CLASSES[status]}>{PLANT_STATUS_LABEL[status]}</span></span>
       </div>
 
       <div className="flex items-center gap-2 text-sm">
