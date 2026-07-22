@@ -27,4 +27,8 @@ export const alertsService = {
   /** Resolve an acknowledged alert. */
   resolveAlert: (id: string) =>
     apiClient.put<ApiResponse<Alert>>(`/alerts/${id}/resolve`),
+
+  /** Clear all alerts globally. */
+  clearAllAlerts: () =>
+    apiClient.delete<ApiResponse<{ deleted_count: number }>>('/alerts/all'),
 };

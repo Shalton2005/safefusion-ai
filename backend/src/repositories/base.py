@@ -9,7 +9,7 @@ query methods relevant to their aggregate root.
 from typing import Generic, TypeVar
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, delete
 from sqlalchemy.orm import Session
 
 ModelT = TypeVar("ModelT")
@@ -95,3 +95,13 @@ class BaseRepository(Generic[ModelT]):
         self._db.delete(obj)
         self._db.commit()
         return True
+
+    def delete_all(self) -> int:
+        """Delete all records in the table.
+
+        Returns:
+            The number of deleted rows.
+        """
+        deleted = self._db.execute(delete(self._model)).rowcount
+        self._db.commit()
+        return deleted

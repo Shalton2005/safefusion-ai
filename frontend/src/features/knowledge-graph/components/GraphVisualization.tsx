@@ -26,10 +26,15 @@ import {
   type Node,
   type Edge,
   type NodeMouseHandler,
+  MarkerType,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { cn } from '@/lib/cn';
 import { GRAPH_TYPE_META, type GraphNodeKind } from '@/features/knowledge-graph/utils/graphTaxonomy';
+import * as d3 from 'd3-force';
+import { CustomNode } from './CustomNode';
+
+const nodeTypes = { custom: CustomNode };
 
 // ─── Public domain types ──────────────────────────────────────────
 // Kept independent of React Flow's own Node/Edge types so consumers
@@ -87,103 +92,52 @@ const kindColorMap: Record<GraphNodeKind, string> = Object.fromEntries(
   Object.entries(GRAPH_TYPE_META).map(([kind, meta]) => [kind, meta.color]),
 ) as Record<GraphNodeKind, string>;
 
-function applyConcentricLayout(nodes: GraphNode[]): GraphNode[] {
-  // We don't want to mutate the original props, so we shallow clone
-  const cloned = nodes.map(n => ({ ...n }));
+function applyForceLayout(nodes: GraphNode[], edges: GraphEdge[]): GraphNode[] {
+  const d3Nodes = nodes.map(n => ({ ...n, id: n.id } as any));
+  const d3Edges = edges.map(e => ({ source: e.source, target: e.target }));
 
-  const ring0: GraphNode[] = []; // incident, risk
-  const ring1: GraphNode[] = []; // zone
-  const ring2: GraphNode[] = []; // worker, permit, equipment
-  const ring3: GraphNode[] = []; // sensor, camera
+  const simulation = d3.forceSimulation(d3Nodes)
+    .force('link', d3.forceLink(d3Edges).id((d: any) => d.id).distance(90))
+    .force('charge', d3.forceManyBody().strength(-120))
+    .force('collide', d3.forceCollide().radius(45))
+    .force('center', d3.forceCenter(0, 0))
+    .stop();
 
-  cloned.forEach(node => {
-    switch (node.kind) {
-      case 'incident':
-      case 'risk':
-        ring0.push(node);
-        break;
-      case 'zone':
-        ring1.push(node);
-        break;
-      case 'worker':
-      case 'permit':
-      case 'equipment':
-        ring2.push(node);
-        break;
-      case 'sensor':
-      case 'camera':
-      default:
-        ring3.push(node);
-        break;
+  for (let i = 0; i < 300; ++i) {
+    simulation.tick();
+  }
+
+  return nodes.map((n, i) => ({
+    ...n,
+    position: {
+      x: (d3Nodes[i].x || 0) - 28,
+      y: (d3Nodes[i].y || 0) - 28,
     }
-  });
-
-  const distribute = (ringNodes: GraphNode[], radius: number) => {
-    const total = ringNodes.length;
-    if (total === 0) return;
-    if (total === 1 && radius === 0) {
-      ringNodes[0].position = { x: 0, y: 0 };
-      return;
-    }
-    const actualRadius = total === 1 ? 0 : radius;
-    const angleStep = (2 * Math.PI) / total;
-    ringNodes.forEach((node, i) => {
-      node.position = {
-        x: actualRadius * Math.cos(i * angleStep),
-        y: actualRadius * Math.sin(i * angleStep)
-      };
-    });
-  };
-
-  // Give multiple center nodes a tiny radius to prevent exact overlap
-  distribute(ring0, ring0.length > 1 ? 50 : 0); 
-  distribute(ring1, 250);
-  distribute(ring2, 550);
-  distribute(ring3, 850);
-
-  // Return exactly the original array order but with positions populated
-  // Since we cloned, we can just return the cloned array. It has the same order, but positions are assigned.
-  return cloned;
+  }));
 }
-
-const GRID_COLUMNS = 4;
-const GRID_SPACING_X = 220;
-const GRID_SPACING_Y = 140;
 
 function toFlowNode(node: GraphNode, index: number, selectedNodeId?: string | null): Node {
-  const kind = node.kind ?? 'default';
-  const position = node.position ?? {
-    x: (index % GRID_COLUMNS) * GRID_SPACING_X,
-    y: Math.floor(index / GRID_COLUMNS) * GRID_SPACING_Y,
-  };
-
   return {
     id: node.id,
-    position,
-    data: { label: node.label },
+    type: 'custom',
+    position: node.position ?? { x: 0, y: 0 },
+    data: { label: node.label, kind: node.kind },
     selected: node.id === selectedNodeId,
-    style: {
-      borderRadius: 9999,
-      border: `2px solid ${kindColorMap[kind]}`,
-      background: 'var(--sf-surface-card)',
-      color: 'var(--sf-text-primary)',
-      fontSize: 12,
-      fontWeight: 500,
-      padding: '8px 14px',
-    } satisfies CSSProperties,
   };
 }
 
-function toFlowEdge(edge: GraphEdge): Edge {
+function toFlowEdge(edge: GraphEdge, sourceNode?: GraphNode): Edge {
+  const color = sourceNode ? kindColorMap[sourceNode.kind ?? 'default'] : 'var(--sf-border-strong)';
   return {
     id: edge.id,
     source: edge.source,
     target: edge.target,
-    label: edge.label,
+    label: edge.label, // Optional, can be removed if too cluttered
+    type: 'default', // Elegant bezier curve
     animated: edge.animated ?? false,
-    style: { stroke: 'var(--sf-text-tertiary)', strokeWidth: 1.5 },
-    labelStyle: { fill: 'var(--sf-text-secondary)', fontSize: 11 },
-    labelBgStyle: { fill: 'var(--sf-surface-card)' },
+    style: { stroke: color, strokeWidth: 1.5, opacity: 0.5 },
+    labelStyle: { fill: 'var(--sf-text-secondary)', fontSize: 9 },
+    labelBgStyle: { fill: 'transparent' },
   };
 }
 
@@ -216,10 +170,10 @@ function GraphVisualizationInner({
   );
 
   const flowNodes = useMemo(() => {
-    const layoutedNodes = applyConcentricLayout(nodes);
+    const layoutedNodes = applyForceLayout(nodes, edges);
     return layoutedNodes.map((node, index) => toFlowNode(node, index, selectedNodeId));
-  }, [nodes, selectedNodeId]);
-  const flowEdges = useMemo(() => edges.map(toFlowEdge), [edges]);
+  }, [nodes, edges, selectedNodeId]);
+  const flowEdges = useMemo(() => edges.map(e => toFlowEdge(e, nodeLookup.get(e.source))), [edges, nodeLookup]);
 
   const handleNodeClick = useCallback<NodeMouseHandler>(
     (_event, flowNode) => {
@@ -243,6 +197,7 @@ function GraphVisualizationInner({
       )}
     >
       <ReactFlow
+        nodeTypes={nodeTypes}
         nodes={flowNodes}
         edges={flowEdges}
         onNodeClick={handleNodeClick}
@@ -253,11 +208,15 @@ function GraphVisualizationInner({
         zoomOnScroll
         zoomOnPinch
         selectionOnDrag={false}
-        minZoom={0.25}
+        minZoom={0.05}
         maxZoom={2}
         proOptions={{ hideAttribution: true }}
       >
         <Background variant={BackgroundVariant.Dots} gap={16} size={1} />
+        <Controls 
+          position="bottom-left" 
+          className="overflow-hidden border border-[var(--sf-border-default)] rounded-md shadow-lg [&>button]:bg-[var(--sf-surface-card)] [&>button]:border-b [&>button]:border-[var(--sf-border-default)] [&>button>svg]:fill-[var(--sf-text-primary)] hover:[&>button]:bg-[var(--sf-surface-hover)]"
+        />
         {showMiniMap && (
           <MiniMap
             pannable
