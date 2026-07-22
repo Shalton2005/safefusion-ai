@@ -1,4 +1,4 @@
-import { Radio, Wifi, WifiOff, AlertTriangle, Brain, Zap, Search, CheckCircle2 } from 'lucide-react';
+import { Radio, Wifi, WifiOff, AlertTriangle, Brain, Zap, Search, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { Card, CardHeader, Badge, PageHeader, Table, Skeleton, Alert, Modal, Button } from '@/components/ui';
 import type { TableColumn } from '@/components/ui';
 import type { Device, DeviceStatus, SensorReading } from '@/types';
@@ -6,6 +6,10 @@ import { SensorMonitoringPanel } from '@/features/sensors/components/SensorMonit
 import { usePlantStatus } from '@/features/plant-status/hooks/usePlantStatus';
 import { useSensors } from '../hooks/useSensors';
 import { useMemo, useState } from 'react';
+import { useDashboardStore } from '@/store/useDashboardStore';
+import { useShallow } from 'zustand/react/shallow';
+import { usePolling } from '@/hooks/usePolling';
+import { DASHBOARD_REFRESH_INTERVAL } from '@/constants';
 
 type EnrichedDevice = Device & { forecast: string };
 
@@ -125,6 +129,17 @@ export function SensorsPage() {
   const [activeFilter, setActiveFilter] = useState('All');
   const [selectedSensor, setSelectedSensor] = useState<EnrichedDevice | null>(null);
 
+  const { syncTick, assessment, explanation, dashboardLoading } = useDashboardStore(
+    useShallow((state) => ({
+      syncTick: state.syncTick,
+      assessment: state.assessment,
+      explanation: state.explanation,
+      dashboardLoading: state.loading,
+    }))
+  );
+
+  usePolling(syncTick, DASHBOARD_REFRESH_INTERVAL);
+
   // Map backend SensorReading format to the Device UI format expected by the table
   const mappedDevices: EnrichedDevice[] = useMemo(() => {
     return sensors.map((s: SensorReading) => {
@@ -215,52 +230,82 @@ export function SensorsPage() {
       </div>
 
       {/* AI Sensor Intelligence */}
-      <Card padding="md" className="border-danger-500/30 bg-danger-500/5 transition-all duration-300 hover:shadow-md">
-        <div className="flex items-center gap-2 mb-4">
-          <Brain className="w-5 h-5 text-danger-500" />
-          <h3 className="font-semibold text-danger-500">AI Sensor Intelligence</h3>
-        </div>
-        {loading ? (
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className={i === 3 ? "col-span-2" : ""}>
-                  <Skeleton className="h-3 w-16 mb-2" />
-                  <Skeleton className="h-5 w-24" />
+      {(() => {
+        const hasRisk = assessment && assessment.risk_score > 0 && assessment.risk_level !== 'low';
+        const isLoading = loading || (dashboardLoading && !assessment);
+        
+        if (!hasRisk && !isLoading) {
+          return (
+            <Card padding="md" className="border-safe-500/20 bg-safe-500/5 transition-all duration-300 shadow-sm">
+              <div className="flex items-center gap-2 mb-2">
+                <Brain className="w-5 h-5 text-safe-500" />
+                <h3 className="font-semibold text-safe-500">AI Sensor Intelligence</h3>
+              </div>
+              <div className="flex items-center gap-3">
+                <ShieldCheck className="w-6 h-6 text-safe-500/60" />
+                <p className="text-sm font-medium text-[var(--sf-text-secondary)]">
+                  AI is actively monitoring sensor telemetry across all zones. No compound risks detected.
+                </p>
+              </div>
+            </Card>
+          );
+        }
+
+        const isCritical = assessment?.risk_level === 'critical';
+        const severityColor = isCritical ? 'text-danger-500' : 'text-caution-500';
+        const bgBorder = isCritical ? 'border-danger-500/30 bg-danger-500/5' : 'border-caution-500/30 bg-caution-500/5';
+        const alertBg = isCritical ? 'bg-danger-500/10 border-danger-500/20' : 'bg-caution-500/10 border-caution-500/20';
+        const correlatedSensorsCount = mappedDevices.filter(s => s.status === 'critical' || s.status === 'warning').length;
+
+        return (
+          <Card padding="md" className={`${bgBorder} transition-all duration-300 hover:shadow-md`}>
+            <div className="flex items-center gap-2 mb-4">
+              <Brain className={`w-5 h-5 ${severityColor}`} />
+              <h3 className={`font-semibold ${severityColor}`}>AI Sensor Intelligence</h3>
+            </div>
+            {isLoading ? (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} className={i === 3 ? "col-span-2" : ""}>
+                      <Skeleton className="h-3 w-16 mb-2" />
+                      <Skeleton className="h-5 w-24" />
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-            <Skeleton className="h-12 w-full mt-4" />
-          </div>
-        ) : (
-          <div className="animate-in fade-in duration-500">
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-              <div>
-                <div className="text-xs text-[var(--sf-text-tertiary)] mb-1">Compound Risk</div>
-                <div className="font-semibold text-danger-500">82% (High)</div>
+                <Skeleton className="h-12 w-full mt-4" />
               </div>
-              <div>
-                <div className="text-xs text-[var(--sf-text-tertiary)] mb-1">AI Confidence</div>
-                <div className="font-semibold text-safe-500">94%</div>
+            ) : (
+              <div className="animate-in fade-in duration-500">
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                  <div>
+                    <div className="text-xs text-[var(--sf-text-tertiary)] mb-1">Compound Risk</div>
+                    <div className={`font-semibold ${severityColor}`}>{assessment?.risk_score}% ({assessment?.risk_level.charAt(0).toUpperCase()}{assessment?.risk_level.slice(1)})</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-[var(--sf-text-tertiary)] mb-1">AI Confidence</div>
+                    <div className="font-semibold text-[var(--sf-text-primary)]">{(assessment?.confidence ?? 95.0).toFixed(1)}%</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-[var(--sf-text-tertiary)] mb-1">Correlated Sensors</div>
+                    <div className="font-semibold text-[var(--sf-text-primary)]">{correlatedSensorsCount} Active</div>
+                  </div>
+                  <div className="col-span-2">
+                    <div className="text-xs text-[var(--sf-text-tertiary)] mb-1">Predicted Escalation</div>
+                    <div className="font-semibold text-[var(--sf-text-primary)]">{explanation?.threat_escalation || 'Unknown escalation threat'}</div>
+                  </div>
+                </div>
+                <div className={`mt-4 p-3 rounded-md border ${alertBg}`}>
+                  <div className={`text-xs font-medium ${severityColor} mb-1 flex items-center gap-1`}>
+                    <Zap className="w-3 h-3" /> Recommended Action
+                  </div>
+                  <div className="text-sm text-[var(--sf-text-primary)]">{explanation?.recommendations?.[0] || 'Awaiting recommendations.'}</div>
+                </div>
               </div>
-              <div>
-                <div className="text-xs text-[var(--sf-text-tertiary)] mb-1">Correlated Sensors</div>
-                <div className="font-semibold text-[var(--sf-text-primary)]">3 Active</div>
-              </div>
-              <div className="col-span-2">
-                <div className="text-xs text-[var(--sf-text-tertiary)] mb-1">Predicted Escalation</div>
-                <div className="font-semibold text-[var(--sf-text-primary)]">Fire risk in Zone A within 15m</div>
-              </div>
-            </div>
-            <div className="mt-4 p-3 bg-danger-500/10 rounded-md border border-danger-500/20">
-              <div className="text-xs font-medium text-danger-500 mb-1 flex items-center gap-1">
-                <Zap className="w-3 h-3" /> Recommended Action
-              </div>
-              <div className="text-sm text-[var(--sf-text-primary)]">Initiate preliminary evacuation for Zone A and alert facility response team immediately.</div>
-            </div>
-          </div>
-        )}
-      </Card>
+            )}
+          </Card>
+        );
+      })()}
 
       {/* Critical Sensors */}
       <div className="space-y-4">
