@@ -1,9 +1,11 @@
-# Presentation
+# SafeFusion AI - Pitch & Presentation Materials
 
-Placeholder storage for hackathon presentation materials.
+This directory contains the final presentation assets for our ET AI Hackathon 2.0 submission.
 
-Planned areas:
+## Contents
 
-- `slides/` for deck source files
-- `assets/` for supporting visuals
-- `demos/` for demo scripts and showcase content
+- **Pitch Deck**: The core slide deck detailing the problem statement, our solution (SafeFusion AI), architecture, and market impact.
+- **Demo Videos**: Screen recordings demonstrating the AI Safety Copilot, CCTV bounding box overlays, and real-time alerts.
+- **Visual Assets**: High-resolution exports of our dashboards and knowledge graphs used in the pitch.
+
+*(Note: Ensure you have the required fonts installed before opening the raw presentation files. All final submission materials are exported to PDF/MP4.)*

@@ -1,3 +1,6 @@
+﻿> [!NOTE]
+> **This is an early architectural design document created at the start of the project.** For the final, up-to-date documentation that strictly reflects the implemented Hackathon submission, please refer to the primary [docs/](./README.md) hub (including [pi/](./api/README.md) and [rchitecture/](./architecture/README.md)).
+
 # SafeFusion AI - Technology Stack
 
 ## Frontend
@@ -107,13 +110,13 @@ Represent industrial relationships.
 
 Examples:
 
-Worker → Zone
+Worker â†’ Zone
 
-Zone → Sensor
+Zone â†’ Sensor
 
-Permit → Equipment
+Permit â†’ Equipment
 
-Equipment → Incident
+Equipment â†’ Incident
 
 ---
 

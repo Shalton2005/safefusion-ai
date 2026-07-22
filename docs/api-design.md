@@ -1,3 +1,6 @@
+﻿> [!NOTE]
+> **This is an early architectural design document created at the start of the project.** For the final, up-to-date documentation that strictly reflects the implemented Hackathon submission, please refer to the primary [docs/](./README.md) hub (including [pi/](./api/README.md) and [rchitecture/](./architecture/README.md)).
+
 # API Design
 
 ## Overview
@@ -310,12 +313,12 @@ Returns:
 - Explanation
 
 Notes:
-- Purely rule-based — no LLMs/AI involved.
+- Purely rule-based â€” no LLMs/AI involved.
 - A zone can trigger multiple actions at once (e.g. Notify Safety Officer,
   Stop Work, and Evacuate Area simultaneously).
 - Action thresholds are centrally configured in
   `backend/src/config/risk_rules.py` (`EMERGENCY_RESPONSE_RULES`) and
-  `backend/src/config/settings.py` — no action logic is hardcoded in
+  `backend/src/config/settings.py` â€” no action logic is hardcoded in
   routes or services.
 - The `generate_incident` action persists a new record via the existing
   Incident repository; all other actions are dispatched as structured,
@@ -369,7 +372,7 @@ Returns:
 - Per-Incident Compliance Status, Violated Rules, Recommendations
 
 Notes:
-- Purely rule-based — no LLMs/AI involved. Rules are attribute
+- Purely rule-based â€” no LLMs/AI involved. Rules are attribute
   comparisons (incident type, severity) against a centrally configured
   registry in `backend/src/config/compliance_rules.py`.
 - Supports Factory Act, OISD, and DGMS frameworks; adding a rule or a new
@@ -398,7 +401,7 @@ Returns:
 - Ordered Recommendations (source, zone, priority, message, reason)
 
 Notes:
-- Purely rule-based — no LLMs/AI involved. Ordering and message wording
+- Purely rule-based â€” no LLMs/AI involved. Ordering and message wording
   are centrally configured in `backend/src/config/recommendation_rules.py`
   (source priority + severity offsets + message templates); adding a rule
   or a new source requires only registry/config changes, not engine
@@ -452,7 +455,7 @@ Returns:
 - Compliance Notes (violated Factory Act / OISD / DGMS rules)
 
 Notes:
-- Purely rule-based — no LLMs/AI involved.
+- Purely rule-based â€” no LLMs/AI involved.
 - JSON output only; no PDF or document generation.
 - Compound Risk and Emergency Response sections are matched to the
   incident by zone; Compliance is evaluated directly against the
@@ -466,7 +469,7 @@ Notes:
 Retrieval over ingested OISD/Factory Act/DGMS/incident-report document
 chunks (`backend/src/services/document_ingestion`, `chunking`,
 `embedding`, and the pgvector-backed `document_embeddings` table). All
-three endpoints are retrieval-only — **no LLM call happens anywhere in
+three endpoints are retrieval-only â€” **no LLM call happens anywhere in
 this API**. Answer generation is a deliberately separate, not-yet-built
 step.
 
@@ -474,11 +477,11 @@ step.
 
 Purpose:
 Return every stored chunk ingested from a given source document, in
-chunk order. Plain metadata lookup — no embedding model is invoked, so
+chunk order. Plain metadata lookup â€” no embedding model is invoked, so
 this endpoint works even when Ollama is unreachable.
 
 Input:
-- `source` (query parameter, required) — path/URI of the source document.
+- `source` (query parameter, required) â€” path/URI of the source document.
 
 Returns:
 - Source
@@ -502,7 +505,7 @@ Input:
 Returns:
 - Query
 - Result Count
-- Results (id, content, source, title, file type, chunk index, similarity — most relevant first)
+- Results (id, content, source, title, file type, chunk index, similarity â€” most relevant first)
 
 ---
 
@@ -522,7 +525,7 @@ Returns:
 - Context Chunks (same shape as `/rag/search` results)
 
 Notes:
-- Identical retrieval behavior to `POST /rag/search` today — kept as a
+- Identical retrieval behavior to `POST /rag/search` today â€” kept as a
   separate endpoint because it's the intended integration point for
   answer generation later; the request/response shape won't need to
   change when that's added, only a new `answer` field will appear

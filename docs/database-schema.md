@@ -1,3 +1,6 @@
+﻿> [!NOTE]
+> **This is an early architectural design document created at the start of the project.** For the final, up-to-date documentation that strictly reflects the implemented Hackathon submission, please refer to the primary [docs/](./README.md) hub (including [pi/](./api/README.md) and [rchitecture/](./architecture/README.md)).
+
 # Database Schema Design
 
 ## Overview
@@ -149,7 +152,7 @@ Stores AI-generated compound risk analysis results.
 |------|------|-------------|
 | risk_id | UUID | Risk identifier |
 | zone | String | Plant zone |
-| risk_score | Float | Risk score (0–100) |
+| risk_score | Float | Risk score (0â€“100) |
 | risk_level | String | Low / Medium / High / Critical |
 | contributing_factors | Text | Factors influencing risk |
 | recommendation | Text | Suggested preventive action |
@@ -160,32 +163,32 @@ Stores AI-generated compound risk analysis results.
 
 ```
 workers
-    │
-    ├── belongs_to ─────────────► permits
-    │
-    ├── located_in ─────────────► sensors
-    │
-    └── affected_by ────────────► alerts
+    â”‚
+    â”œâ”€â”€ belongs_to â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â–º permits
+    â”‚
+    â”œâ”€â”€ located_in â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â–º sensors
+    â”‚
+    â””â”€â”€ affected_by â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â–º alerts
 
 permits
-    │
-    └── linked_to ──────────────► maintenance_logs
+    â”‚
+    â””â”€â”€ linked_to â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â–º maintenance_logs
 
 maintenance_logs
-    │
-    └── influences ─────────────► risk_scores
+    â”‚
+    â””â”€â”€ influences â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â–º risk_scores
 
 sensors
-    │
-    └── contribute_to ──────────► risk_scores
+    â”‚
+    â””â”€â”€ contribute_to â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â–º risk_scores
 
 incidents
-    │
-    └── referenced_by ──────────► risk_scores
+    â”‚
+    â””â”€â”€ referenced_by â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â–º risk_scores
 
 risk_scores
-    │
-    └── generate ───────────────► alerts
+    â”‚
+    â””â”€â”€ generate â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â–º alerts
 ```
 
 
