@@ -193,7 +193,7 @@ function GraphVisualizationInner({
   );
 
   const flowNodes = useMemo(() => {
-    const layoutedNodes = applyDagreLayout(nodes, edges);
+    const layoutedNodes = applyForceLayout(nodes, edges);
     return layoutedNodes.map((node, index) => toFlowNode(node, index, selectedNodeId));
   }, [nodes, edges, selectedNodeId]);
   const flowEdges = useMemo(() => edges.map(toFlowEdge), [edges]);
