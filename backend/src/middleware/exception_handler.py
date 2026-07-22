@@ -50,6 +50,11 @@ def get_error_message(status_code: int, detail: Any = None) -> str:
     except ValueError:
         status_phrase = None
 
+    if isinstance(detail, dict) and "message" in detail:
+        msg = detail["message"]
+        if isinstance(msg, str) and msg.strip() and msg.strip() != status_phrase:
+            return msg
+
     if (
         isinstance(detail, str)
         and detail.strip()
@@ -70,6 +75,7 @@ async def http_exception_handler(
     """Handle FastAPI and Starlette HTTP exceptions with one response shape."""
     status_code = exc.status_code
     message = get_error_message(status_code, exc.detail)
+    code = exc.detail.get("code") if isinstance(exc.detail, dict) else None
 
     if status_code >= status.HTTP_500_INTERNAL_SERVER_ERROR:
         logger.error(
@@ -97,6 +103,7 @@ async def http_exception_handler(
     return error_response(
         message=message,
         status_code=status_code,
+        code=code,
         headers=exc.headers,
     )
 

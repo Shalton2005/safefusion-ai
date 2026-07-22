@@ -43,7 +43,7 @@ class AuthService:
         if self._repository.get_by_email(email) is not None:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail="An account with this email already exists.",
+                detail={"code": "ACCOUNT_EXISTS", "message": "An account with this email already exists."},
             )
         return self._repository.create(
             {
@@ -61,15 +61,20 @@ class AuthService:
             HTTPException: 401 if credentials are invalid or the account is disabled.
         """
         user = self._repository.get_by_email(email)
-        if user is None or not verify_password(password, user.hashed_password):
+        if user is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail={"code": "USER_NOT_FOUND", "message": "No account was found for this email address. Please contact your system administrator."},
+            )
+        if not verify_password(password, user.hashed_password):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Incorrect email or password.",
+                detail={"code": "INVALID_PASSWORD", "message": "The password you entered is incorrect. Please try again."},
             )
         if not user.is_active:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="This account has been deactivated.",
+                detail={"code": "ACCOUNT_DISABLED", "message": "Your account has been disabled. Please contact your administrator."},
             )
         return user
 
@@ -93,13 +98,13 @@ class AuthService:
         except TokenError as exc:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail=str(exc),
+                detail={"code": "TOKEN_ERROR", "message": str(exc)},
             ) from exc
 
         user = self._repository.get_by_id(uuid.UUID(payload["sub"]))
         if user is None or not user.is_active:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="User no longer exists or is inactive.",
+                detail={"code": "ACCOUNT_DISABLED", "message": "User no longer exists or is inactive."},
             )
         return self.issue_tokens(user)

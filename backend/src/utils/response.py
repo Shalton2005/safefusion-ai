@@ -46,6 +46,7 @@ def success_response(
 def error_response(
     message: str = "An error occurred.",
     status_code: int = 400,
+    code: Optional[str] = None,
     data: Optional[Any] = None,
     headers: Optional[dict[str, str]] = None,
 ) -> JSONResponse:
@@ -54,6 +55,7 @@ def error_response(
     Args:
         message: A human-readable error description.
         status_code: The HTTP status code to set on the response (default ``400``).
+        code: An optional machine-readable error code.
         data: Optional additional context (e.g. validation error details).
         headers: Optional HTTP headers to include in the response.
 
@@ -66,6 +68,7 @@ def error_response(
         content={
             "success": False,
             "message": message,
+            **({"code": code} if code else {}),
             "data": data,
         },
     )
