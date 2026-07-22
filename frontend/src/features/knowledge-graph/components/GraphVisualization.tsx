@@ -87,63 +87,42 @@ const kindColorMap: Record<GraphNodeKind, string> = Object.fromEntries(
   Object.entries(GRAPH_TYPE_META).map(([kind, meta]) => [kind, meta.color]),
 ) as Record<GraphNodeKind, string>;
 
-function applyConcentricLayout(nodes: GraphNode[]): GraphNode[] {
-  // We don't want to mutate the original props, so we shallow clone
-  const cloned = nodes.map(n => ({ ...n }));
+import dagre from 'dagre';
 
-  const ring0: GraphNode[] = []; // incident, risk
-  const ring1: GraphNode[] = []; // zone
-  const ring2: GraphNode[] = []; // worker, permit, equipment
-  const ring3: GraphNode[] = []; // sensor, camera
-
-  cloned.forEach(node => {
-    switch (node.kind) {
-      case 'incident':
-      case 'risk':
-        ring0.push(node);
-        break;
-      case 'zone':
-        ring1.push(node);
-        break;
-      case 'worker':
-      case 'permit':
-      case 'equipment':
-        ring2.push(node);
-        break;
-      case 'sensor':
-      case 'camera':
-      default:
-        ring3.push(node);
-        break;
-    }
+function applyDagreLayout(nodes: GraphNode[], edges: GraphEdge[], direction = 'LR'): GraphNode[] {
+  const dagreGraph = new dagre.graphlib.Graph();
+  dagreGraph.setDefaultEdgeLabel(() => ({}));
+  
+  // Configure the layout algorithm
+  dagreGraph.setGraph({ 
+    rankdir: direction, // Left to Right
+    nodesep: 50,       // Vertical separation between nodes
+    ranksep: 200,      // Horizontal separation between layers
+    edgesep: 20,
   });
 
-  const distribute = (ringNodes: GraphNode[], radius: number) => {
-    const total = ringNodes.length;
-    if (total === 0) return;
-    if (total === 1 && radius === 0) {
-      ringNodes[0].position = { x: 0, y: 0 };
-      return;
-    }
-    const actualRadius = total === 1 ? 0 : radius;
-    const angleStep = (2 * Math.PI) / total;
-    ringNodes.forEach((node, i) => {
-      node.position = {
-        x: actualRadius * Math.cos(i * angleStep),
-        y: actualRadius * Math.sin(i * angleStep)
-      };
-    });
-  };
+  nodes.forEach((node) => {
+    // Standard node width based on current styling
+    dagreGraph.setNode(node.id, { width: 250, height: 60 });
+  });
 
-  // Give multiple center nodes a tiny radius to prevent exact overlap
-  distribute(ring0, ring0.length > 1 ? 50 : 0); 
-  distribute(ring1, 250);
-  distribute(ring2, 550);
-  distribute(ring3, 850);
+  edges.forEach((edge) => {
+    dagreGraph.setEdge(edge.source, edge.target);
+  });
+
+  dagre.layout(dagreGraph);
 
   // Return exactly the original array order but with positions populated
-  // Since we cloned, we can just return the cloned array. It has the same order, but positions are assigned.
-  return cloned;
+  return nodes.map(n => {
+    const nodeWithPosition = dagreGraph.node(n.id);
+    return {
+      ...n,
+      position: {
+        x: nodeWithPosition.x - 250 / 2,
+        y: nodeWithPosition.y - 60 / 2,
+      }
+    };
+  });
 }
 
 const GRID_COLUMNS = 4;
@@ -170,6 +149,11 @@ function toFlowNode(node: GraphNode, index: number, selectedNodeId?: string | nu
       fontSize: 12,
       fontWeight: 500,
       padding: '8px 14px',
+      width: 220,
+      whiteSpace: 'nowrap',
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      textAlign: 'center',
     } satisfies CSSProperties,
   };
 }
@@ -180,8 +164,9 @@ function toFlowEdge(edge: GraphEdge): Edge {
     source: edge.source,
     target: edge.target,
     label: edge.label,
+    type: 'smoothstep',
     animated: edge.animated ?? false,
-    style: { stroke: 'var(--sf-text-tertiary)', strokeWidth: 1.5 },
+    style: { stroke: 'var(--sf-border-strong)', strokeWidth: 1.5, opacity: 0.7 },
     labelStyle: { fill: 'var(--sf-text-secondary)', fontSize: 11 },
     labelBgStyle: { fill: 'var(--sf-surface-card)' },
   };
@@ -216,9 +201,9 @@ function GraphVisualizationInner({
   );
 
   const flowNodes = useMemo(() => {
-    const layoutedNodes = applyConcentricLayout(nodes);
+    const layoutedNodes = applyDagreLayout(nodes, edges);
     return layoutedNodes.map((node, index) => toFlowNode(node, index, selectedNodeId));
-  }, [nodes, selectedNodeId]);
+  }, [nodes, edges, selectedNodeId]);
   const flowEdges = useMemo(() => edges.map(toFlowEdge), [edges]);
 
   const handleNodeClick = useCallback<NodeMouseHandler>(
