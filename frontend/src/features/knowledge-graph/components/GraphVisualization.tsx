@@ -91,7 +91,8 @@ import * as d3 from 'd3-force';
 
 function applyForceLayout(nodes: GraphNode[], edges: GraphEdge[]): GraphNode[] {
   // We need to pass objects that d3-force can mutate with x/y properties
-  const d3Nodes = nodes.map(n => ({ ...n, x: 0, y: 0 }));
+  // Do NOT hardcode x/y to 0, or d3-force divides by zero when repelling nodes!
+  const d3Nodes = nodes.map(n => ({ ...n, id: n.id } as any));
   const d3Edges = edges.map(e => ({ source: e.source, target: e.target }));
 
   const simulation = d3.forceSimulation(d3Nodes)
@@ -102,7 +103,6 @@ function applyForceLayout(nodes: GraphNode[], edges: GraphEdge[]): GraphNode[] {
     .stop();
 
   // Run the simulation synchronously to compute the layout before rendering!
-  // 300 ticks is generally enough for the graph to settle nicely.
   for (let i = 0; i < 300; ++i) {
     simulation.tick();
   }
@@ -111,8 +111,8 @@ function applyForceLayout(nodes: GraphNode[], edges: GraphEdge[]): GraphNode[] {
   return nodes.map((n, i) => ({
     ...n,
     position: {
-      x: d3Nodes[i].x - 110, // offset half width
-      y: d3Nodes[i].y - 30,  // offset half height
+      x: (d3Nodes[i].x || 0) - 110, // offset half width
+      y: (d3Nodes[i].y || 0) - 30,  // offset half height
     }
   }));
 }
@@ -193,7 +193,7 @@ function GraphVisualizationInner({
   );
 
   const flowNodes = useMemo(() => {
-    const layoutedNodes = applyForceLayout(nodes, edges);
+    const layoutedNodes = applyDagreLayout(nodes, edges);
     return layoutedNodes.map((node, index) => toFlowNode(node, index, selectedNodeId));
   }, [nodes, edges, selectedNodeId]);
   const flowEdges = useMemo(() => edges.map(toFlowEdge), [edges]);
@@ -235,11 +235,6 @@ function GraphVisualizationInner({
         proOptions={{ hideAttribution: true }}
       >
         <Background variant={BackgroundVariant.Dots} gap={16} size={1} />
-        <Controls 
-          position="bottom-left" 
-          showInteractive={false} 
-          className="bg-[var(--sf-surface-card)] border border-[var(--sf-border-default)] shadow-xl rounded-lg overflow-hidden [&>button]:border-b [&>button]:border-[var(--sf-border-default)] [&>button]:text-[var(--sf-text-secondary)] [&>button:hover]:bg-[var(--sf-surface-hover)] [&>button]:bg-[var(--sf-surface-card)]"
-        />
         {showMiniMap && (
           <MiniMap
             pannable
