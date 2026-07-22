@@ -55,6 +55,7 @@ export function usePlantStatus(): UsePlantStatusResult {
   // its own fetch after this hook's first tick) re-renders the banner with
   // the shared value instead of waiting for this hook's own next interval.
   const publishedRiskLevel = usePlantStatusStore((s) => s.riskLevel);
+  const publishedInEmergency = usePlantStatusStore((s) => s.inEmergency);
   const publishedLastUpdated = usePlantStatusStore((s) => s.lastUpdated);
 
   const fetchStatus = async (signal?: AbortSignal) => {
@@ -89,19 +90,20 @@ export function usePlantStatus(): UsePlantStatusResult {
 
   // A fresher publish arriving between this hook's own polls should win.
   const effectiveRiskLevel = publishedRiskLevel ?? riskLevel;
+  const effectiveInEmergency = publishedInEmergency ?? inEmergency;
   const effectiveLastUpdated =
     publishedLastUpdated && (!lastUpdated || publishedLastUpdated > lastUpdated) ? publishedLastUpdated : lastUpdated;
   const effectiveStatus =
-    inEmergency === null || effectiveRiskLevel === null
+    effectiveInEmergency === null || effectiveRiskLevel === null
       ? status
-      : inEmergency
+      : effectiveInEmergency
         ? 'emergency'
         : RISK_LEVEL_TO_PLANT_STATUS[effectiveRiskLevel];
 
   return {
     status: effectiveStatus,
     riskLevel: effectiveRiskLevel,
-    inEmergency,
+    inEmergency: effectiveInEmergency,
     loading,
     error,
     lastUpdated: effectiveLastUpdated,

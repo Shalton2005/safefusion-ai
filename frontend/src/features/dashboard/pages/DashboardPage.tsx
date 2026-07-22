@@ -54,11 +54,12 @@ export function DashboardPage() {
     if (riskEngineData.assessment) {
       usePlantStatusStore.getState().publish({
         riskLevel: riskEngineData.assessment.risk_level,
+        inEmergency: emergencyData.actions.length > 0,
         lastUpdated: riskEngineData.lastUpdated,
       });
     }
     return () => usePlantStatusStore.getState().clear();
-  }, [riskEngineData.assessment, riskEngineData.lastUpdated]);
+  }, [riskEngineData.assessment, emergencyData.actions, riskEngineData.lastUpdated]);
 
   const timelineEvents = useMemo(
     () =>

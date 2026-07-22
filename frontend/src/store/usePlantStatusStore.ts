@@ -32,19 +32,22 @@ import type { SeverityLevel } from '@/constants';
 interface PlantStatusStoreState {
   /** Highest-risk zone's bucketed severity, or `null` if no page has published one yet. */
   riskLevel: SeverityLevel | null;
-  /** When the published `riskLevel` was fetched. */
+  /** Whether the plant is currently in an emergency state. */
+  inEmergency: boolean | null;
+  /** When the published data was fetched. */
   lastUpdated: Date | null;
 
-  /** Publishes a freshly-fetched risk assessment for the banner (or any other consumer) to reuse instead of re-fetching. */
-  publish: (snapshot: { riskLevel: SeverityLevel; lastUpdated: Date | null }) => void;
+  /** Publishes freshly-fetched data for the banner (or any other consumer) to reuse instead of re-fetching. */
+  publish: (snapshot: { riskLevel: SeverityLevel; inEmergency: boolean | null; lastUpdated: Date | null }) => void;
   /** Clears the published snapshot — call on unmount of the publishing page so a stale value doesn't outlive it. */
   clear: () => void;
 }
 
 export const usePlantStatusStore = create<PlantStatusStoreState>()((set) => ({
   riskLevel: null,
+  inEmergency: null,
   lastUpdated: null,
 
-  publish: ({ riskLevel, lastUpdated }) => set({ riskLevel, lastUpdated }),
-  clear: () => set({ riskLevel: null, lastUpdated: null }),
+  publish: ({ riskLevel, inEmergency, lastUpdated }) => set({ riskLevel, inEmergency, lastUpdated }),
+  clear: () => set({ riskLevel: null, inEmergency: null, lastUpdated: null }),
 }));
