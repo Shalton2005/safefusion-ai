@@ -2,9 +2,10 @@
 Alert routes for SafeFusion AI API v1.
 """
 
+from uuid import UUID
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, HTTPException, status
 from sqlalchemy.orm import Session
 
 from src.config.settings import settings
@@ -153,3 +154,32 @@ def generate_alerts(
         generated_count=len(alerts),
         alerts=[AlertRead.model_validate(alert) for alert in alerts],
     )
+
+
+@router.put(
+    "/{alert_id}/acknowledge",
+    summary="Acknowledge an alert",
+    description="Transition an alert to 'acknowledged' status.",
+    response_model=AlertRead,
+)
+def acknowledge_alert(alert_id: UUID, service: AlertServiceDep) -> AlertRead:
+    from src.models.enums import AlertStatus
+    alert = service.update_alert(alert_id, {"status": AlertStatus.ACKNOWLEDGED})
+    if not alert:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Alert not found.")
+    return AlertRead.model_validate(alert)
+
+
+@router.put(
+    "/{alert_id}/resolve",
+    summary="Resolve an alert",
+    description="Transition an alert to 'resolved' status.",
+    response_model=AlertRead,
+)
+def resolve_alert(alert_id: UUID, service: AlertServiceDep) -> AlertRead:
+    from src.models.enums import AlertStatus
+    alert = service.update_alert(alert_id, {"status": AlertStatus.RESOLVED})
+    if not alert:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Alert not found.")
+    return AlertRead.model_validate(alert)
+

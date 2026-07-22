@@ -133,7 +133,7 @@ def get_zone_overview(db: DbDep) -> JSONResponse:
                 workers_present=worker_repo.count_by_zone(zone),
                 active_sensors=sensor_repo.count_by_zone(zone),
                 active_permits=permit_repo.count_active_by_zone(zone),
-                risk_level=latest_risk.risk_level if latest_risk else None,
+                risk_level=latest_risk.risk_level if latest_risk else 'low',
             )
         )
 

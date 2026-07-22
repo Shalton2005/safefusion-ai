@@ -38,16 +38,8 @@ export function KpiCardGrid({ dashboardSummary, complianceSnapshot, riskAssessme
 
   const timeStr = lastUpdated ? formatRelativeTime(lastUpdated.toISOString()) : 'Syncing...';
 
-  // Fallback to realistic demo values if backend returns placeholder > 10 (like 100)
-  const isHighRisk = riskAssessment?.risk_level === 'critical' || riskAssessment?.risk_level === 'high';
-  
-  const expiredPermits = complianceSnapshot?.non_compliant_count !== undefined && complianceSnapshot.non_compliant_count <= 10
-    ? complianceSnapshot.non_compliant_count
-    : isHighRisk ? 1 : 0;
-
-  const activeViolations = complianceSnapshot?.incident_count !== undefined && complianceSnapshot.incident_count <= 10
-    ? complianceSnapshot.incident_count
-    : isHighRisk ? 4 : (dashboardSummary?.critical_alerts ?? 0) > 0 ? 1 : 0;
+  const expiredPermits = complianceSnapshot?.non_compliant_count ?? 0;
+  const activeViolations = complianceSnapshot?.incident_count ?? 0;
 
   const KPI_CARDS: StatCardProps[] = [
     {

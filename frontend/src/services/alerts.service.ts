@@ -22,9 +22,9 @@ export const alertsService = {
 
   /** Acknowledge an active alert. */
   acknowledgeAlert: (id: string) =>
-    apiClient.patch<ApiResponse<Alert>>(`/alerts/${id}/acknowledge`),
+    apiClient.put<ApiResponse<Alert>>(`/alerts/${id}/acknowledge`),
 
   /** Resolve an acknowledged alert. */
   resolveAlert: (id: string) =>
-    apiClient.patch<ApiResponse<Alert>>(`/alerts/${id}/resolve`),
+    apiClient.put<ApiResponse<Alert>>(`/alerts/${id}/resolve`),
 };

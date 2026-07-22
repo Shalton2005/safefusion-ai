@@ -6,6 +6,8 @@ import { SEVERITY_BADGE_VARIANT } from '@/utils/severity';
 import { RecentIncidentsPanel } from '@/features/alerts/components/RecentIncidentsPanel';
 import { useRecentAlerts } from '@/features/alerts/hooks/useRecentAlerts';
 import { useMemo, useState, useEffect } from 'react';
+import { alertsService } from '@/services/alerts.service';
+import { useToast } from '@/hooks/useToast';
 
 const statusVariant: Record<string, 'danger' | 'warning' | 'success'> = {
   active:       'danger',
@@ -23,98 +25,130 @@ export interface EnrichedAlert extends AlertRecord {
   displayTime: string;
 }
 
-const columns: TableColumn<EnrichedAlert>[] = [
-  {
-    key: 'alert_type',
-    header: 'Alert',
-    accessor: 'alert_type',
-    width: '32%',
-    render: (v, row) => (
-      <div>
-        <p className="text-base font-semibold text-[var(--sf-text-primary)]">{v as string}</p>
-        <p className="text-sm text-[var(--sf-text-secondary)] mt-0.5">
-          {row.message}
-        </p>
-      </div>
-    ),
-  },
-  {
-    key: 'severity',
-    header: 'Severity',
-    accessor: 'realisticSeverity',
-    render: (v) => (
-      <Badge variant={SEVERITY_BADGE_VARIANT[v as keyof typeof SEVERITY_BADGE_VARIANT]} dot size="sm">
-        {(v as string).charAt(0).toUpperCase() + (v as string).slice(1)}
-      </Badge>
-    ),
-  },
-  {
-    key: 'status',
-    header: 'Status',
-    accessor: 'status',
-    render: (v) => (
-      <Badge variant={statusVariant[v as string] || 'outline'} size="sm">
-        {(v as string).charAt(0).toUpperCase() + (v as string).slice(1)}
-      </Badge>
-    ),
-  },
-  {
-    key: 'ai_insight',
-    header: 'AI Insight',
-    render: (_, row) => (
-      <Badge variant={row.insightColor} size="sm">
-        {row.insightLabel}
-      </Badge>
-    ),
-  },
-  {
-    key: 'confidence',
-    header: 'AI Confidence',
-    render: (_, row) => (
-      <Badge variant="success" size="sm">
-        {row.confidence}%
-      </Badge>
-    ),
-  },
-  {
-    key: 'source',
-    header: 'Device',
-    accessor: 'realisticSource',
-    width: '12%',
-    render: (v) => (
-      <span className="text-sm font-medium text-[var(--sf-text-secondary)]">{v as string}</span>
-    )
-  },
-  { 
-    key: 'zone', 
-    header: 'Location', 
-    accessor: 'realisticLocation',
-    width: '10%'
-  },
-  {
-    key: 'generated_at',
-    header: 'Time',
-    accessor: 'displayTime',
-    render: (v) => (
-      <span className="text-xs text-[var(--sf-text-tertiary)] whitespace-nowrap">
-        {v as string}
-      </span>
-    ),
-  },
-  {
-    key: 'actions',
-    header: '',
-    align: 'right',
-    render: () => (
-      <Button variant="ghost" size="sm" leftIcon={<Bot className="w-3.5 h-3.5" />}>
-        Investigate
-      </Button>
-    )
-  }
-];
+
 
 export function AlertsPage() {
   const { alerts, loading, lastUpdated, refresh } = useRecentAlerts({ limit: 200 });
+  const toast = useToast();
+
+  const handleAcknowledge = async (id: string) => {
+    try {
+      await alertsService.acknowledgeAlert(id);
+      toast.success('Alert acknowledged.');
+      refresh();
+    } catch (e) {
+      toast.error('Failed to acknowledge alert.');
+    }
+  };
+
+  const handleResolve = async (id: string) => {
+    try {
+      await alertsService.resolveAlert(id);
+      toast.success('Alert resolved.');
+      refresh();
+    } catch (e) {
+      toast.error('Failed to resolve alert.');
+    }
+  };
+
+  const columns = useMemo<TableColumn<EnrichedAlert>[]>(() => [
+    {
+      key: 'alert_type',
+      header: 'Alert',
+      accessor: 'alert_type',
+      width: '32%',
+      render: (v, row) => (
+        <div>
+          <p className="text-base font-semibold text-[var(--sf-text-primary)]">{v as string}</p>
+          <p className="text-sm text-[var(--sf-text-secondary)] mt-0.5">
+            {row.message}
+          </p>
+        </div>
+      ),
+    },
+    {
+      key: 'severity',
+      header: 'Severity',
+      accessor: 'realisticSeverity',
+      render: (v) => (
+        <Badge variant={SEVERITY_BADGE_VARIANT[v as keyof typeof SEVERITY_BADGE_VARIANT]} dot size="sm">
+          {(v as string).charAt(0).toUpperCase() + (v as string).slice(1)}
+        </Badge>
+      ),
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      accessor: 'status',
+      render: (v) => (
+        <Badge variant={statusVariant[v as string] || 'outline'} size="sm">
+          {(v as string).charAt(0).toUpperCase() + (v as string).slice(1)}
+        </Badge>
+      ),
+    },
+    {
+      key: 'ai_insight',
+      header: 'AI Insight',
+      render: (_, row) => (
+        <Badge variant={row.insightColor} size="sm">
+          {row.insightLabel}
+        </Badge>
+      ),
+    },
+    {
+      key: 'confidence',
+      header: 'AI Confidence',
+      render: (_, row) => (
+        <Badge variant="success" size="sm">
+          {row.confidence}%
+        </Badge>
+      ),
+    },
+    {
+      key: 'source',
+      header: 'Device',
+      accessor: 'realisticSource',
+      width: '12%',
+      render: (v) => (
+        <span className="text-sm font-medium text-[var(--sf-text-secondary)]">{v as string}</span>
+      )
+    },
+    { 
+      key: 'zone', 
+      header: 'Location', 
+      accessor: 'realisticLocation',
+      width: '10%'
+    },
+    {
+      key: 'generated_at',
+      header: 'Time',
+      accessor: 'displayTime',
+      render: (v) => (
+        <span className="text-xs text-[var(--sf-text-tertiary)] whitespace-nowrap">
+          {v as string}
+        </span>
+      ),
+    },
+    {
+      key: 'actions',
+      header: '',
+      align: 'right',
+      render: (_, row) => (
+        <div className="flex items-center gap-2 justify-end">
+          {row.status === 'active' && (
+            <Button variant="outline" size="sm" onClick={() => handleAcknowledge(row.id)}>
+              Acknowledge
+            </Button>
+          )}
+          {row.status !== 'resolved' && (
+            <Button variant="primary" size="sm" onClick={() => handleResolve(row.id)}>
+              Resolve
+            </Button>
+          )}
+        </div>
+      )
+    }
+  ], [refresh]);
 
   const [filterSeverity, setFilterSeverity] = useState<string>('');
   const [filterStatus, setFilterStatus] = useState<string>('');
