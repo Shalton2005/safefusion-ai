@@ -87,34 +87,66 @@ const kindColorMap: Record<GraphNodeKind, string> = Object.fromEntries(
   Object.entries(GRAPH_TYPE_META).map(([kind, meta]) => [kind, meta.color]),
 ) as Record<GraphNodeKind, string>;
 
-import * as d3 from 'd3-force';
+function applyConcentricLayout(nodes: GraphNode[]): GraphNode[] {
+  const cloned = nodes.map(n => ({ ...n }));
 
-function applyForceLayout(nodes: GraphNode[], edges: GraphEdge[]): GraphNode[] {
-  // We need to pass objects that d3-force can mutate with x/y properties
-  // Do NOT hardcode x/y to 0, or d3-force divides by zero when repelling nodes!
-  const d3Nodes = nodes.map(n => ({ ...n, id: n.id } as any));
-  const d3Edges = edges.map(e => ({ source: e.source, target: e.target }));
+  const ring0: GraphNode[] = []; // incident, risk
+  const ring1: GraphNode[] = []; // zone
+  const ring2: GraphNode[] = []; // worker, permit, equipment
+  const ring3: GraphNode[] = []; // sensor, camera
 
-  const simulation = d3.forceSimulation(d3Nodes)
-    .force('link', d3.forceLink(d3Edges).id((d: any) => d.id).distance(150))
-    .force('charge', d3.forceManyBody().strength(-400))
-    .force('collide', d3.forceCollide().radius(80))
-    .force('center', d3.forceCenter(0, 0))
-    .stop();
-
-  // Run the simulation synchronously to compute the layout before rendering!
-  for (let i = 0; i < 300; ++i) {
-    simulation.tick();
-  }
-
-  // Map the computed positions back to our nodes
-  return nodes.map((n, i) => ({
-    ...n,
-    position: {
-      x: (d3Nodes[i].x || 0) - 110, // offset half width
-      y: (d3Nodes[i].y || 0) - 30,  // offset half height
+  cloned.forEach(node => {
+    switch (node.kind) {
+      case 'incident':
+      case 'risk':
+        ring0.push(node);
+        break;
+      case 'zone':
+        ring1.push(node);
+        break;
+      case 'worker':
+      case 'permit':
+      case 'equipment':
+        ring2.push(node);
+        break;
+      case 'sensor':
+      case 'camera':
+      default:
+        ring3.push(node);
+        break;
     }
-  }));
+  });
+
+  let currentRadius = 0;
+
+  const distribute = (ringNodes: GraphNode[], minGap: number) => {
+    const total = ringNodes.length;
+    if (total === 0) return;
+    
+    // Ensure circumference is large enough for all nodes to fit side by side (approx 250px + 50px gap)
+    const requiredCircumference = total * 300;
+    const requiredRadius = requiredCircumference / (2 * Math.PI);
+    
+    currentRadius = Math.max(currentRadius + minGap, requiredRadius);
+    
+    // For single center nodes, keep them explicitly at center
+    if (total === 1 && currentRadius < 10) currentRadius = 0;
+
+    const angleStep = (2 * Math.PI) / total;
+    ringNodes.forEach((node, i) => {
+      node.position = {
+        x: currentRadius * Math.cos(i * angleStep),
+        y: currentRadius * Math.sin(i * angleStep)
+      };
+    });
+  };
+
+  distribute(ring0, 0); 
+  distribute(ring1, 400); // Add at least 400px gap from previous ring
+  distribute(ring2, 400);
+  distribute(ring3, 400);
+
+  return cloned;
 }
 
 const GRID_COLUMNS = 4;
@@ -156,7 +188,6 @@ function toFlowEdge(edge: GraphEdge): Edge {
     source: edge.source,
     target: edge.target,
     label: edge.label,
-    type: 'smoothstep',
     animated: edge.animated ?? false,
     style: { stroke: 'var(--sf-border-strong)', strokeWidth: 1.5, opacity: 0.7 },
     labelStyle: { fill: 'var(--sf-text-secondary)', fontSize: 11 },
@@ -193,9 +224,9 @@ function GraphVisualizationInner({
   );
 
   const flowNodes = useMemo(() => {
-    const layoutedNodes = applyForceLayout(nodes, edges);
+    const layoutedNodes = applyConcentricLayout(nodes);
     return layoutedNodes.map((node, index) => toFlowNode(node, index, selectedNodeId));
-  }, [nodes, edges, selectedNodeId]);
+  }, [nodes, selectedNodeId]);
   const flowEdges = useMemo(() => edges.map(toFlowEdge), [edges]);
 
   const handleNodeClick = useCallback<NodeMouseHandler>(

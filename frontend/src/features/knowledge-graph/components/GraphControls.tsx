@@ -56,7 +56,6 @@ export function GraphControls({
       </div>
 
       <div className="flex items-center gap-2 flex-wrap">
-        {/* Removed filter placeholder as per pending backend integration requirements */}
         <Button variant="outline" size="sm" iconOnly aria-label="Zoom in" onClick={onZoomIn}>
           <ZoomIn className="w-4 h-4" />
         </Button>
